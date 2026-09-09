@@ -504,7 +504,7 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Entities/PlayerController.cs`
 - Test: `Assets/_Project/Tests/EditMode/PlayerStatsTests.cs`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `Assets/_Project/Tests/EditMode/PlayerStatsTests.cs`:
 ```csharp
@@ -538,11 +538,18 @@ namespace Roguelite.Tests
         public void TakeDamage_Clamps_At_Zero_And_Raises()
         {
             bool raised = false;
-            GameEvents.HPChanged += (c, m) => raised = true;
-            stats.TakeDamage(9999f);
-            Assert.That(stats.CurrentHP, Is.EqualTo(0f));
-            Assert.That(raised, Is.True);
-            GameEvents.HPChanged = null;
+            System.Action<float, float> handler = (c, m) => raised = true;
+            GameEvents.HPChanged += handler;
+            try
+            {
+                stats.TakeDamage(9999f);
+                Assert.That(stats.CurrentHP, Is.EqualTo(0f));
+                Assert.That(raised, Is.True);
+            }
+            finally
+            {
+                GameEvents.HPChanged -= handler;
+            }
         }
 
         [Test]
@@ -570,12 +577,15 @@ namespace Roguelite.Tests
     }
 }
 ```
+> 注（CS0079 实测修正）：C# 事件只能在声明类内部用 `=` 置空；测试里 `GameEvents.HPChanged = null` 编译报 `CS0079`。改为保存 handler 局部变量、`+=` 订阅、`-=` 在 finally 中退订。
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
+Run: EditMode 测试命令。
 Expected: `PlayerStats` 未定义 → 编译失败。
+> 实测结果：`error CS0246: PlayerStats could not be found`（编译失败，符合预期红）。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `Assets/_Project/Scripts/Entities/PlayerStats.cs`:
 ```csharp
@@ -695,9 +705,11 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 4: 运行确认通过**
+- [x] **Step 4: 运行确认通过**
 
+Run: EditMode 测试命令。
 Expected: EditMode 全绿（`SmokeTests` 同步转绿，`DamageUtilitiesTests`/`PlayerStatsTests` 通过）。
+> 实测结果：`result="Passed" total=7 passed=7 failed=0`。
 
 - [ ] **Step 5: Commit**
 
