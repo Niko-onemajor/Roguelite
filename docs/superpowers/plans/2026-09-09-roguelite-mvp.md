@@ -16,6 +16,16 @@
 - 验证日志输出 `E:\Projects\Roguelite\Logs\`（已 gitignore）。首次运行 Unity CLI 会全量 import，耗时数分钟属正常
 
 **常用命令：**
+> **重要（环境实测 2026-09-09）**：Unity CLI 需要访问系统目录（`C:\ProgramData\Unity\Unity_lic.ulf` 许可证、`AppData\Local\Unity`、`AppData\LocalLow\Unity`），在 TRAE 沙箱内会被拦截而报 `disk I/O error`，进而触发崩溃恢复。**请在 TRAE Shell 中关闭沙箱（dangerouslyDisableSandbox）运行下述命令**。
+>
+> **统一入口：直接调用工具脚本 `Tools\Run-UnityCli.ps1`**（自动清理无窗口残留 Unity 进程与陈旧 `Temp\UnityLockfile`，运行后兜底再清一次，杜绝「隐形恢复进程 → 锁 → CLI 崩溃 → 再拉起」循环锁）：
+```powershell
+# 编译检查：
+powershell -ExecutionPolicy Bypass -File "Tools\Run-UnityCli.ps1" -Action compile
+# EditMode 测试：
+powershell -ExecutionPolicy Bypass -File "Tools\Run-UnityCli.ps1"          # 默认 tests，输出 result/total/passed/failed
+```
+> 原始命令（供参考，须手动处理进程/锁清理）：
 ```powershell
 $UNITY = "C:\Program Files\Unity\Hub\Editor\2022.3.62f3c1\Editor\Unity.exe"
 # 编译检查：
@@ -26,6 +36,7 @@ $UNITY = "C:\Program Files\Unity\Hub\Editor\2022.3.62f3c1\Editor\Unity.exe"
 # 期望：editmode.xml 根节点 test-run result="Passed" failed="0"
 ```
 > 实测（2022.3.62f3c1）：`-runTests` **不要加 `-quit`**，否则测试不会执行、编辑器直接退出且不生成结果文件；去掉 `-quit` 后测试跑完与退出码零自动退出。测试程序集 asmdef 必须带 `UNITY_INCLUDE_TESTS` 约束并引用 `UnityEngine.TestRunner`/`UnityEditor.TestRunner`。
+> 另：脚本用 Windows PowerShell 5.1 解析，**必须保存为 UTF-8 with BOM（或纯 ASCII）**，否则无 BOM 的中文注释会导致 switch 解析错乱；`$args` 是保留自动变量，勿复用。
 
 ---
 
