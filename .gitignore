@@ -1,0 +1,46 @@
+# This .gitignore file should be placed in the root directory of your project.
+# You may apply this file by using the command:
+#     git apply gitignore
+
+# ============ Unity 生成/缓存目录 ============
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Rr]ecordings/
+[Mm]emoryCaptures/
+
+# ============ Visual Studio / IDE 自动生成文件 ============
+.vs/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D Generated File On Crash Reports
+sysinfo.txt
+
+# ============ 构建产物 ============
+*.apk
+*.unitypackage
+*.app

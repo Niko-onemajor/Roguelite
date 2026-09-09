@@ -1,0 +1,12 @@
+---
+description: Unity Roguelike 项目的核心编码与设计规则
+globs: # 可选，指定此规则应用于哪些文件，如 "**/*.cs"
+alwaysApply: true
+---
+
+# Unity Roguelike 核心规则
+
+- 所有C#脚本必须放置在 `Assets/_Project/Scripts/` 下对应的文件夹中。
+- 创建新的 MonoBehaviour 时，必须同时考虑其生命周期内资源的创建与销毁，防止内存泄漏。
+- 实现新功能时，优先考虑使用现有的系统或管理器 (如 ObjectPool)。
+- 涉及游戏数值平衡的修改，需要在 `ScriptableObject` 中进行，而不是硬编码。
