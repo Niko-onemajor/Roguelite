@@ -727,11 +727,17 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Utils/EnemyRegistry.cs`
 - Create: `Assets/_Project/Scripts/Entities/Projectile.cs`
 - Create: `Assets/_Project/Scripts/Entities/Pickup.cs`
+- Create: `Assets/_Project/Scripts/Entities/Enemy.cs`（完整版，Task 6 原文，提前到 Task 5 落地）
 - Create: `Assets/_Project/Scripts/Systems/DamageSystem.cs`（临时桩，Task 8 替换）
 - Create: `Assets/_Project/Scripts/Utils/PoolManager.cs`（临时桩，Task 7 替换）
+- Create: `Assets/_Project/Scripts/Utils/PickupFactory.cs`（临时桩，Task 7 替换；完整版 Enemy.Die 依赖）
 - Test: `Assets/_Project/Tests/EditMode/EnemyRegistryTests.cs`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
+
+> **实测修正 1（RequireComponent）**：`Enemy` 带 `[RequireComponent(typeof(Collider2D))]`，`new GameObject()` 无法自动补全抽象 Collider2D，组件添加失败。测试里必须显式 `new GameObject(name, typeof(BoxCollider2D))`。
+>
+> **实测修正 2（batchmode 生命周期不触发）**：EditMode 批处理测试**不触发 MonoBehaviour 的 Awake/OnEnable 回调**（无播放循环，`[UnityTest]+yield` 也无法泵出）。因此测试改为**显式调用 `EnemyRegistry.Register/Unregister`** 验证注册表纯逻辑；「激活即自动注册」契约由 Task 13 PlayMode 冒烟验收。`Nearest` 实现同时去掉 `e.Data == null` 过滤（索敌只看位置，Data 不影响），否则未初始化的敌人永远不可被索敌。
 
 `Assets/_Project/Tests/EditMode/EnemyRegistryTests.cs`:
 ```csharp
@@ -786,33 +792,14 @@ namespace Roguelite.Tests
 }
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
-Expected: `Enemy`/`EnemyRegistry` 未定义 → 编译失败（`FakeEnemy` 派生自 `Enemy`，暗示 Task 5 必须同步提供 `Enemy` 的测试侧可变性 —— 见 Step 3 说明）。
+Expected: `Enemy`/`EnemyRegistry` 未定义 → 编译失败（`FakeEnemy` 派生自 `Enemy`）。
+> 实测结果：`error CS0246: Enemy could not be found`（编译失败，符合预期红）。
 
-> **依赖说明**：`FakeEnemy : Enemy` 要求 `Enemy` 基类在本任务存在。为遵守「一步一提交」，在 Task 5 你先落地 `Enemy` 基类（Task 6 会把它扩展为完整版：本任务只写注册/注销最小基类，Task 6 覆盖 Init/伤害/死亡）。合并实现以避免跨任务编译中断：
+> **依赖说明**：`FakeEnemy : Enemy`、`Projectile` 调用 `enemy.TakeDamage(...)`、`Enemy.Die` 调用 `PickupFactory.Spawn` 均要求 Task 6 的**完整版 Enemy** 先行落地。因此 Task 5 直接采用 Task 6 的完整版 `Enemy.cs`（见下文 Task 6 Step 1），并同步建立 `DamageSystem`/`PoolManager`/`PickupFactory` 临时桩（Task 7/8 替换），一次提交，避免跨任务编译中断。
 
-`Assets/_Project/Scripts/Entities/Enemy.cs`（Task 5 版 —— Task 6 将替换为完整版）:
-```csharp
-using UnityEngine;
-
-namespace Roguelite
-{
-    /// <summary>敌人基类（Task 5 最小版：仅注册/注销约束；Task 6 补全行为）。</summary>
-    [RequireComponent(typeof(Collider2D))]
-    public abstract class Enemy : MonoBehaviour
-    {
-        public EnemyData Data => null;
-
-        void OnEnable() => EnemyRegistry.Register(this);
-        void OnDisable() => EnemyRegistry.Unregister(this);
-
-        protected abstract void Behavior(float dt, PlayerController player);
-    }
-}
-```
-
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `Assets/_Project/Scripts/Utils/EnemyRegistry.cs`:
 ```csharp
@@ -843,7 +830,7 @@ namespace Roguelite
             for (int i = 0; i < enemies.Count; i++)
             {
                 Enemy e = enemies[i];
-                if (e == null || e.Data == null) continue;
+                if (e == null) continue;
                 float sq = ((Vector2)e.transform.position - pos).sqrMagnitude;
                 if (sq <= bestSq) { bestSq = sq; best = e; }
             }
@@ -855,7 +842,7 @@ namespace Roguelite
 }
 ```
 
-> **注意**：`Nearest` 里 `e.Data == null`（最小版 Enemy.Data 恒为 null）会导致 Nearest 永远返回 null。Task 6 完善 `Data` 后逻辑自然生效。**本任务测试不覆盖 Nearest 命中场景，仅测注册表计数**（符合上面写好的测试）。
+> **注意（实测偏置）**：`Nearest` **不再检查 `e.Data == null`**——索敌只需位置（注册表测试的 FakeEnemy 未 Init、Data 为 null 也须可被索敌）。`Enemy.cs` 见 Task 6 Step 1 全文（本任务已落地）。
 
 `Assets/_Project/Scripts/Entities/Projectile.cs`:
 ```csharp
@@ -978,10 +965,26 @@ namespace Roguelite
 {
     public static partial class DamageSystem
     {
-        public static readonly Random Rng = new Random();
+        public static readonly System.Random Rng = new System.Random();
 
         /// <summary>桩：Task 8 完整实现。</summary>
         public static void HitEnemy(Enemy enemy, float damage, float critChance) { }
+    }
+}
+```
+> 注（CS0104 实测修正）：同时 `using System;` 与 `using UnityEngine;` 时 `Random` 二义，改为 `System.Random` 全限定。
+
+`Assets/_Project/Scripts/Utils/PickupFactory.cs`（**临时桩**，Task 7 用完整版原样替换本文件）:
+```csharp
+using UnityEngine;
+
+namespace Roguelite
+{
+    /// <summary>金币工厂（临时桩）：Task 7 完整实现。</summary>
+    public static partial class PickupFactory
+    {
+        /// <summary>桩：Task 7 完整实现。</summary>
+        public static void Spawn(Vector3 pos, int gold) { }
     }
 }
 ```
@@ -1005,14 +1008,16 @@ namespace Roguelite
 
 > Task 5 版 `Enemy.cs` 里 `TakeDamage`/`Init` 缺失，`Projectile` 引用了 `enemy.TakeDamage(...)` 会编译失败。→ **处理**：Task 5 暂不引用 Projectile/Pickup 的编译路径不可行。简化决策：**Task 5 提交时把下方 Task 6 的完整 Enemy 一并落地**（合并为一次提交「feat: 敌人基类+注册表+子弹+拾取」），TDD 测试只覆盖注册表。Task 6 因此只新增三个行为子类。若你希望严格分 Task 提交，也可把 Projectile/Pickup 的文件留到 Task 6 后再建 —— 但本计划默认**Task 5 包含完整 Enemy 基类**（见下方 Task 6 的 Enemy.cs 全文，Task 5 直接用它）。
 
-- [ ] **Step 4: 运行确认通过**
+- [x] **Step 4: 运行确认通过**
 
+Run: EditMode 测试命令。
 Expected: EditMode 全绿（DamageUtilities/PlayerStats/注册表三项通过）。
+> 实测结果：`result="Passed" total=9 passed=9 failed=0`。实测过程中还发现「batchmode EditMode 不触发生命周期」（见 Step 1 注记），测试已改为显式 Register/Unregister。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add Assets/_Project/Scripts/Entities/Enemy.cs Assets/_Project/Scripts/Utils/EnemyRegistry.cs Assets/_Project/Scripts/Entities/Projectile.cs Assets/_Project/Scripts/Entities/Pickup.cs Assets/_Project/Scripts/Systems/DamageSystem.cs Assets/_Project/Scripts/Utils/PoolManager.cs Assets/_Project/Tests/EditMode/EnemyRegistryTests.cs
+git add Assets/_Project/Scripts/Entities/Enemy.cs Assets/_Project/Scripts/Utils/EnemyRegistry.cs Assets/_Project/Scripts/Entities/Projectile.cs Assets/_Project/Scripts/Entities/Pickup.cs Assets/_Project/Scripts/Systems/DamageSystem.cs Assets/_Project/Scripts/Utils/PoolManager.cs Assets/_Project/Scripts/Utils/PickupFactory.cs Assets/_Project/Tests/EditMode/EnemyRegistryTests.cs
 git commit -m "feat: 敌人基类/注册表/子弹/金币拾取(含单测) + 伤害与池建桩"
 git push origin main
 ```
