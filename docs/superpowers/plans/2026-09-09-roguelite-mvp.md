@@ -711,7 +711,7 @@ Run: EditMode 测试命令。
 Expected: EditMode 全绿（`SmokeTests` 同步转绿，`DamageUtilitiesTests`/`PlayerStatsTests` 通过）。
 > 实测结果：`result="Passed" total=7 passed=7 failed=0`。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Entities/PlayerStats.cs Assets/_Project/Scripts/Entities/PlayerController.cs Assets/_Project/Tests/EditMode/PlayerStatsTests.cs
