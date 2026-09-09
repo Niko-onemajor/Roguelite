@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Roguelite;
 
 namespace Roguelite.Tests
 {
@@ -7,7 +8,7 @@ namespace Roguelite.Tests
         [Test]
         public void Framework_Is_Loaded()
         {
-            Assert.That(2 + 2, Is.EqualTo(4));
+            Assert.That(typeof(GameEvents), Is.Not.Null);
         }
     }
 }

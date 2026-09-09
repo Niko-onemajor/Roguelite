@@ -165,11 +165,12 @@ git push origin main
 ## Task 2: 事件中心 + 纯逻辑伤害工具（TDD）
 
 **Files:**
-- Create: `Assets/_Project/Scripts/Core/GameEvents.cs`
 - Create: `Assets/_Project/Scripts/Core/DamageUtilities.cs`
+- Create: `Assets/_Project/Scripts/Core/GameEvents.cs`（不含 ShopOffer；见下方注记）
 - Test: `Assets/_Project/Tests/EditMode/DamageUtilitiesTests.cs`
+- Modify: `Assets/_Project/Tests/EditMode/SmokeTests.cs`（升级为引用 `GameEvents`）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `Assets/_Project/Tests/EditMode/DamageUtilitiesTests.cs`:
 ```csharp
@@ -208,12 +209,13 @@ namespace Roguelite.Tests
 }
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: EditMode 测试命令。
 Expected: `DamageUtilities` 未定义 → 编译失败。
+> 实测结果：`error CS0103: The name 'DamageUtilities' does not exist`（编译失败，符合预期红）。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `Assets/_Project/Scripts/Core/DamageUtilities.cs`:
 ```csharp
@@ -236,31 +238,20 @@ namespace Roguelite
 `Assets/_Project/Scripts/Core/GameEvents.cs`:
 ```csharp
 using System;
-using System.Collections.Generic;
 
 namespace Roguelite
 {
-    /// <summary>商店一次提供的 3 选 1 内容。</summary>
-    [Serializable]
-    public class ShopOffer
-    {
-        public List<ShopItemData> items = new List<ShopItemData>();
-        public List<int> prices = new List<int>();
-    }
-
     /// <summary>全局事件中心。状态变更广播，UI/系统订阅刷新。</summary>
     public static class GameEvents
     {
         public static event Action<float, float> HPChanged;     // current, max
         public static event Action<int> GoldChanged;            // current
         public static event Action<int, int> WaveChanged;       // currentIndex(1-based), total
-        public static event Action<ShopOffer> ShopOpened;       // 展示商店
         public static event Action<bool, int, int> GameEnded;   // victory, wavesCleared, kills
 
         public static void RaiseHP(float cur, float max) => HPChanged?.Invoke(cur, max);
         public static void RaiseGold(int gold) => GoldChanged?.Invoke(gold);
         public static void RaiseWave(int index, int total) => WaveChanged?.Invoke(index, total);
-        public static void RaiseShop(ShopOffer offer) => ShopOpened?.Invoke(offer);
         public static void RaiseGameEnded(bool victory, int wavesCleared, int kills) =>
             GameEnded?.Invoke(victory, wavesCleared, kills);
 
@@ -268,15 +259,18 @@ namespace Roguelite
         public static void ClearAll()
         {
             HPChanged = null; GoldChanged = null; WaveChanged = null;
-            ShopOpened = null; GameEnded = null;
+            GameEnded = null;
         }
     }
 }
 ```
+> 注（遵守 AGENTS.md「禁止提交编译错误代码」）：`ShopOffer` / `ShopOpened` 引用 Task 3 才创建的 `ShopItemData`，故 Task 2 不实现它们；**Task 3 创建 `ShopItemData.cs` 时必须补上**：在 `GameEvents` 中加入 `public static event Action<ShopOffer> ShopOpened;`、`public static void RaiseShop(ShopOffer offer) => ShopOpened?.Invoke(offer);`，并在 `ClearAll()` 中清零 `ShopOpened`。
 
-- [ ] **Step 4: 运行确认通过**
+- [x] **Step 4: 运行确认通过**
 
-Expected: EditMode 全绿（`SmokeTests` 若引用 PlayerStats 暂红属预期，Task 4 后转绿）。
+Run: EditMode 测试命令。
+Expected: 全绿（`SmokeTests` + `DamageUtilitiesTests` = 4 例）。
+> 实测结果：`result="Passed" total=4 passed=4 failed=0`。注意 CLI 返回码 1 不代表失败，以 `editmode.xml` 的 `result` 属性为准。
 
 - [ ] **Step 5: Commit**
 
