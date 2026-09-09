@@ -1,0 +1,14 @@
+{
+    "name": "Roguelite.Editor",
+    "rootNamespace": "Roguelite.EditorTools",
+    "references": ["Roguelite.Runtime"],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

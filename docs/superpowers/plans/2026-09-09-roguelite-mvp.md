@@ -22,9 +22,10 @@ $UNITY = "C:\Program Files\Unity\Hub\Editor\2022.3.62f3c1\Editor\Unity.exe"
 & $UNITY -batchmode -nographics -quit -projectPath "E:\Projects\Roguelite" -logFile "E:\Projects\Roguelite\Logs\compile.log"
 # 期望：exit code 0，compile.log 无 "error CS"
 # EditMode 测试：
-& $UNITY -batchmode -nographics -quit -projectPath "E:\Projects\Roguelite" -runTests -testPlatform EditMode -testResults "E:\Projects\Roguelite\Logs\editmode.xml" -logFile "E:\Projects\Roguelite\Logs\editmode.log"
+& $UNITY -batchmode -nographics -projectPath "E:\Projects\Roguelite" -runTests -testPlatform EditMode -testResults "E:\Projects\Roguelite\Logs\editmode.xml" -logFile "E:\Projects\Roguelite\Logs\editmode.log"
 # 期望：editmode.xml 根节点 test-run result="Passed" failed="0"
 ```
+> 实测（2022.3.62f3c1）：`-runTests` **不要加 `-quit`**，否则测试不会执行、编辑器直接退出且不生成结果文件；去掉 `-quit` 后测试跑完与退出码零自动退出。测试程序集 asmdef 必须带 `UNITY_INCLUDE_TESTS` 约束并引用 `UnityEngine.TestRunner`/`UnityEditor.TestRunner`。
 
 ---
 
@@ -64,7 +65,7 @@ Assets/_Project/
 - Create: `Assets/_Project/Tests/Roguelite.Tests.asmdef`
 - Test: `Assets/_Project/Tests/EditMode/SmokeTests.cs`
 
-- [ ] **Step 1: 创建三个 asmdef**
+- [x] **Step 1: 创建三个 asmdef**
 
 `Assets/_Project/Roguelite.Runtime.asmdef`:
 ```json
@@ -107,26 +108,29 @@ Assets/_Project/
 {
     "name": "Roguelite.Tests",
     "rootNamespace": "Roguelite.Tests",
-    "references": ["Roguelite.Runtime"],
+    "references": [
+        "Roguelite.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
     "includePlatforms": ["Editor"],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": ["nunit.framework.dll"],
     "autoReferenced": false,
-    "defineConstraints": [],
+    "defineConstraints": ["UNITY_INCLUDE_TESTS"],
     "versionDefines": [],
-    "noEngineReferences": false,
-    "optionalUnityReferences": ["TestAssemblies"]
+    "noEngineReferences": false
 }
 ```
+> 注：Unity 2022.3 已废弃旧格式 `optionalUnityReferences: ["TestAssemblies"]`（CLI 运行测试时不识别测试程序集）；改用引用 `UnityEngine.TestRunner`/`UnityEditor.TestRunner` + `defineConstraints: UNITY_INCLUDE_TESTS` 的现代格式。
 
-- [ ] **Step 2: 写入冒烟测试**
+- [x] **Step 2: 写入冒烟测试**
 
 `Assets/_Project/Tests/EditMode/SmokeTests.cs`:
 ```csharp
 using NUnit.Framework;
-using Roguelite;
 
 namespace Roguelite.Tests
 {
@@ -135,19 +139,20 @@ namespace Roguelite.Tests
         [Test]
         public void Framework_Is_Loaded()
         {
-            Assert.That(typeof(PlayerStats), Is.Not.Null);
+            Assert.That(2 + 2, Is.EqualTo(4));
         }
     }
 }
 ```
-> 注：该测试引用 `PlayerStats`（Task 4 才实现）。**允许并期望第一次运行编译失败**（骨架本身编译通过；如果希望纯净冒烟，可临时改为 `Assert.That(typeof(GameEvents), Is.Not.Null)`，Task 4 后再改回）。本计划以「Task 2 后全绿」为准，Step 3 仅验证三 asmdef 无语法错误。
+> 注：为遵守 AGENTS.md「禁止提交包含编译错误的代码」，Task 1 的冒烟测试采用自包含断言（不引用 Task 2/4 才实现的类型），保证本提交编译通过；Task 2 完成后将其升级为 `Assert.That(typeof(GameEvents), Is.Not.Null)`，Task 4 完成后改为 `Assert.That(typeof(PlayerStats), Is.Not.Null)`。
 
-- [ ] **Step 3: 编译检查（asmdef 语法校验）**
+- [x] **Step 3: 编译检查（asmdef 语法校验）**
 
 Run: 编译命令（见「常用命令」）。
 Expected: 无 asmdef 语法报错；`SmokeTests` 的编译失败属已知中间态（Task 2/4 补齐后消失）。
+> 实测结果：编译通过（`error CS` 0 个，`Exiting batchmode successfully now!`）；EditMode 冒烟测试运行通过（`result="Passed" failed="0"`）。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Assets/_Project
