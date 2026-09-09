@@ -346,6 +346,7 @@ namespace Roguelite
         public float contactDamage = 10f;
         public float attackInterval = 1.5f;   // 接触伤害/远程射击间隔
         public float keepDistance = 0f;       // 远程型保持距离
+        public float range = 0f;              // 远程型射击射程(0=不射击)
         public float projectileDamage = 0f;   // 远程型弹幕伤害
         public float projectileSpeed = 8f;
         public int goldMin = 1;
@@ -439,9 +440,9 @@ namespace Roguelite
             cfg.weapons.Add(Weapon("手雷", WeaponType.AoE, 8f, 2.0f, 3.5f, 0f, Color.red));
 
             // 敌人 3 种
-            cfg.enemies.Add(Enemy(EnemyType.Chaser, 20f, 2.6f, 10f, 1.5f, 0f, 0f, 8f, 1, 2, 1f, new Color(0.9f, 0.3f, 0.3f)));
-            cfg.enemies.Add(Enemy(EnemyType.Ranged, 15f, 1.8f, 0f, 2.5f, 4.5f, 8f, 8f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f)));
-            cfg.enemies.Add(Enemy(EnemyType.Tank, 60f, 1.2f, 20f, 1.5f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f)));
+            cfg.enemies.Add(Enemy(EnemyType.Chaser, 20f, 2.6f, 10f, 1.5f, 0f, 0f, 0f, 8f, 1, 2, 1f, new Color(0.9f, 0.3f, 0.3f)));
+            cfg.enemies.Add(Enemy(EnemyType.Ranged, 15f, 1.8f, 0f, 2.5f, 4.5f, 8f, 8f, 8f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f)));
+            cfg.enemies.Add(Enemy(EnemyType.Tank, 60f, 1.2f, 20f, 1.5f, 0f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f)));
 
             // 商店 6 项
             cfg.shopItems.Add(Shop("伤害+6", StatType.Damage, 15, 8, 6f));
@@ -1043,7 +1044,11 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Entities/EnemyTank.cs`
 - Modify: `Assets/_Project/Scripts/Entities/Enemy.cs`（覆盖为完整版）
 
-- [ ] **Step 1: 完整 Enemy 基类（覆盖 Task 5 文件）**
+- [x] **Step 1: 完整 Enemy 基类（覆盖 Task 5 文件）**
+
+> 已在 Task 5 落地（Task 5 采用的就是本 Step 的完整版敌人基类），此处无需重复。
+
+- [x] **Step 2: 三种行为**
 
 `Assets/_Project/Scripts/Entities/Enemy.cs`:
 ```csharp
@@ -1179,25 +1184,16 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 3: 编译检查**
+- [x] **Step 3: 编译检查**
 
-Run: 编译命令。`ProjectileFactory.EnemyPrototype` 未定义（Task 7 实现）→ 允许中态编译失败；**如计划独立验证本 Task，先建临时桩**（Task 7 后移除）：
-```csharp
-using UnityEngine;
-namespace Roguelite
-{
-    public static partial class ProjectileFactory
-    {
-        public static GameObject EnemyPrototype => null;
-    }
-}
-```
+Run: 编译命令（通过 `Tools\Run-UnityCli.ps1 -Action compile` 验证）。
+> 实测结果：首次编译报 `CS1061: EnemyData 不含 range` —— **EnemyData 缺远程射程字段**，本任务已补 `range` 字段（Tank/Chaser=0 不射击，Ranged=8）并同步 `GameConfig.Enemy()` 工厂（见 Task 3 区块更新）。`ProjectileFactory.EnemyPrototype` 以临时桩补齐后，编译通过：`COMPILE OK (no error CS)`。
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Assets/_Project/Scripts/Entities/Enemy*.cs
-git commit -m "feat: 敌人三种行为(追逐/远程/坦克)"
+git add Assets/_Project/Scripts/Entities/Enemy*.cs Assets/_Project/Scripts/Data docs/superpowers/plans/2026-09-09-roguelite-mvp.md
+git commit -m "feat: 敌人三种行为(追逐/远程/坦克) + 远程射程字段"
 git push origin main
 ```
 

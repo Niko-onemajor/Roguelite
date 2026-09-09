@@ -22,9 +22,9 @@ namespace Roguelite
             cfg.weapons.Add(Weapon("手雷", WeaponType.AoE, 8f, 2.0f, 3.5f, 0f, Color.red));
 
             // 敌人 3 种
-            cfg.enemies.Add(Enemy(EnemyType.Chaser, 20f, 2.6f, 10f, 1.5f, 0f, 0f, 8f, 1, 2, 1f, new Color(0.9f, 0.3f, 0.3f)));
-            cfg.enemies.Add(Enemy(EnemyType.Ranged, 15f, 1.8f, 0f, 2.5f, 4.5f, 8f, 8f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f)));
-            cfg.enemies.Add(Enemy(EnemyType.Tank, 60f, 1.2f, 20f, 1.5f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f)));
+            cfg.enemies.Add(Enemy(EnemyType.Chaser, 20f, 2.6f, 10f, 1.5f, 0f, 0f, 0f, 8f, 1, 2, 1f, new Color(0.9f, 0.3f, 0.3f)));
+            cfg.enemies.Add(Enemy(EnemyType.Ranged, 15f, 1.8f, 0f, 2.5f, 4.5f, 8f, 8f, 8f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f)));
+            cfg.enemies.Add(Enemy(EnemyType.Tank, 60f, 1.2f, 20f, 1.5f, 0f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f)));
 
             // 商店 6 项
             cfg.shopItems.Add(Shop("伤害+6", StatType.Damage, 15, 8, 6f));
@@ -53,11 +53,11 @@ namespace Roguelite
             return w;
         }
 
-        static EnemyData Enemy(EnemyType t, float hp, float spd, float cDmg, float interval, float keep, float pDmg, float pSpd, int gMin, int gMax, float scale, Color c)
+        static EnemyData Enemy(EnemyType t, float hp, float spd, float cDmg, float interval, float keep, float range, float pDmg, float pSpd, int gMin, int gMax, float scale, Color c)
         {
             var e = ScriptableObject.CreateInstance<EnemyData>();
             e.type = t; e.maxHP = hp; e.moveSpeed = spd; e.contactDamage = cDmg; e.attackInterval = interval;
-            e.keepDistance = keep; e.projectileDamage = pDmg; e.projectileSpeed = pSpd;
+            e.keepDistance = keep; e.range = range; e.projectileDamage = pDmg; e.projectileSpeed = pSpd;
             e.goldMin = gMin; e.goldMax = gMax; e.scale = scale; e.color = c;
             return e;
         }
