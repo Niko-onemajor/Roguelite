@@ -487,7 +487,7 @@ Run: 编译命令。
 Expected: 无 `error CS`。
 > 实测结果：`error CS` 0 个，`Exiting batchmode successfully now!`（注意：批处理会重写 `ProjectSettings.asset` 的 bundle id，提交前请还原该文件）。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Data
