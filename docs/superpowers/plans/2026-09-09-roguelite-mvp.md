@@ -283,7 +283,7 @@ Run: EditMode 测试命令。
 Expected: 全绿（`SmokeTests` + `DamageUtilitiesTests` = 4 例）。
 > 实测结果：`result="Passed" total=4 passed=4 failed=0`。注意 CLI 返回码 1 不代表失败，以 `editmode.xml` 的 `result` 属性为准。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Core Assets/_Project/Tests/EditMode/DamageUtilitiesTests.cs
@@ -1121,7 +1121,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 2: 三种行为**
+- [x] **Step 2: 三种行为**
 
 `Assets/_Project/Scripts/Entities/EnemyChaser.cs`:
 ```csharp
@@ -1189,7 +1189,7 @@ namespace Roguelite
 Run: 编译命令（通过 `Tools\Run-UnityCli.ps1 -Action compile` 验证）。
 > 实测结果：首次编译报 `CS1061: EnemyData 不含 range` —— **EnemyData 缺远程射程字段**，本任务已补 `range` 字段（Tank/Chaser=0 不射击，Ranged=8）并同步 `GameConfig.Enemy()` 工厂（见 Task 3 区块更新）。`ProjectileFactory.EnemyPrototype` 以临时桩补齐后，编译通过：`COMPILE OK (no error CS)`。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Entities/Enemy*.cs Assets/_Project/Scripts/Data docs/superpowers/plans/2026-09-09-roguelite-mvp.md
@@ -1210,7 +1210,7 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Utils/PickupFactory.cs`
 - Test: `Assets/_Project/Tests/EditMode/PoolManagerTests.cs`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `Assets/_Project/Tests/EditMode/PoolManagerTests.cs`:
 ```csharp
@@ -1246,11 +1246,11 @@ namespace Roguelite.Tests
 }
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Expected: `Spawn` 返回 null（桩）→ 测试失败。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `Assets/_Project/Scripts/Utils/Poolable.cs`:
 ```csharp
@@ -1501,12 +1501,12 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 4: 运行 EditMode 测试 + 编译检查**
+- [x] **Step 4: 运行 EditMode 测试 + 编译检查**
 
 Run: 两条命令。
 Expected: 全绿；编译无 `error CS`；Task 6 的 `ProjectileFactory.EnemyPrototype` 引用此时解析，若建过临时桩记得删除。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Utils Assets/_Project/Tests/EditMode/PoolManagerTests.cs
@@ -1527,7 +1527,7 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Systems/CombatSystem.cs`
 - Test: `Assets/_Project/Tests/EditMode/DamageSystemTests.cs`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `Assets/_Project/Tests/EditMode/DamageSystemTests.cs`:
 ```csharp
@@ -1595,11 +1595,11 @@ namespace Roguelite.Tests
         // foreach (var o in objects) Object.DestroyImmediate(o); objects.Clear();
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Expected: `DamageSystem.RadiusHit` 未定义 → 编译失败。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `Assets/_Project/Scripts/Systems/DamageSystem.cs`（覆盖 Task 5 桩）:
 ```csharp
@@ -1776,11 +1776,11 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 4: 运行确认通过 + 编译检查**
+- [x] **Step 4: 运行确认通过 + 编译检查**
 
 Expected: EditMode 全绿（含 DamageSystem 新单测）；无 `error CS`。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Systems Assets/_Project/Tests/EditMode/DamageSystemTests.cs
@@ -1796,7 +1796,7 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Systems/EnemySpawner.cs`
 - Create: `Assets/_Project/Scripts/Managers/WaveManager.cs`
 
-- [ ] **Step 1: 实现刷怪器**
+- [x] **Step 1: 实现刷怪器**
 
 `Assets/_Project/Scripts/Systems/EnemySpawner.cs`:
 ```csharp
@@ -1861,7 +1861,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 2: 实现波次状态机**
+- [x] **Step 2: 实现波次状态机**
 
 `Assets/_Project/Scripts/Managers/WaveManager.cs`:
 ```csharp
@@ -1949,7 +1949,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 3: 编译检查**
+- [x] **Step 3: 编译检查**
 
 Expected: 无 `error CS`（`ShopSystem`/`OpenOffer` 未定义属已知中间态，Task 10 补齐；先建最小桩避免中断独立验证）：
 ```csharp
@@ -1965,7 +1965,7 @@ namespace Roguelite
 ```
 （Task 10 用完整版覆盖。）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Systems/EnemySpawner.cs Assets/_Project/Scripts/Managers/WaveManager.cs
@@ -1981,7 +1981,7 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Systems/ShopSystem.cs`（覆盖 Task 9 桩）
 - Test: `Assets/_Project/Tests/EditMode/ShopSystemTests.cs`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `Assets/_Project/Tests/EditMode/ShopSystemTests.cs`:
 ```csharp
@@ -2079,11 +2079,11 @@ namespace Roguelite.Tests
 
 > 说明：`openOffer` 测试中 `TryPurchase` 假设购买后不管成功与否都应关闭条件在 `TryPurchase_Closes_Offer` 里覆盖（成功场景）。金币不足时不关闭（可再选购别项），与本测试不冲突。
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Expected: `ShopSystem.OpenOffer` 未定义 → 编译失败。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `Assets/_Project/Scripts/Systems/ShopSystem.cs`（覆盖 Task 9 桩）:
 ```csharp
@@ -2143,12 +2143,12 @@ namespace Roguelite
 
 > 说明：金币不足或未开店（`IsAwaitingChoice == false`）返回 false 且不关店，玩家可换选其他项，与 `TryPurchase_Fails_When_Gold_Short` 一致。
 
-- [ ] **Step 4: 运行确认通过 + 编译检查**
+- [x] **Step 4: 运行确认通过 + 编译检查**
 
 Run: EditMode 测试 + 编译命令。
 Expected: 全绿（`ShopSystemTests` 4 项通过）；无 `error CS`。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Systems/ShopSystem.cs Assets/_Project/Tests/EditMode/ShopSystemTests.cs
@@ -2168,7 +2168,7 @@ git push origin main
 - Create: `Assets/_Project/Scripts/UI/ShopView.cs`
 - Create: `Assets/_Project/Scripts/UI/GameOverView.cs`
 
-- [ ] **Step 1: 实现 UIBuilder（Canvas/面板/文本/按钮/血条）**
+- [x] **Step 1: 实现 UIBuilder（Canvas/面板/文本/按钮/血条）**
 
 `Assets/_Project/Scripts/Utils/UIBuilder.cs`:
 ```csharp
@@ -2265,7 +2265,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 2: 实现 HudView**
+- [x] **Step 2: 实现 HudView**
 
 `Assets/_Project/Scripts/UI/HudView.cs`:
 ```csharp
@@ -2335,7 +2335,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 3: 实现 ShopView**
+- [x] **Step 3: 实现 ShopView**
 
 `Assets/_Project/Scripts/UI/ShopView.cs`:
 ```csharp
@@ -2414,7 +2414,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 4: 实现 GameOverView**
+- [x] **Step 4: 实现 GameOverView**
 
 `Assets/_Project/Scripts/UI/GameOverView.cs`:
 ```csharp
@@ -2483,12 +2483,12 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 5: 编译检查**
+- [x] **Step 5: 编译检查**
 
 Run: 编译命令。
 Expected: 无 `error CS`。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Utils/UIBuilder.cs Assets/_Project/Scripts/UI
@@ -2507,7 +2507,7 @@ git push origin main
 - Create: `Assets/_Project/Scripts/GameBootstrap.cs`
 - Create: `Assets/_Project/Scripts/Editor/RogueliteMenu.cs`
 
-- [ ] **Step 1: CombatSystem 支持多武器同时开火**
+- [x] **Step 1: CombatSystem 支持多武器同时开火**
 
 `Assets/_Project/Scripts/Systems/CombatSystem.cs`（整体替换 Task 8 版本）:
 ```csharp
@@ -2568,7 +2568,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 2: 实现 GameBootstrap（任意场景可玩）**
+- [x] **Step 2: 实现 GameBootstrap（任意场景可玩）**
 
 `Assets/_Project/Scripts/GameBootstrap.cs`:
 ```csharp
@@ -2672,7 +2672,7 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 3: 实现 Editor 工具（生成主场景 / 配置资产 / 占位精灵）**
+- [x] **Step 3: 实现 Editor 工具（生成主场景 / 配置资产 / 占位精灵）**
 
 `Assets/_Project/Scripts/Editor/RogueliteMenu.cs`:
 ```csharp
@@ -2813,12 +2813,12 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 4: 编译检查 + 冒烟运行**
+- [x] **Step 4: 编译检查 + 冒烟运行**
 
 Run: 编译命令 → Play Mode（或 `Roguelite/构造 Main 场景` 后 Enter Play）。
 Expected: 无 `error CS`；进入运行后玩家可见、第一波 2 秒后开始刷怪。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Assets/_Project/Scripts/Systems/CombatSystem.cs Assets/_Project/Scripts/GameBootstrap.cs Assets/_Project/Scripts/Editor/RogueliteMenu.cs
@@ -2832,7 +2832,7 @@ git push origin main
 
 **Files:** 无新增（可选：调参改 `GameConfig.Default()` 或已生成的 .asset）。
 
-- [ ] **Step 1: Play Mode 手动验收清单（对照设计文档 §7）**
+- [x] **Step 1: Play Mode 手动验收清单（对照设计文档 §7）**
 
 | # | 验收项 | 通过标准 |
 |---|---|---|
@@ -2848,17 +2848,17 @@ git push origin main
 | 10 | 重新开始 | 点击按钮重载对局，状态清零 |
 | 11 | 防泄漏 | 连续打完两局，Console 无异常/空引用 |
 
-- [ ] **Step 2: 数值与手感微调**
+- [x] **Step 2: 数值与手感微调**
 
 数值集中在 `GameConfig.Default()`（或生成的 .asset）：武器伤害/射程、敌人血量/移速、波次批次、商店价格。逐项调整后重跑 Step 1 冒烟。
 Expected: 单局时长 3–6 分钟，难度缓升无断层。
 
-- [ ] **Step 3: 构建冒烟（可选，Play 通过后进行）**
+- [x] **Step 3: 构建冒烟（可选，Play 通过后进行）**
 
 在 Build Settings 添加 `Assets/_Project/Scenes/Main.unity`，目标平台选 PC/Mac/Linux 或 WebGL，执行构建。
 Expected: 构建成功，产物运行可与编辑器行为一致。
 
-- [ ] **Step 4: 收尾提交**
+- [x] **Step 4: 收尾提交**
 
 ```bash
 git add -A
