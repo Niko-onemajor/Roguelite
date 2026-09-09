@@ -8,11 +8,13 @@ namespace Roguelite
         public static event Action<float, float> HPChanged;     // current, max
         public static event Action<int> GoldChanged;            // current
         public static event Action<int, int> WaveChanged;       // currentIndex(1-based), total
+        public static event Action<ShopOffer> ShopOpened;       // 展示商店
         public static event Action<bool, int, int> GameEnded;   // victory, wavesCleared, kills
 
         public static void RaiseHP(float cur, float max) => HPChanged?.Invoke(cur, max);
         public static void RaiseGold(int gold) => GoldChanged?.Invoke(gold);
         public static void RaiseWave(int index, int total) => WaveChanged?.Invoke(index, total);
+        public static void RaiseShop(ShopOffer offer) => ShopOpened?.Invoke(offer);
         public static void RaiseGameEnded(bool victory, int wavesCleared, int kills) =>
             GameEnded?.Invoke(victory, wavesCleared, kills);
 
@@ -20,7 +22,7 @@ namespace Roguelite
         public static void ClearAll()
         {
             HPChanged = null; GoldChanged = null; WaveChanged = null;
-            GameEnded = null;
+            ShopOpened = null; GameEnded = null;
         }
     }
 }

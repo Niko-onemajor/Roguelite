@@ -289,9 +289,11 @@ git push origin main
 - Create: `Assets/_Project/Scripts/Data/EnemyData.cs`
 - Create: `Assets/_Project/Scripts/Data/WaveConfig.cs`
 - Create: `Assets/_Project/Scripts/Data/ShopItemData.cs`
+- Create: `Assets/_Project/Scripts/Data/ShopOffer.cs`（独立文件，原计划置于 GameEvents.cs）
 - Create: `Assets/_Project/Scripts/Data/GameConfig.cs`
+- Modify: `Assets/_Project/Scripts/Core/GameEvents.cs`（补 `ShopOpened` 事件，见 Task 2 注记）
 
-- [ ] **Step 1: 实现四个 SO 与默认配置（纯数据落地，验收=编译通过）**
+- [x] **Step 1: 实现四个 SO 与默认配置（纯数据落地，验收=编译通过）**
 
 `Assets/_Project/Scripts/Data/WeaponData.cs`:
 ```csharp
@@ -479,10 +481,11 @@ namespace Roguelite
 }
 ```
 
-- [ ] **Step 2: 编译检查**
+- [x] **Step 2: 编译检查**
 
 Run: 编译命令。
 Expected: 无 `error CS`。
+> 实测结果：`error CS` 0 个，`Exiting batchmode successfully now!`（注意：批处理会重写 `ProjectSettings.asset` 的 bundle id，提交前请还原该文件）。
 
 - [ ] **Step 3: Commit**
 
