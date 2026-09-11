@@ -1,4 +1,4 @@
-﻿# Run-UnityCli.ps1 - Safely run Unity CLI validation (compile / EditMode tests)
+# Run-UnityCli.ps1 - Safely run Unity CLI validation (compile / EditMode tests)
 #
 # Background: Unity's crash-recovery can spawn a "headless Unity recovery process"
 # that holds Temp/UnityLockfile. The next CLI start then misreads it as
@@ -16,7 +16,7 @@
 #   5. Re-clean headless residues and stale lock so the next run starts clean
 
 param(
-    [ValidateSet("compile", "tests")][string]$Action = "tests",
+    [ValidateSet("compile", "tests", "scene")][string]$Action = "tests",
     [string]$Project = "E:\Projects\Roguelite",
     [int]$TimeoutSec = 600
 )
@@ -70,6 +70,14 @@ switch ($Action) {
                        "-testResults", $resultFile, "-logFile", $log)
         $label = "EditMode tests"
     }
+    "scene" {
+        $log = Join-Path $LogsDir "scene.log"
+        $unityArgs = @("-batchmode", "-nographics", "-quit", "-projectPath", $Project,
+                       "-executeMethod", "Roguelite.RogueliteMenu.BuildMainScene",
+                       "-logFile", $log)
+        $label = "Build Main scene"
+        $resultFile = $null
+    }
 }
 Write-Host "[$label] Starting Unity CLI (timeout ${TimeoutSec}s) ..."
 $proc = Start-Process -FilePath $EditorBin -ArgumentList $unityArgs -PassThru -NoNewWindow
@@ -108,13 +116,22 @@ if ($Action -eq "tests" -and (Test-Path $resultFile)) {
     Write-Host "report: $resultFile"
     if ($r.result -eq "Passed") { Write-Host "==> ALL GREEN <==" } else { exit 1 }
 } elseif ($Action -eq "compile") {
-    $errs = @(Select-String -Path $log -Pattern "error CS" -ErrorAction SilentlyContinue)
-    if ($errs.Count -gt 0) {
-        Write-Host "==> $($errs.Count) compile error(s) found <=="
-        $errs | Select-Object -First 10 | ForEach-Object { Write-Host $_.Line.Trim() }
-        exit 1
-    } else {
-        Write-Host "==> COMPILE OK (no error CS) <=="
+        $errs = @(Select-String -Path $log -Pattern "error CS" -ErrorAction SilentlyContinue)
+        if ($errs.Count -gt 0) {
+            Write-Host "==> $($errs.Count) compile error(s) found <=="
+            $errs | Select-Object -First 10 | ForEach-Object { Write-Host $_.Line.Trim() }
+            exit 1
+        } else {
+            Write-Host "==> COMPILE OK (no error CS) <=="
+        }
+    } elseif ($Action -eq "scene") {
+        $errs = @(Select-String -Path $log -Pattern "error CS|Exception|Failed" -ErrorAction SilentlyContinue)
+        if (Test-Path (Join-Path $Project "Assets\_Project\Scenes\Main.unity")) {
+            Write-Host "==> MAIN SCENE CREATED <=="
+        } else {
+            Write-Host "==> MAIN SCENE NOT FOUND <=="
+            $errs | Select-Object -First 10 | ForEach-Object { Write-Host $_.Line.Trim() }
+            exit 1
+        }
     }
-}
 exit 0
