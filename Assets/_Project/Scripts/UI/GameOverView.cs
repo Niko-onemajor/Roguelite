@@ -8,6 +8,7 @@ namespace Roguelite
     public class GameOverView : MonoBehaviour
     {
         GameObject panel;
+        bool _subscribed;
         Text titleText;
         Text statsText;
 
@@ -36,12 +37,21 @@ namespace Roguelite
             btnRt.anchorMax = new Vector2(0.6f, 0.32f);
             btnRt.offsetMin = Vector2.zero;
             btnRt.offsetMax = Vector2.zero;
+
+            if (!_subscribed)
+            {
+                _subscribed = true;
+                GameEvents.GameEnded += OnGameEnded;
+            }
         }
 
         #region Unity Lifecycle
-        void OnEnable() => GameEvents.GameEnded += OnGameEnded;
-
-        void OnDisable() => GameEvents.GameEnded -= OnGameEnded;
+        void OnDisable()
+        {
+            if (!_subscribed) return;
+            _subscribed = false;
+            GameEvents.GameEnded -= OnGameEnded;
+        }
         #endregion
 
         #region Event Handlers
@@ -57,6 +67,11 @@ namespace Roguelite
         static void Restart()
         {
             var scene = SceneManager.GetActiveScene();
+            if (string.IsNullOrEmpty(scene.name))
+            {
+                Debug.LogWarning("当前场景未保存，无法重新开始。请用菜单 Roguelite→构造 Main 场景 生成并打开 Main.unity 后运行。");
+                return;
+            }
             SceneManager.LoadScene(scene.name);
         }
         #endregion

@@ -11,6 +11,7 @@ namespace Roguelite
         public ShopSystem shop;
 
         GameObject panel;
+        bool _subscribed;
         readonly List<Card> cards = new List<Card>();
 
         sealed class Card
@@ -24,7 +25,25 @@ namespace Roguelite
         {
             panel = UIBuilder.Panel("Shop", parent);
             panel.SetActive(false);
+            if (!_subscribed)
+            {
+                _subscribed = true;
+                GameEvents.ShopOpened += OnShopOpened;
+            }
             for (int i = 0; i < 3; i++) BuildCard(i);
+            var skip = UIBuilder.Button("Skip", panel.transform, "跳过本波商店", Skip);
+            var rt = skip.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.4f, 0.12f);
+            rt.anchorMax = new Vector2(0.6f, 0.2f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        void Skip()
+        {
+            if (shop != null) shop.Skip();
+            foreach (var c in cards) c.button.onClick.RemoveAllListeners();
+            panel.SetActive(false);
         }
 
         void BuildCard(int i)
@@ -35,13 +54,21 @@ namespace Roguelite
             rt.anchorMax = new Vector2(0.38f + 0.26f * i, 0.7f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
-            cards.Add(new Card { root = root, label = root.GetComponent<Text>(), button = root.GetComponent<Button>() });
+            cards.Add(new Card
+            {
+                root = root,
+                label = root.GetComponentInChildren<Text>(true), // Button 文字在子节点(见 UIBuilder.AddText)
+                button = root.GetComponent<Button>()
+            });
         }
 
         #region Unity Lifecycle
-        void OnEnable() => GameEvents.ShopOpened += OnShopOpened;
-
-        void OnDisable() => GameEvents.ShopOpened -= OnShopOpened;
+        void OnDisable()
+        {
+            if (!_subscribed) return;
+            _subscribed = false;
+            GameEvents.ShopOpened -= OnShopOpened;
+        }
         #endregion
 
         #region Event Handlers

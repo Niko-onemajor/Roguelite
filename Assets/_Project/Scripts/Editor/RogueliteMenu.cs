@@ -16,6 +16,11 @@ namespace Roguelite
         [MenuItem("Roguelite/构造 Main 场景")]
         public static void BuildMainScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Play 模式下不能构造场景，请先停止运行再执行。");
+                return;
+            }
             EnsureFolder(SceneDir, "Scenes");
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             var cam = Camera.main;

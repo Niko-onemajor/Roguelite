@@ -26,10 +26,15 @@ namespace Roguelite
             return go;
         }
 
-        /// <summary>创建带背景色的面板节点，返回其 GameObject。</summary>
+        /// <summary>创建全屏面板节点（拉伸填满父级），返回其 GameObject。需要更小区域时调用方自行改锚点。</summary>
         public static GameObject Panel(string name, Transform parent, Color? color = null)
         {
             var go = Rect(name, parent);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
             var img = go.AddComponent<Image>();
             img.color = color ?? new Color(0f, 0f, 0f, 0.45f);
             return go;
@@ -37,6 +42,18 @@ namespace Roguelite
 
         public static Text AddText(GameObject go, string content, int size, Color color, TextAnchor anchor)
         {
+            // Graphic(Image/Text) 是 [DisallowMultipleComponent]：目标物体已有 Graphic 时，
+            // 文字必须放到子节点并拉伸填满父级，否则 AddComponent<Text>() 返回 null。
+            if (go.GetComponent<Graphic>() != null)
+            {
+                var child = Rect("Text", go.transform);
+                var rt = child.GetComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                go = child;
+            }
             var t = go.AddComponent<Text>();
             t.font = Font();
             t.text = content;
@@ -53,10 +70,11 @@ namespace Roguelite
             return AddText(go, content, size, color, anchor);
         }
 
-        /// <summary>把 Image 设为水平填充条，用于血条。</summary>
+        /// <summary>把 Image 设为水平填充条，用于血条。
+        /// 注意 Graphic 是 [DisallowMultipleComponent]，面板已有 Image 时必须复用，不能再次 AddComponent。</summary>
         public static Image AddFilledBar(GameObject go, Color color)
         {
-            var img = go.AddComponent<Image>();
+            var img = go.GetComponent<Image>() ?? go.AddComponent<Image>();
             img.type = Image.Type.Filled;
             img.fillMethod = Image.FillMethod.Horizontal;
             img.fillOrigin = 0;

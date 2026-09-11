@@ -48,5 +48,12 @@ namespace Roguelite
             IsAwaitingChoice = false;
             return true;
         }
+
+        /// <summary>跳过本波商店，不买任何东西直接进入下一波。</summary>
+        public void Skip()
+        {
+            if (!IsAwaitingChoice) return;
+            IsAwaitingChoice = false;
+        }
     }
 }
