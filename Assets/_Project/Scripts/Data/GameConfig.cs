@@ -34,7 +34,7 @@ namespace Roguelite
             cfg.shopItems.Add(Shop("射程+1", StatType.Range, 10, 5, 1f));
             cfg.shopItems.Add(Shop("暴击+8%", StatType.CritChance, 20, 10, 0.08f));
 
-            // 波次 5 波
+            // 波次 20 波(手调递增)，通关后由 WaveManager 进入无尽模式
             cfg.waves = ScriptableObject.CreateInstance<WaveConfig>();
             cfg.waves.prepareTime = 2f;
             cfg.waves.wave1 = new List<WaveBatch> { B(cfg.enemies[0], 6, 0.7f) };
@@ -42,6 +42,21 @@ namespace Roguelite
             cfg.waves.wave3 = new List<WaveBatch> { B(cfg.enemies[0], 8, 0.5f), B(cfg.enemies[1], 4, 1.0f), B(cfg.enemies[2], 2, 2.0f) };
             cfg.waves.wave4 = new List<WaveBatch> { B(cfg.enemies[0], 10, 0.45f), B(cfg.enemies[1], 6, 0.9f), B(cfg.enemies[2], 3, 1.8f) };
             cfg.waves.wave5 = new List<WaveBatch> { B(cfg.enemies[0], 12, 0.4f), B(cfg.enemies[1], 8, 0.8f), B(cfg.enemies[2], 5, 1.5f) };
+            cfg.waves.wave6 = new List<WaveBatch> { B(cfg.enemies[0], 12, 0.4f), B(cfg.enemies[1], 8, 0.8f), B(cfg.enemies[2], 5, 1.5f) };
+            cfg.waves.wave7 = new List<WaveBatch> { B(cfg.enemies[0], 14, 0.38f), B(cfg.enemies[1], 9, 0.8f), B(cfg.enemies[2], 6, 1.4f) };
+            cfg.waves.wave8 = new List<WaveBatch> { B(cfg.enemies[0], 14, 0.36f), B(cfg.enemies[1], 10, 0.75f), B(cfg.enemies[2], 6, 1.4f) };
+            cfg.waves.wave9 = new List<WaveBatch> { B(cfg.enemies[0], 16, 0.35f), B(cfg.enemies[1], 10, 0.7f), B(cfg.enemies[2], 7, 1.3f) };
+            cfg.waves.wave10 = new List<WaveBatch> { B(cfg.enemies[0], 18, 0.34f), B(cfg.enemies[1], 12, 0.7f), B(cfg.enemies[2], 8, 1.3f) };
+            cfg.waves.wave11 = new List<WaveBatch> { B(cfg.enemies[0], 20, 0.32f), B(cfg.enemies[1], 13, 0.65f), B(cfg.enemies[2], 9, 1.2f) };
+            cfg.waves.wave12 = new List<WaveBatch> { B(cfg.enemies[0], 22, 0.32f), B(cfg.enemies[1], 14, 0.6f), B(cfg.enemies[2], 10, 1.2f) };
+            cfg.waves.wave13 = new List<WaveBatch> { B(cfg.enemies[0], 24, 0.3f), B(cfg.enemies[1], 15, 0.6f), B(cfg.enemies[2], 11, 1.15f) };
+            cfg.waves.wave14 = new List<WaveBatch> { B(cfg.enemies[0], 26, 0.3f), B(cfg.enemies[1], 17, 0.55f), B(cfg.enemies[2], 12, 1.1f) };
+            cfg.waves.wave15 = new List<WaveBatch> { B(cfg.enemies[0], 28, 0.28f), B(cfg.enemies[1], 18, 0.55f), B(cfg.enemies[2], 13, 1.1f) };
+            cfg.waves.wave16 = new List<WaveBatch> { B(cfg.enemies[0], 30, 0.27f), B(cfg.enemies[1], 19, 0.5f), B(cfg.enemies[2], 14, 1.05f) };
+            cfg.waves.wave17 = new List<WaveBatch> { B(cfg.enemies[0], 32, 0.26f), B(cfg.enemies[1], 21, 0.5f), B(cfg.enemies[2], 15, 1.0f) };
+            cfg.waves.wave18 = new List<WaveBatch> { B(cfg.enemies[0], 34, 0.25f), B(cfg.enemies[1], 22, 0.48f), B(cfg.enemies[2], 16, 1.0f) };
+            cfg.waves.wave19 = new List<WaveBatch> { B(cfg.enemies[0], 36, 0.25f), B(cfg.enemies[1], 24, 0.45f), B(cfg.enemies[2], 18, 0.95f) };
+            cfg.waves.wave20 = new List<WaveBatch> { B(cfg.enemies[0], 40, 0.24f), B(cfg.enemies[1], 26, 0.45f), B(cfg.enemies[2], 20, 0.9f) };
             return cfg;
         }
 

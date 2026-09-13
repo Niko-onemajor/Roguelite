@@ -64,7 +64,8 @@ namespace Roguelite
 
         void OnWaveChanged(int index, int total)
         {
-            if (waveText != null) waveText.text = $"第 {index}/{total} 波";
+            if (waveText == null) return;
+            waveText.text = total < 0 ? $"第 {index}/∞ 波" : $"第 {index}/{total} 波";
         }
         #endregion
     }

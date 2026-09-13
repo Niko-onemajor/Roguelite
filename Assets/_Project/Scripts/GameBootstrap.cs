@@ -92,6 +92,8 @@ namespace Roguelite
             var shopView = canvas.AddComponent<ShopView>();
             shopView.shop = shop;
             shopView.Build(canvas.transform);
+            var endless = canvas.AddComponent<EndlessChoiceView>();
+            endless.Build(canvas.transform);
             var over = canvas.AddComponent<GameOverView>();
             over.Build(canvas.transform);
         }
