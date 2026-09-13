@@ -69,8 +69,8 @@ namespace Roguelite
             var go = new GameObject("Player");
             go.transform.position = Vector3.zero;
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderArt.Circle();
-            sr.color = new Color(0.3f, 0.85f, 0.6f);
+            sr.sprite = SpriteArt.LoadOrPlaceholder("player");
+            sr.color = SpriteArt.HasReal("player") ? Color.white : new Color(0.3f, 0.85f, 0.6f);
             var rb = go.AddComponent<Rigidbody2D>();
             rb.isKinematic = true;
             rb.gravityScale = 0f;

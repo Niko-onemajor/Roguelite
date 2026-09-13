@@ -20,7 +20,7 @@ namespace Roguelite
             if (sr == null) sr = GetComponent<SpriteRenderer>();
             if (sr != null)
             {
-                sr.color = data.color;
+                if (sr.sprite == SpriteArt.Fallback) sr.color = data.color; // 占位圆按数据染色；真实贴图保留原色
                 transform.localScale = Vector3.one * data.scale;
             }
         }

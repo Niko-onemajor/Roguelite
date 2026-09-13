@@ -8,6 +8,14 @@ namespace Roguelite
     {
         static readonly Dictionary<EnemyType, GameObject> prototypes = new Dictionary<EnemyType, GameObject>();
 
+        /// <summary>EnemyType → Resources/Sprites/ 贴图名(空=只用占位圆)。</summary>
+        static readonly Dictionary<EnemyType, string> spriteNames = new Dictionary<EnemyType, string>
+        {
+            { EnemyType.Chaser, "enemy_chaser" },
+            { EnemyType.Ranged, "enemy_ranged" },
+            { EnemyType.Tank, "enemy_tank" }
+        };
+
         public static GameObject Prototype(EnemyType type)
         {
             if (!prototypes.TryGetValue(type, out GameObject proto))
@@ -37,7 +45,7 @@ namespace Roguelite
             col.isTrigger = true;
             col.radius = 0.4f;
             SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderArt.Circle();
+            sr.sprite = SpriteArt.LoadOrPlaceholder(spriteNames.TryGetValue(type, out string name) ? name : "");
             sr.sortingOrder = 1;
             go.transform.localScale = Vector3.one * 0.8f; // 0.5*0.8=0.4 与碰撞体匹配
             return go;
