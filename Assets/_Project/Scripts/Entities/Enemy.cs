@@ -65,11 +65,13 @@ namespace Roguelite
             }
         }
 
-        /// <summary>finalDamage 为最终伤害(暴击已算好)。</summary>
+        /// <summary>finalDamage 为最终伤害(暴击已算好)；护甲降低受到的物理伤害。</summary>
         public void TakeDamage(float finalDamage, bool wasCrit)
         {
             if (Data == null) return;
-            Health -= finalDamage;
+            // 护甲减伤：dmg*100/(100+armor)；玩家护甲穿透(armorPen)由后续伤害管线接入
+            float reduced = finalDamage * (100f / (100f + Mathf.Max(0f, Data.armor)));
+            Health -= reduced;
             if (Health > 0f)
             {
                 var flash = GetComponent<HitFlash>(); // 非致命受击闪白

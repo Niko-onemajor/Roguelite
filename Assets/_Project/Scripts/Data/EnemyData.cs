@@ -16,6 +16,8 @@ namespace Roguelite
         public float range = 0f;              // 远程型射击射程(0=不射击)
         public float projectileDamage = 0f;   // 远程型弹幕伤害
         public float projectileSpeed = 8f;
+        public float armor = 0f;             // 护甲(物理减伤 护甲/(100+护甲))
+        public float magicResist = 0f;       // 魔法抗性(魔法减伤；当前伤害管线以物理为主，先存储占位)
         public int goldMin = 1;
         public int goldMax = 2;
         public float scale = 1f;

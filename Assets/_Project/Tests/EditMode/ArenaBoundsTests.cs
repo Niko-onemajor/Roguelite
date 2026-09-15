@@ -34,24 +34,25 @@ namespace Roguelite.Tests
         [Test]
         public void RandomRingPosition_Always_On_Square_SpawnRing()
         {
+            float ring = ArenaBounds.Radius - 2f; // 18，随 Radius 联动
             for (int i = 0; i < 200; i++)
             {
                 Vector2 p = ArenaBounds.RandomRingPosition();
-                // 方形刷怪环：|x| 或 |y| 恰为 9，另一轴在 [-9,9]
+                // 方形刷怪环：|x| 或 |y| 恰为 ring，另一轴在 [-ring, ring]
                 float mx = Mathf.Max(Mathf.Abs(p.x), Mathf.Abs(p.y));
-                Assert.That(mx, Is.InRange(8.9f, 9.1f), "随机点应落在方形刷怪环(半边长9)上");
+                Assert.That(mx, Is.InRange(ring - 0.1f, ring + 0.1f), "随机点应落在方形刷怪环上");
                 Assert.That(Mathf.Min(Mathf.Abs(p.x), Mathf.Abs(p.y)),
-                    Is.LessThanOrEqualTo(9.1f));
+                    Is.LessThanOrEqualTo(ring + 0.1f));
             }
         }
 
         [Test]
         public void Contains_Square_Region()
         {
-            Assert.That(ArenaBounds.Contains(new Vector2(9.5f, 9.5f)), Is.True);  // 角落
-            Assert.That(ArenaBounds.Contains(new Vector2(0f, 10f)), Is.True);     // 边沿
-            Assert.That(ArenaBounds.Contains(new Vector2(12f, 0f)), Is.False);    // 超界
-            Assert.That(ArenaBounds.Contains(new Vector2(0f, -11f)), Is.False);   // 超界
+            Assert.That(ArenaBounds.Contains(new Vector2(0.95f * ArenaBounds.Radius, 0.95f * ArenaBounds.Radius)), Is.True);  // 角落
+            Assert.That(ArenaBounds.Contains(new Vector2(0f, ArenaBounds.Radius)), Is.True);     // 边沿
+            Assert.That(ArenaBounds.Contains(new Vector2(1.2f * ArenaBounds.Radius, 0f)), Is.False);    // 超界
+            Assert.That(ArenaBounds.Contains(new Vector2(0f, -1.1f * ArenaBounds.Radius)), Is.False);   // 超界
         }
     }
 }

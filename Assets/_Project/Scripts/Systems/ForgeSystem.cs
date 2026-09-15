@@ -127,19 +127,7 @@ namespace Roguelite
                 RarityColor(card.Rarity));
         }
 
-        static string BonusText(ForgeCard card)
-        {
-            switch (card.Item.statType)
-            {
-                case StatType.Damage: return $"伤害 +{(int)(card.Item.addValue * card.Multiplier())}";
-                case StatType.AttackSpeed: return $"攻速 ×{Mathf.Pow(card.Item.addValue, card.Multiplier()):0.##}";
-                case StatType.MaxHP: return $"生命 +{(int)(card.Item.addValue * card.Multiplier())}";
-                case StatType.MoveSpeed: return $"移速 +{(card.Item.addValue * card.Multiplier()):0.#}";
-                case StatType.Range: return $"射程 +{(card.Item.addValue * card.Multiplier()):0.#}";
-                case StatType.CritChance: return $"暴击 +{(int)(card.Item.addValue * card.Multiplier() * 100f)}%";
-                default: return card.Item.displayName;
-            }
-        }
+        static string BonusText(ForgeCard card) => StatText.Describe(card.Item, card.Multiplier());
 
         static string RarityName(ForgeRarity r)
         {

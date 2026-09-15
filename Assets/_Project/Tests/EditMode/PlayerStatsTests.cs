@@ -69,7 +69,7 @@ namespace Roguelite.Tests
         public void ApplyBonus_With_Multiplier_Scales_Additive_Value()
         {
             var item = ScriptableObject.CreateInstance<ShopItemData>();
-            item.statType = StatType.Damage;
+            item.statType = StatType.AttackDamage;
             item.addValue = 6f;
             float before = stats.damage;
             stats.ApplyBonus(item, 1.5f); // 金卡

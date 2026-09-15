@@ -22,17 +22,22 @@ namespace Roguelite
             cfg.weapons.Add(Weapon("手雷", WeaponType.AoE, 12f, 2.2f, 3.8f, 0f, Color.red));
 
             // 敌人 3 种：追兵3.2(玩家8可甩开) / 远程弹6(可躲) / 坦克慢而硬
+            // 护甲/魔抗因种类不同：追兵脆、远程中、坦克硬(减伤 护甲/(100+护甲))
             cfg.enemies.Add(Enemy(EnemyType.Chaser, 22f, 3.2f, 8f, 1.4f, 0f, 0f, 0f, 8f, 1, 2, 1f, new Color(0.9f, 0.3f, 0.3f)));
-            cfg.enemies.Add(Enemy(EnemyType.Ranged, 16f, 2.2f, 0f, 2.6f, 4.5f, 8f, 5f, 6f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f)));
-            cfg.enemies.Add(Enemy(EnemyType.Tank, 80f, 1.4f, 14f, 1.6f, 0f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f)));
+            cfg.enemies.Add(Enemy(EnemyType.Ranged, 16f, 2.2f, 0f, 2.6f, 4.5f, 8f, 5f, 6f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f), 2f, 6f));
+            cfg.enemies.Add(Enemy(EnemyType.Tank, 80f, 1.4f, 14f, 1.6f, 0f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f), 15f, 10f));
 
-            // 商店 6 项
-            cfg.shopItems.Add(Shop("伤害+6", StatType.Damage, 15, 8, 6f));
-            cfg.shopItems.Add(Shop("攻速×0.85", StatType.AttackSpeed, 15, 8, 0.85f));
-            cfg.shopItems.Add(Shop("生命+20", StatType.MaxHP, 10, 5, 20f));
-            cfg.shopItems.Add(Shop("移速+0.5", StatType.MoveSpeed, 10, 5, 0.5f));
-            cfg.shopItems.Add(Shop("射程+1", StatType.Range, 10, 5, 1f));
-            cfg.shopItems.Add(Shop("暴击+8%", StatType.CritChance, 20, 10, 0.08f));
+            // 商店 10 项(装备效果后续导入，当前映射到全属性增益；价格固定不再递增)
+            cfg.shopItems.Add(Shop("攻击力+6", StatType.AttackDamage, 15, 6f));
+            cfg.shopItems.Add(Shop("攻速×0.85", StatType.AttackSpeed, 15, 0.85f));
+            cfg.shopItems.Add(Shop("生命+20", StatType.MaxHP, 10, 20f));
+            cfg.shopItems.Add(Shop("移速+0.5", StatType.MoveSpeed, 10, 0.5f));
+            cfg.shopItems.Add(Shop("攻击距离+1", StatType.AttackRange, 10, 1f));
+            cfg.shopItems.Add(Shop("暴击+8%", StatType.CritChance, 20, 0.08f));
+            cfg.shopItems.Add(Shop("暴击伤害+0.3", StatType.CritDamage, 20, 0.3f));
+            cfg.shopItems.Add(Shop("护甲+10", StatType.Armor, 15, 10f));
+            cfg.shopItems.Add(Shop("魔抗+10", StatType.MagicResist, 15, 10f));
+            cfg.shopItems.Add(Shop("法术强度+6", StatType.AbilityPower, 15, 6f));
 
             // 波次 20 波(手调递增)，通关后由 WaveManager 进入无尽模式
             cfg.waves = ScriptableObject.CreateInstance<WaveConfig>();
@@ -69,19 +74,20 @@ namespace Roguelite
             return w;
         }
 
-        static EnemyData Enemy(EnemyType t, float hp, float spd, float cDmg, float interval, float keep, float range, float pDmg, float pSpd, int gMin, int gMax, float scale, Color c)
+        static EnemyData Enemy(EnemyType t, float hp, float spd, float cDmg, float interval, float keep, float range, float pDmg, float pSpd, int gMin, int gMax, float scale, Color c, float armor = 0f, float magicResist = 0f)
         {
             var e = ScriptableObject.CreateInstance<EnemyData>();
             e.type = t; e.maxHP = hp; e.moveSpeed = spd; e.contactDamage = cDmg; e.attackInterval = interval;
             e.keepDistance = keep; e.range = range; e.projectileDamage = pDmg; e.projectileSpeed = pSpd;
             e.goldMin = gMin; e.goldMax = gMax; e.scale = scale; e.color = c;
+            e.armor = armor; e.magicResist = magicResist;
             return e;
         }
 
-        static ShopItemData Shop(string name, StatType s, int baseP, int step, float add)
+        static ShopItemData Shop(string name, StatType s, int baseP, float add)
         {
             var i = ScriptableObject.CreateInstance<ShopItemData>();
-            i.displayName = name; i.statType = s; i.basePrice = baseP; i.priceStep = step; i.addValue = add;
+            i.displayName = name; i.statType = s; i.basePrice = baseP; i.addValue = add;
             return i;
         }
 

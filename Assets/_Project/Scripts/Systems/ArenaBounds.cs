@@ -6,8 +6,8 @@ namespace Roguelite
     /// 刷怪点取方形边界附近随机点，保证敌人入场即合法不越界。</summary>
     public static class ArenaBounds
     {
-        public const float Radius = 10f;       // 竞技场半边长(世界单位，整场 20x20)
-        const float SpawnRingRadius = 9f;      // 刷怪环半边长(略小于边界，避免刚生成就出界)
+        public const float Radius = 20f;       // 竞技场半边长(世界单位，整场 40x40)
+        const float SpawnRingRadius = 18f;     // 刷怪环半边长(略小于边界，避免刚生成就出界)
         const float SpawnMargin = 0.3f;        // 钳位时预留的边界余量(占位 sprite 视觉贴合用)
 
         /// <summary>把二维位置钳位到竞技场方形内(逐轴夹取)；在方形内则原样返回。</summary>

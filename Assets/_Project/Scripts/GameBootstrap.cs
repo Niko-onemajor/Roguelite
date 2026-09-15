@@ -37,12 +37,14 @@ namespace Roguelite
             shop.pool = cfg.shopItems.ToArray();
             var forge = gameObject.AddComponent<ForgeSystem>();
             forge.Pool = cfg.shopItems;
+            var rune = gameObject.AddComponent<RuneSystem>();
+            rune.pool = cfg.shopItems;
             var wave = gameObject.AddComponent<WaveManager>();
 
-            BuildUI(shop, forge);
+            BuildUI(shop, forge, rune);
 
             stats.ResetForRun();
-            wave.BeginRun(cfg.waves, spawner, shop, forge, stats);
+            wave.BeginRun(cfg.waves, spawner, shop, rune, stats);
         }
 
         #region Helpers
@@ -99,7 +101,7 @@ namespace Roguelite
             return go;
         }
 
-        void BuildUI(ShopSystem shop, ForgeSystem forge)
+        void BuildUI(ShopSystem shop, ForgeSystem forge, RuneSystem rune)
         {
             var canvas = UIBuilder.Canvas();
             var hud = canvas.AddComponent<HudView>();
@@ -108,10 +110,14 @@ namespace Roguelite
             pause.Build(canvas.transform);
             var shopView = canvas.AddComponent<ShopView>();
             shopView.shop = shop;
+            shopView.forge = forge;
             shopView.Build(canvas.transform);
             var forgeView = canvas.AddComponent<ForgeView>();
             forgeView.forge = forge;
             forgeView.Build(canvas.transform);
+            var runeView = canvas.AddComponent<RuneView>();
+            runeView.rune = rune;
+            runeView.Build(canvas.transform);
             var endless = canvas.AddComponent<EndlessChoiceView>();
             endless.Build(canvas.transform);
             var over = canvas.AddComponent<GameOverView>();

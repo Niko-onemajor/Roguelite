@@ -37,12 +37,12 @@ namespace Roguelite
         public static void BuildConfigAssets()
         {
             EnsureFolder(SoDir, "ScriptableObjects");
-            Shop("Shop_伤害", "伤害+6", StatType.Damage, 15, 8, 6f);
-            Shop("Shop_攻速", "攻速×0.85", StatType.AttackSpeed, 15, 8, 0.85f);
-            Shop("Shop_生命", "生命+20", StatType.MaxHP, 10, 5, 20f);
-            Shop("Shop_移速", "移速+0.5", StatType.MoveSpeed, 10, 5, 0.5f);
-            Shop("Shop_射程", "射程+1", StatType.Range, 10, 5, 1f);
-            Shop("Shop_暴击", "暴击+8%", StatType.CritChance, 20, 10, 0.08f);
+            Shop("Shop_攻击力", "攻击力+6", StatType.AttackDamage, 15, 6f);
+            Shop("Shop_攻速", "攻速×0.85", StatType.AttackSpeed, 15, 0.85f);
+            Shop("Shop_生命", "生命+20", StatType.MaxHP, 10, 20f);
+            Shop("Shop_移速", "移速+0.5", StatType.MoveSpeed, 10, 0.5f);
+            Shop("Shop_攻击距离", "攻击距离+1", StatType.AttackRange, 10, 1f);
+            Shop("Shop_暴击", "暴击+8%", StatType.CritChance, 20, 0.08f);
 
             Weapon("Weapon_手枪", "手枪", WeaponType.Ranged, 10f, 0.6f, 8f, 10f, Color.yellow);
             Weapon("Weapon_冲锋枪", "冲锋枪", WeaponType.Ranged, 5f, 0.18f, 7f, 12f, Color.cyan);
@@ -74,10 +74,10 @@ namespace Roguelite
             AssetDatabase.CreateFolder("Assets/_Project", leaf);
         }
 
-        static void Shop(string asset, string name, StatType s, int baseP, int step, float add)
+        static void Shop(string asset, string name, StatType s, int baseP, float add)
         {
             var i = LoadOrCreate<ShopItemData>(SoDir + "/" + asset + ".asset");
-            i.displayName = name; i.statType = s; i.basePrice = baseP; i.priceStep = step; i.addValue = add;
+            i.displayName = name; i.statType = s; i.basePrice = baseP; i.addValue = add;
             EditorUtility.SetDirty(i);
         }
 
@@ -89,12 +89,13 @@ namespace Roguelite
             EditorUtility.SetDirty(w);
         }
 
-        static void Enemy(string asset, EnemyType t, float hp, float spd, float cDmg, float interval, float keep, float pDmg, float pSpd, int gMin, int gMax, float scale, Color c)
+        static void Enemy(string asset, EnemyType t, float hp, float spd, float cDmg, float interval, float keep, float pDmg, float pSpd, int gMin, int gMax, float scale, Color c, float armor = 0f, float magicResist = 0f)
         {
             var e = LoadOrCreate<EnemyData>(SoDir + "/" + asset + ".asset");
             e.type = t; e.maxHP = hp; e.moveSpeed = spd; e.contactDamage = cDmg; e.attackInterval = interval;
             e.keepDistance = keep; e.projectileDamage = pDmg; e.projectileSpeed = pSpd;
             e.goldMin = gMin; e.goldMax = gMax; e.scale = scale; e.color = c;
+            e.armor = armor; e.magicResist = magicResist;
             EditorUtility.SetDirty(e);
         }
 

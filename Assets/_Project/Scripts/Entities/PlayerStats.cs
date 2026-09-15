@@ -11,18 +11,30 @@ namespace Roguelite
         public Color Color;   // 稀有度对应颜色
     }
 
-    /// <summary>玩家属性与资源(HP/金币/击杀)，供商店增益与系统读取。</summary>
+    /// <summary>玩家属性与资源(HP/金币/击杀/符文)，供商店/锻体/符文增益与系统读取。
+    /// 属性表含 LOL 风格 17 项；未挂钩的词条仅存储展示，待装备效果导入。</summary>
     public class PlayerStats : MonoBehaviour
     {
         public static PlayerStats Instance { get; set; }
 
-        public float maxHP = 120f;
-        public float damage = 10f;
-        public float attackInterval = 0.8f;
-        public float range = 6f;
-        public float moveSpeed = 8f; // 追兵3.2，差距2.5倍：能被甩开但需走位
-        public float critChance = 0.05f;
-        public float critMultiplier = 2f;
+        // ── 17 项属性（LOL 风格命名，中文注释）──
+        public float damage = 10f;           // 攻击力(AD)
+        public float abilityPower = 0f;      // 法术强度(AP)
+        public float attackInterval = 0.8f;  // 攻速基准(秒/发，受 AttackSpeed 乘算)
+        public float critChance = 0.05f;     // 暴击几率
+        public float critMultiplier = 2f;    // 暴击伤害倍率(加算)
+        public float armorPen = 0f;          // 护甲穿透
+        public float magicPen = 0f;          // 法术穿透
+        public float omnivamp = 0f;          // 全能吸血(0~1，按造成伤害回血)
+        public float maxHP = 120f;           // 生命值上限
+        public float hpRegen = 0f;           // 生命回复(每秒)
+        public float armor = 0f;             // 护甲(减伤 护甲/(100+护甲))
+        public float magicResist = 0f;       // 魔法抗性
+        public float healShieldPower = 0f;   // 治疗与护盾强度
+        public float abilityHaste = 0f;      // 技能急速(当前仅存储)
+        public float moveSpeed = 8f;         // 移动速度(追兵3.2，差距2.5倍：能被甩开但需走位)
+        public float range = 6f;             // 攻击距离
+        public float size = 1f;              // 体型(当前仅存储，视觉缩放后续接入)
         public float pickupRadius = 2.5f;
 
         public float CurrentHP { get; private set; }
@@ -56,7 +68,9 @@ namespace Roguelite
 
         public void TakeDamage(float dmg)
         {
-            CurrentHP = Mathf.Max(0f, CurrentHP - dmg);
+            // 护甲减伤(默认0→满伤)；后续魔法伤害可走 magicResist
+            float reduced = dmg * (100f / (100f + Mathf.Max(0f, armor)));
+            CurrentHP = Mathf.Max(0f, CurrentHP - reduced);
             GameEvents.RaiseHP(CurrentHP, maxHP);
             var flash = GetComponent<HitFlash>(); // 玩家受击反馈：闪红
             if (flash != null) flash.Flash(Color.red, 0.12f);
@@ -87,22 +101,33 @@ namespace Roguelite
 
         public void ApplyBonus(ShopItemData item) => ApplyBonus(item, 1f);
 
-        /// <summary>锻体增益：multiplier 为稀有度倍率(白1x/金1.5x/彩2x)。
+        /// <summary>全属性增益：multiplier 为倍率(锻体白1x/金1.5x/彩2x；商店/符文为1x)。
         /// AttackSpeed 是乘算词条，用 addValue^multiplier 使高阶收益递增(更强更快)，其余加算。</summary>
         public void ApplyBonus(ShopItemData item, float multiplier)
         {
             switch (item.statType)
             {
-                case StatType.Damage: damage += item.addValue * multiplier; break;
+                case StatType.AttackDamage: damage += item.addValue * multiplier; break;
+                case StatType.AbilityPower: abilityPower += item.addValue * multiplier; break;
                 case StatType.AttackSpeed: attackInterval *= Mathf.Pow(item.addValue, multiplier); break;
+                case StatType.CritChance: critChance += item.addValue * multiplier; break;
+                case StatType.CritDamage: critMultiplier += item.addValue * multiplier; break;
+                case StatType.ArmorPen: armorPen += item.addValue * multiplier; break;
+                case StatType.MagicPen: magicPen += item.addValue * multiplier; break;
+                case StatType.Omnivamp: omnivamp += item.addValue * multiplier; break;
                 case StatType.MaxHP:
                     float bonus = item.addValue * multiplier;
                     maxHP += bonus;
                     CurrentHP += bonus;
                     break;
+                case StatType.HPRegen: hpRegen += item.addValue * multiplier; break;
+                case StatType.Armor: armor += item.addValue * multiplier; break;
+                case StatType.MagicResist: magicResist += item.addValue * multiplier; break;
+                case StatType.HealShieldPower: healShieldPower += item.addValue * multiplier; break;
+                case StatType.AbilityHaste: abilityHaste += item.addValue * multiplier; break;
                 case StatType.MoveSpeed: moveSpeed += item.addValue * multiplier; break;
-                case StatType.Range: range += item.addValue * multiplier; break;
-                case StatType.CritChance: critChance += item.addValue * multiplier; break;
+                case StatType.AttackRange: range += item.addValue * multiplier; break;
+                case StatType.Size: size = Mathf.Max(0.1f, size + item.addValue * multiplier); break;
                 default: return;
             }
             GameEvents.RaiseHP(CurrentHP, maxHP);

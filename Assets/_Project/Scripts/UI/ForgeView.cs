@@ -129,21 +129,8 @@ namespace Roguelite
         #endregion
 
         #region Static Visual Helpers
-        static string CardText(ForgeCard card)
-        {
-            string desc;
-            switch (card.Item.statType)
-            {
-                case StatType.Damage: desc = $"伤害 +{(int)(card.Item.addValue * card.Multiplier())}"; break;
-                case StatType.AttackSpeed: desc = $"攻速 ×{Mathf.Pow(card.Item.addValue, card.Multiplier()):0.##}"; break;
-                case StatType.MaxHP: desc = $"生命 +{(int)(card.Item.addValue * card.Multiplier())}"; break;
-                case StatType.MoveSpeed: desc = $"移速 +{(card.Item.addValue * card.Multiplier()):0.#}"; break;
-                case StatType.Range: desc = $"射程 +{(card.Item.addValue * card.Multiplier()):0.#}"; break;
-                case StatType.CritChance: desc = $"暴击 +{(int)(card.Item.addValue * card.Multiplier() * 100f)}%"; break;
-                default: desc = card.Item.displayName; break;
-            }
-            return $"{RarityName(card.Rarity)} · {card.Item.displayName}\n{desc}";
-        }
+        static string CardText(ForgeCard card) =>
+            $"{RarityName(card.Rarity)} · {card.Item.displayName}\n{StatText.Describe(card.Item, card.Multiplier())}";
 
         static string RarityName(ForgeRarity r)
         {

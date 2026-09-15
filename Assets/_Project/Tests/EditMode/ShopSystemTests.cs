@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace Roguelite.Tests
 {
+    /// <summary>商店系统(Brotato 风格)：3 槽展示、锁定/解锁、刷新10金币保留锁定槽、固定价购买、结束关闭。</summary>
     public class ShopSystemTests
     {
         PlayerStats stats;
@@ -18,6 +19,7 @@ namespace Roguelite.Tests
             statsGo = new GameObject("stats");
             stats = statsGo.AddComponent<PlayerStats>();
             stats.AddGold(100);
+            PlayerStats.Instance = stats;
 
             shopGo = new GameObject("shop");
             shop = shopGo.AddComponent<ShopSystem>();
@@ -29,7 +31,6 @@ namespace Roguelite.Tests
                 var item = ScriptableObject.CreateInstance<ShopItemData>();
                 item.displayName = "item" + i;
                 item.basePrice = 10;
-                item.priceStep = 5;
                 item.addValue = 1f;
                 pool[i] = item;
             }
@@ -39,6 +40,7 @@ namespace Roguelite.Tests
         [TearDown]
         public void TearDown()
         {
+            if (PlayerStats.Instance == stats) PlayerStats.Instance = null;
             Object.DestroyImmediate(shopGo);
             Object.DestroyImmediate(statsGo);
             foreach (var p in pool) Object.DestroyImmediate(p);
@@ -46,22 +48,25 @@ namespace Roguelite.Tests
         }
 
         [Test]
-        public void OpenOffer_Returns_Three_Distinct_Items()
+        public void OpenOffer_Fills_Three_Slots()
         {
-            var offer = shop.OpenOffer();
-            Assert.That(offer.items.Count, Is.EqualTo(3));
-            Assert.That(new System.Collections.Generic.HashSet<ShopItemData>(offer.items).Count, Is.EqualTo(3));
+            shop.OpenOffer();
+            Assert.That(shop.Slots, Has.Count.EqualTo(3));
+            foreach (var slot in shop.Slots) Assert.That(slot.Item, Is.Not.Null);
             Assert.That(shop.IsAwaitingChoice, Is.True);
         }
 
         [Test]
-        public void PriceOf_Increases_After_Purchase()
+        public void TryPurchase_Deducts_Fixed_Price_And_Empties_Slot()
         {
-            int before = shop.PriceOf(pool[0]);
             shop.OpenOffer();
-            var purchased = shop.TryPurchase(pool[0]);
-            Assert.That(purchased, Is.True);
-            Assert.That(shop.PriceOf(pool[0]), Is.EqualTo(before + 5));
+            int price = shop.Slots[0].Item.basePrice;
+            int before = stats.Gold;
+
+            Assert.That(shop.TryPurchase(0), Is.True);
+            Assert.That(stats.Gold, Is.EqualTo(before - price));
+            Assert.That(shop.Slots[0].Item, Is.Null);
+            Assert.That(shop.IsAwaitingChoice, Is.True); // 商店保持打开，可继续购买
         }
 
         [Test]
@@ -72,19 +77,93 @@ namespace Roguelite.Tests
             var brokeShop = broke.AddComponent<ShopSystem>();
             brokeShop.stats = brokeStats;
             brokeShop.pool = new[] { pool[0] };
+            brokeShop.OpenOffer();
             brokeStats.AddGold(5);
 
-            Assert.That(brokeShop.TryPurchase(pool[0]), Is.False);
+            for (int i = 0; i < brokeShop.Slots.Count; i++)
+            {
+                if (brokeShop.Slots[i].Item == null) continue;
+                Assert.That(brokeShop.TryPurchase(i), Is.False);
+            }
             Assert.That(brokeStats.Gold, Is.EqualTo(5));
             Object.DestroyImmediate(broke);
         }
 
         [Test]
-        public void TryPurchase_Closes_Offer()
+        public void TryPurchase_Sold_Slot_Fails()
         {
             shop.OpenOffer();
-            shop.TryPurchase(pool[0]);
+            shop.TryPurchase(0);
+            Assert.That(shop.TryPurchase(0), Is.False);
+        }
+
+        [Test]
+        public void ToggleLock_Toggles_Slot()
+        {
+            shop.OpenOffer();
+            shop.ToggleLock(1);
+            Assert.That(shop.Slots[1].Locked, Is.True);
+            shop.ToggleLock(1);
+            Assert.That(shop.Slots[1].Locked, Is.False);
+        }
+
+        [Test]
+        public void ToggleLock_EmptySlot_Rejected()
+        {
+            shop.OpenOffer();
+            shop.TryPurchase(0); // 槽 0 变空
+            shop.ToggleLock(0);
+            Assert.That(shop.Slots[0].Locked, Is.False);
+        }
+
+        [Test]
+        public void TryRefresh_Costs_Ten_And_Keeps_Locked_Slots()
+        {
+            shop.OpenOffer();
+            shop.ToggleLock(0);
+            var kept = shop.Slots[0].Item;
+            int before = stats.Gold;
+
+            Assert.That(shop.TryRefresh(), Is.True);
+            Assert.That(stats.Gold, Is.EqualTo(before - ShopSystem.RefreshPrice));
+            Assert.That(shop.Slots[0].Item, Is.SameAs(kept)); // 锁定槽保持原货
+            Assert.That(shop.Slots[0].Locked, Is.True);
+        }
+
+        [Test]
+        public void TryRefresh_Fails_Without_Gold()
+        {
+            var broke = new GameObject("broke");
+            var brokeStats = broke.AddComponent<PlayerStats>();
+            var brokeShop = broke.AddComponent<ShopSystem>();
+            brokeShop.stats = brokeStats;
+            brokeShop.pool = pool;
+            brokeStats.AddGold(5);
+            brokeShop.OpenOffer();
+            int before = brokeStats.Gold;
+
+            Assert.That(brokeShop.TryRefresh(), Is.False);
+            Assert.That(brokeStats.Gold, Is.EqualTo(before));
+            Object.DestroyImmediate(broke);
+        }
+
+        [Test]
+        public void End_Clears_Locks_And_Closes()
+        {
+            shop.OpenOffer();
+            shop.ToggleLock(2);
+            shop.End();
             Assert.That(shop.IsAwaitingChoice, Is.False);
+            foreach (var s in shop.Slots) Assert.That(s.Locked, Is.False);
+        }
+
+        [Test]
+        public void Actions_Ignored_When_Closed()
+        {
+            Assert.That(shop.TryRefresh(), Is.False);
+            Assert.That(shop.TryPurchase(0), Is.False);
+            shop.ToggleLock(0); // 未开店不应抛异常
+            Assert.That(shop.Slots, Has.Count.EqualTo(0));
         }
     }
 }

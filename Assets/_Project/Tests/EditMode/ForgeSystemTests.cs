@@ -27,10 +27,10 @@ namespace Roguelite.Tests
 
             pool = new List<ShopItemData>
             {
-                Item(StatType.Damage, 6f),
+                Item(StatType.AttackDamage, 6f),
                 Item(StatType.MaxHP, 20f),
                 Item(StatType.MoveSpeed, 0.5f),
-                Item(StatType.Range, 1f),
+                Item(StatType.AttackRange, 1f),
                 Item(StatType.CritChance, 0.08f),
                 Item(StatType.AttackSpeed, 0.85f),
             };
@@ -151,7 +151,7 @@ namespace Roguelite.Tests
 
             Assert.That(stats.Runes.Count, Is.EqualTo(before + 1));
             Assert.That(stats.Runes[before].Name, Does.Contain("传说"));
-            Assert.That(stats.Runes[before].Desc, Does.Contain("伤害"));
+            Assert.That(stats.Runes[before].Desc, Does.Contain("攻击力"));
         }
 
         [Test]
