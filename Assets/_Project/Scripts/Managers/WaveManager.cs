@@ -65,11 +65,11 @@ namespace Roguelite
                 State = WaveState.Interlude;
                 yield return new WaitForSeconds(1f);
 
-                // 锻体：每回合结束后海克斯风格 3 选 1（金币可升阶）
+                // 锻体：花费 10 金币开启海克斯风格 3 选 1(无升阶/刷新)；金币不足则直接跳过
                 State = WaveState.Forge;
                 SetInput(false);
-                forge.OpenForge();
-                yield return new WaitUntil(() => !forge.IsAwaitingChoice);
+                if (forge.TryOpenForge())
+                    yield return new WaitUntil(() => !forge.IsAwaitingChoice);
                 SetInput(true);
 
                 // 脚本波全通关(默认第 20 波)→ 结算 or 无尽

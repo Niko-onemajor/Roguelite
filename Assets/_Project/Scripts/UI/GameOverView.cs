@@ -57,6 +57,7 @@ namespace Roguelite
         #region Event Handlers
         void OnGameEnded(bool victory, int wavesCleared, int kills)
         {
+            Time.timeScale = 1f; // 游戏结束一律恢复时间，避免暂停残留
             if (panel == null) return;
             panel.SetActive(true);
             titleText.text = victory ? "胜利！" : "失败";
@@ -66,6 +67,7 @@ namespace Roguelite
 
         static void Restart()
         {
+            Time.timeScale = 1f;
             var scene = SceneManager.GetActiveScene();
             if (string.IsNullOrEmpty(scene.name))
             {

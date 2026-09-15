@@ -3,12 +3,13 @@ using UnityEngine.UI;
 
 namespace Roguelite
 {
-    /// <summary>HUD：血条 / 金币 / 波次，订阅 GameEvents 自动刷新。</summary>
+    /// <summary>HUD：血条 / 金币 / 自动入库 / 波次，订阅 GameEvents 自动刷新。</summary>
     public class HudView : MonoBehaviour
     {
         Image hpFill;
         Text hpText;
         Text goldText;
+        Text bankText;
         Text waveText;
         Text timerText;
 
@@ -16,7 +17,7 @@ namespace Roguelite
         {
             var bar = UIBuilder.Panel("HP_Bar", parent);
             var barRt = bar.GetComponent<RectTransform>();
-            barRt.anchorMin = new Vector2(0.03f, 0.94f);
+            barRt.anchorMin = new Vector2(0.075f, 0.94f);
             barRt.anchorMax = new Vector2(0.42f, 0.985f);
             barRt.offsetMin = Vector2.zero;
             barRt.offsetMax = Vector2.zero;
@@ -24,9 +25,15 @@ namespace Roguelite
             hpText = UIBuilder.AddText(bar, "HP 100/100", 26, Color.white, TextAnchor.MiddleCenter);
 
             var goldGo = UIBuilder.Text("Gold", parent, "金币 0", 28, Color.yellow, TextAnchor.MiddleLeft);
-            goldGo.rectTransform.anchorMin = new Vector2(0.03f, 0.88f);
+            goldGo.rectTransform.anchorMin = new Vector2(0.075f, 0.88f);
             goldGo.rectTransform.anchorMax = new Vector2(0.42f, 0.94f);
             goldText = goldGo;
+
+            // 自动入库金币(回合末未拾取自动结算)：并列放在金币下方
+            var bankGo = UIBuilder.Text("Bank", parent, "自动入库 0", 24, new Color(1f, 0.8f, 0.3f, 0.9f), TextAnchor.MiddleLeft);
+            bankGo.rectTransform.anchorMin = new Vector2(0.075f, 0.825f);
+            bankGo.rectTransform.anchorMax = new Vector2(0.42f, 0.88f);
+            bankText = bankGo;
 
             var waveGo = UIBuilder.Text("Wave", parent, "第 1/5 波", 30, Color.white, TextAnchor.MiddleRight);
             waveGo.rectTransform.anchorMin = new Vector2(0.55f, 0.94f);
@@ -47,6 +54,7 @@ namespace Roguelite
         {
             GameEvents.HPChanged += OnHPChanged;
             GameEvents.GoldChanged += OnGoldChanged;
+            GameEvents.GoldBanked += OnGoldBanked;
             GameEvents.WaveChanged += OnWaveChanged;
             GameEvents.CombatTimeChanged += OnCombatTimeChanged;
         }
@@ -55,6 +63,7 @@ namespace Roguelite
         {
             GameEvents.HPChanged -= OnHPChanged;
             GameEvents.GoldChanged -= OnGoldChanged;
+            GameEvents.GoldBanked -= OnGoldBanked;
             GameEvents.WaveChanged -= OnWaveChanged;
             GameEvents.CombatTimeChanged -= OnCombatTimeChanged;
         }
@@ -71,6 +80,11 @@ namespace Roguelite
         void OnGoldChanged(int gold)
         {
             if (goldText != null) goldText.text = "金币 " + gold;
+        }
+
+        void OnGoldBanked(int banked)
+        {
+            if (bankText != null) bankText.text = "自动入库 " + banked;
         }
 
         void OnWaveChanged(int index, int total)

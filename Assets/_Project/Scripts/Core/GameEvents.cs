@@ -7,6 +7,7 @@ namespace Roguelite
     {
         public static event Action<float, float> HPChanged;     // current, max
         public static event Action<int> GoldChanged;            // current
+        public static event Action<int> GoldBanked;             // 自动入库累计值(回合末未拾取金币)
         public static event Action<int, int> WaveChanged;       // currentIndex(1-based), total(-1=无尽)
         public static event Action<float> CombatTimeChanged;    // 回合剩余秒数(战斗倒计时)
         public static event Action<ShopOffer> ShopOpened;       // 展示商店
@@ -17,6 +18,7 @@ namespace Roguelite
 
         public static void RaiseHP(float cur, float max) => HPChanged?.Invoke(cur, max);
         public static void RaiseGold(int gold) => GoldChanged?.Invoke(gold);
+        public static void RaiseGoldBanked(int bankedTotal) => GoldBanked?.Invoke(bankedTotal);
         public static void RaiseWave(int index, int total) => WaveChanged?.Invoke(index, total);
         public static void RaiseCombatTime(float remaining) => CombatTimeChanged?.Invoke(remaining);
         public static void RaiseShop(ShopOffer offer) => ShopOpened?.Invoke(offer);
@@ -29,7 +31,7 @@ namespace Roguelite
         /// <summary>域重载/退出场景时清空，防止跨场景残留。</summary>
         public static void ClearAll()
         {
-            HPChanged = null; GoldChanged = null; WaveChanged = null; CombatTimeChanged = null;
+            HPChanged = null; GoldChanged = null; GoldBanked = null; WaveChanged = null; CombatTimeChanged = null;
             ShopOpened = null; GameEnded = null;
             EndlessChoiceOffered = null; EndlessChosen = null; ForgeOffer = null;
         }

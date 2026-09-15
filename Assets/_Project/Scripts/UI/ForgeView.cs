@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 namespace Roguelite
 {
-    /// <summary>锻体 UI：海克斯风格 3 选 1 卡牌，稀有度底色、悬停放大、刷新/升阶按钮。</summary>
+    /// <summary>锻体 UI：花费 10 金币开启的海克斯风格 3 选 1 卡牌，稀有度底色、悬停放大。
+    /// 无刷新/升阶：选择即生效，可跳过。</summary>
     public class ForgeView : MonoBehaviour
     {
         /// <summary>由 GameBootstrap 注入。</summary>
@@ -20,10 +21,6 @@ namespace Roguelite
             public GameObject root;
             public Button button;
             public Text label;
-            public Button refreshBtn;
-            public Text refreshLabel;
-            public Button upgradeBtn;
-            public Text upgradeLabel;
         }
 
         public void Build(Transform parent)
@@ -38,7 +35,7 @@ namespace Roguelite
             for (int i = 0; i < 3; i++) BuildCard(i);
 
             var hint = UIBuilder.Text("ForgeHint", panel.transform,
-                "锤选 1 张卡强化本回合 · 点击卡牌生效 · 每卡可免费刷新 1 次 · 金币可升阶",
+                "锻体：花费 10 金币开启 · 选择 1 张卡强化本回合 · 点击卡牌生效 · 可跳过",
                 26, new Color(0.9f, 0.9f, 0.9f), TextAnchor.MiddleCenter);
             var hrt = hint.rectTransform;
             hrt.anchorMin = new Vector2(0.2f, 0.32f);
@@ -70,31 +67,12 @@ namespace Roguelite
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             AddHoverScale(root, 1.08f);
-            var btn = root.GetComponent<Button>();
-
-            var refresh = UIBuilder.Button("ForgeRefresh_" + i, panel.transform, "刷新", null);
-            var rrt = refresh.GetComponent<RectTransform>();
-            rrt.anchorMin = new Vector2(0.13f + 0.26f * i, 0.46f);
-            rrt.anchorMax = new Vector2(0.24f + 0.26f * i, 0.56f);
-            rrt.offsetMin = Vector2.zero;
-            rrt.offsetMax = Vector2.zero;
-
-            var upgrade = UIBuilder.Button("ForgeUpgrade_" + i, panel.transform, "升阶", null);
-            var urt = upgrade.GetComponent<RectTransform>();
-            urt.anchorMin = new Vector2(0.26f + 0.26f * i, 0.46f);
-            urt.anchorMax = new Vector2(0.37f + 0.26f * i, 0.56f);
-            urt.offsetMin = Vector2.zero;
-            urt.offsetMax = Vector2.zero;
 
             cards.Add(new CardUI
             {
                 root = root,
-                button = btn,
+                button = root.GetComponent<Button>(),
                 label = root.GetComponentInChildren<Text>(true),
-                refreshBtn = refresh.GetComponent<Button>(),
-                refreshLabel = refresh.GetComponentInChildren<Text>(true),
-                upgradeBtn = upgrade.GetComponent<Button>(),
-                upgradeLabel = upgrade.GetComponentInChildren<Text>(true),
             });
         }
 
@@ -140,19 +118,6 @@ namespace Roguelite
             colors.highlightedColor = Color.Lerp(bg, Color.white, 0.35f);
             colors.pressedColor = Color.Lerp(bg, Color.black, 0.25f);
             c.button.colors = colors;
-
-            c.refreshBtn.interactable = !card.RefreshUsed;
-            c.refreshLabel.text = card.RefreshUsed ? "已刷新" : "刷新";
-            c.refreshBtn.onClick.RemoveAllListeners();
-            c.refreshBtn.onClick.AddListener(() => TryRefresh(i));
-
-            bool canUpgrade = card.Rarity < ForgeRarity.Rainbow &&
-                              PlayerStats.Instance != null &&
-                              PlayerStats.Instance.Gold >= card.UpgradePrice();
-            c.upgradeBtn.interactable = canUpgrade;
-            c.upgradeLabel.text = card.Rarity >= ForgeRarity.Rainbow ? "已满" : $"升阶 {card.UpgradePrice()}金";
-            c.upgradeBtn.onClick.RemoveAllListeners();
-            c.upgradeBtn.onClick.AddListener(() => TryUpgrade(i));
         }
 
         void Choose(int idx)
@@ -160,16 +125,6 @@ namespace Roguelite
             if (forge == null || !forge.IsAwaitingChoice) return;
             forge.Choose(idx);
             panel.SetActive(false);
-        }
-
-        void TryRefresh(int idx)
-        {
-            if (forge != null && forge.TryRefresh(idx)) RefreshCard(idx);
-        }
-
-        void TryUpgrade(int idx)
-        {
-            if (forge != null && forge.TryUpgrade(idx)) RefreshCard(idx);
         }
         #endregion
 

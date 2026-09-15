@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Roguelite.Tests
 {
-    /// <summary>锻体系统：3 卡生成、刷新限次、升阶扣金、倍率选卡。</summary>
+    /// <summary>锻体系统：付费开启、3 卡生成、倍率选卡、符文记录。</summary>
     public class ForgeSystemTests
     {
         ForgeSystem forge;
@@ -83,66 +83,43 @@ namespace Roguelite.Tests
         }
 
         [Test]
-        public void Refresh_Works_Once_Then_Blocked()
+        public void TryOpenForge_Pays_10_And_Opens()
         {
-            forge.OpenForge(pool);
-            var card = forge.CurrentCards[0];
-            var original = card.Item;
+            forge.Pool = pool;
+            stats.AddGold(25);
+            Assert.That(ForgeSystem.OpenPrice, Is.EqualTo(10));
 
-            bool first = forge.TryRefresh(0);
-
-            Assert.That(first, Is.True);
-            Assert.That(card.RefreshUsed, Is.True);
-            Assert.That(card.Item, Is.Not.SameAs(original));
-            Assert.That(forge.TryRefresh(0), Is.False, "每张卡刷新应仅一次");
-        }
-
-        [Test]
-        public void Refresh_Invalid_Index_Rejected()
-        {
-            forge.OpenForge(pool);
-            Assert.That(forge.TryRefresh(3), Is.False);
-            Assert.That(forge.TryRefresh(-1), Is.False);
-        }
-
-        [Test]
-        public void Upgrade_Increases_Rarity_And_Spends_Gold()
-        {
-            forge.OpenForge(pool);
-            stats.AddGold(999); // 初始 0 金，先给足金币
-            var card = forge.CurrentCards[0];
-            card.Rarity = ForgeRarity.White;
-            int before = stats.Gold;
-            int price = card.UpgradePrice();
-
-            bool ok = forge.TryUpgrade(0);
+            bool ok = forge.TryOpenForge();
 
             Assert.That(ok, Is.True);
-            Assert.That(card.Rarity, Is.EqualTo(ForgeRarity.Gold));
-            Assert.That(stats.Gold, Is.EqualTo(before - price));
+            Assert.That(stats.Gold, Is.EqualTo(15));
+            Assert.That(forge.IsAwaitingChoice, Is.True);
+            Assert.That(forge.CurrentCards, Has.Count.EqualTo(3));
         }
 
         [Test]
-        public void Upgrade_Below_Price_Fails()
+        public void TryOpenForge_No_Gold_Fails_Without_Deduct()
         {
-            forge.OpenForge(pool);
-            stats.AddGold(-stats.Gold); // 清零
-            var card = forge.CurrentCards[0];
-            card.Rarity = ForgeRarity.White;
+            stats.AddGold(9); // 不足 10
+            int before = stats.Gold;
 
-            Assert.That(card.UpgradePrice(), Is.GreaterThan(0));
-            Assert.That(forge.TryUpgrade(0), Is.False);
-            Assert.That(card.Rarity, Is.EqualTo(ForgeRarity.White));
+            bool ok = forge.TryOpenForge();
+
+            Assert.That(ok, Is.False);
+            Assert.That(stats.Gold, Is.EqualTo(before)); // 未扣费
+            Assert.That(forge.IsAwaitingChoice, Is.False);
         }
 
         [Test]
-        public void Upgrade_Rainbow_Already_Max_Rejected()
+        public void TryOpenForge_Already_Awaiting_Rejected()
         {
-            forge.OpenForge(pool);
+            forge.Pool = pool;
             stats.AddGold(999);
-            forge.CurrentCards[0].Rarity = ForgeRarity.Rainbow;
+            forge.TryOpenForge();
+            int before = stats.Gold;
 
-            Assert.That(forge.TryUpgrade(0), Is.False);
+            Assert.That(forge.TryOpenForge(), Is.False);
+            Assert.That(stats.Gold, Is.EqualTo(before)); // 二次开启不重复扣费
         }
 
         [Test]
@@ -159,6 +136,37 @@ namespace Roguelite.Tests
             Assert.That(stats.damage, Is.EqualTo(before + 9f).Within(0.0001f));
             Assert.That(forge.IsAwaitingChoice, Is.False);
             Assert.That(forge.CurrentCards, Is.Empty);
+        }
+
+        [Test]
+        public void Choose_Records_Rune_Info()
+        {
+            forge.OpenForge(pool);
+            var card = forge.CurrentCards[0];
+            card.Item = pool[0];
+            card.Rarity = ForgeRarity.Rainbow;
+            int before = stats.Runes.Count;
+
+            forge.Choose(0);
+
+            Assert.That(stats.Runes.Count, Is.EqualTo(before + 1));
+            Assert.That(stats.Runes[before].Name, Does.Contain("传说"));
+            Assert.That(stats.Runes[before].Desc, Does.Contain("伤害"));
+        }
+
+        [Test]
+        public void Skip_Closes_Without_Bonus()
+        {
+            forge.OpenForge(pool);
+            stats.AddGold(10);
+            forge.TryOpenForge();
+            float before = stats.damage;
+
+            forge.Skip();
+
+            Assert.That(forge.IsAwaitingChoice, Is.False);
+            Assert.That(forge.CurrentCards.Count, Is.Zero);
+            Assert.That(stats.damage, Is.EqualTo(before));
         }
 
         [Test]

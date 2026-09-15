@@ -68,7 +68,7 @@ namespace Roguelite
                 Unregister(p); // 显式注销，不依赖 OnDisable(批处理 EditMode 不触发生命周期)
                 PoolManager.Return(p.gameObject);
             }
-            if (total > 0) PlayerStats.Instance.AddGold(total);
+            if (total > 0) PlayerStats.Instance.BankGold(total);
         }
     }
 }

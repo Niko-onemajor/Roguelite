@@ -50,7 +50,9 @@ namespace Roguelite
         {
             if (Camera.main != null)
             {
-                Camera.main.transform.position = new Vector3(0f, 0f, -10f); // 竞技场固定视角
+                Camera.main.transform.position = new Vector3(0f, 0f, -10f); // 初始归位，随后由 CameraFollow 锁定玩家居中
+                if (Camera.main.GetComponent<CameraFollow>() == null)
+                    Camera.main.gameObject.AddComponent<CameraFollow>();
                 return Camera.main;
             }
             var go = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
@@ -61,6 +63,7 @@ namespace Roguelite
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.08f, 0.09f, 0.1f);
             go.transform.position = new Vector3(0f, 0f, -10f);
+            go.AddComponent<CameraFollow>();
             return cam;
         }
 
@@ -80,7 +83,7 @@ namespace Roguelite
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = SpriteArt.LoadOrPlaceholder("player");
             sr.color = SpriteArt.HasReal("player") ? Color.white : new Color(0.3f, 0.85f, 0.6f);
-            float playerScale = SpriteArt.NormalizeFactor(sr.sprite, 1f); // 统一角色视觉尺寸(直径1世界单位)，同占位圆
+            float playerScale = SpriteArt.NormalizeFactor(sr.sprite, 1.5f); // 统一角色视觉尺寸(直径1.5世界单位)，比初始放大1.5倍
             go.transform.localScale = Vector3.one * playerScale;
             var rb = go.AddComponent<Rigidbody2D>();
             rb.isKinematic = true; // kinematic + MovePosition 驱动；接触伤害走 Enemy 距离判定，不依赖物理回调
@@ -88,7 +91,7 @@ namespace Roguelite
             rb.freezeRotation = true;
             var col = go.AddComponent<CircleCollider2D>();
             col.isTrigger = true;
-            col.radius = 0.4f / playerScale; // 世界半径=0.4，视觉直径1单位的0.8倍贴合碰撞
+            col.radius = 0.6f / playerScale; // 世界半径=0.6，视觉直径1.5的0.8倍贴合碰撞
             go.AddComponent<PlayerStats>(); // 必须先于 PlayerController：其 Awake 需 GetComponent<PlayerStats>()
             go.AddComponent<HitFlash>(); // 玩家受击闪红
             go.AddComponent<PlayerController>();
@@ -101,6 +104,8 @@ namespace Roguelite
             var canvas = UIBuilder.Canvas();
             var hud = canvas.AddComponent<HudView>();
             hud.Build(canvas.transform);
+            var pause = canvas.AddComponent<PauseView>();
+            pause.Build(canvas.transform);
             var shopView = canvas.AddComponent<ShopView>();
             shopView.shop = shop;
             shopView.Build(canvas.transform);

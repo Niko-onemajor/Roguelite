@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Roguelite
 {
-    /// <summary>竞技场背景：在相机正下方铺整屏 bg_floor 贴图(简单拉伸覆盖视野)。
+    /// <summary>竞技场背景：挂到相机正下方铺整屏 bg_floor 贴图(拉伸覆盖视野)，随相机一起移动。
     /// 素材缺失时静默跳过，保留相机底色，保证任何阶段都能跑。</summary>
     public static class ArenaBackground
     {
@@ -16,9 +16,10 @@ namespace Roguelite
             var sr = go.GetComponent<SpriteRenderer>();
             sr.sprite = sprite;
             sr.sortingOrder = -100;
-            go.transform.position = new Vector3(0f, 0f, 0f);
+            go.transform.SetParent(cam.transform, false); // 背景随相机移动，玩家始终居中
+            go.transform.localPosition = new Vector3(0f, 0f, 10f); // 相机在 z=-10，子节点回 world z=0
 
-            // 覆盖整个相机视野：高=orthoSize*2，宽按纵横比(竞技场半径外区域也铺满)
+            // 覆盖整个相机视野：高=orthoSize*2，宽按纵横比(竞技场外区域也铺满)
             float worldH = cam.orthographicSize * 2f;
             float worldW = worldH * cam.aspect;
             float bw = Mathf.Max(0.0001f, sprite.bounds.size.x);

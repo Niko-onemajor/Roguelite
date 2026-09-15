@@ -1,7 +1,16 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Roguelite
 {
+    /// <summary>已获取符文(每回合锻体选择的卡牌效果)，用于暂停面板回看。</summary>
+    public sealed class RuneInfo
+    {
+        public string Name;   // 卡牌名：如 伤害+6
+        public string Desc;   // 生效后效果描述：如 金卡 ×1.5
+        public Color Color;   // 稀有度对应颜色
+    }
+
     /// <summary>玩家属性与资源(HP/金币/击杀)，供商店增益与系统读取。</summary>
     public class PlayerStats : MonoBehaviour
     {
@@ -20,6 +29,12 @@ namespace Roguelite
         public int Gold { get; private set; }
         public int Kills { get; private set; }
 
+        /// <summary>自动入库金币累计值(回合末未拾取金币自动结算的部分)。</summary>
+        public int BankedGold { get; private set; }
+
+        /// <summary>本局已获取的符文(每回合锻体选择的卡牌效果)，供暂停面板查看。</summary>
+        public readonly List<RuneInfo> Runes = new List<RuneInfo>();
+
         void OnEnable() => Instance = this;
 
         void OnDisable()
@@ -32,8 +47,11 @@ namespace Roguelite
             CurrentHP = maxHP;
             Gold = 0;
             Kills = 0;
+            BankedGold = 0;
+            Runes.Clear();
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseGold(0);
+            GameEvents.RaiseGoldBanked(0);
         }
 
         public void TakeDamage(float dmg)
@@ -48,6 +66,21 @@ namespace Roguelite
         {
             Gold += amount;
             GameEvents.RaiseGold(Gold);
+        }
+
+        /// <summary>回合末自动入库金币：计入 Gold 与 BankedGold 累计，并广播入库事件(HUD 显示)。</summary>
+        public void BankGold(int amount)
+        {
+            if (amount <= 0) return;
+            BankedGold += amount;
+            AddGold(amount);
+            GameEvents.RaiseGoldBanked(BankedGold);
+        }
+
+        /// <summary>记录一枚符文(锻体选定卡牌的效果)，供暂停面板查看。</summary>
+        public void RecordRune(string name, string desc, Color color)
+        {
+            Runes.Add(new RuneInfo { Name = name, Desc = desc, Color = color });
         }
 
         public void NotifyKill() => Kills++;
