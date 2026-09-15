@@ -17,6 +17,11 @@ namespace Roguelite
             sr = GetComponent<SpriteRenderer>();
         }
 
+        void OnEnable() => PickupFactory.Register(this);
+
+        // 回收时自动移出登记表，未拾取金币不再重复入库
+        void OnDisable() => PickupFactory.Unregister(this);
+
         public void SetGold(int gold, Color color)
         {
             Gold = gold;

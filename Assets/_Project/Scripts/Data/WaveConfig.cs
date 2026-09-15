@@ -16,6 +16,7 @@ namespace Roguelite
     public class WaveConfig : ScriptableObject
     {
         public float prepareTime = 2f;
+        public float combatTime = 25f; // 每回合战斗倒计时(秒)，时间到残敌消失进入锻体
         public List<WaveBatch> wave1 = new List<WaveBatch>();
         public List<WaveBatch> wave2 = new List<WaveBatch>();
         public List<WaveBatch> wave3 = new List<WaveBatch>();

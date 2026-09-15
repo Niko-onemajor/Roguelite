@@ -25,5 +25,14 @@ namespace Roguelite
 
         /// <summary>是否存在真实贴图(用于决定角色走贴图原色还是占位染色)。</summary>
         public static bool HasReal(string name) => LoadOrPlaceholder(name) != Fallback;
+
+        /// <summary>归一化系数：把 <paramref name="sprite"/> 显示为 targetWorld(世界单位) 宽所需 localScale。
+        /// 使任意 PPU/像素尺寸的贴图都与占位圆(1 单位宽)等观；占位圆本身 factor=1。</summary>
+        public static float NormalizeFactor(Sprite sprite, float targetWorld)
+        {
+            if (sprite == null) return 1f;
+            float w = sprite.bounds.size.x;
+            return w > 0.0001f ? targetWorld / w : 1f;
+        }
     }
 }

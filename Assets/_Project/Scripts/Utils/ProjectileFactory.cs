@@ -22,9 +22,10 @@ namespace Roguelite
             col.isTrigger = true;
             col.radius = 0.18f;
             SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderArt.Circle();
+            sr.sprite = SpriteArt.LoadOrPlaceholder("bullet");
+            float scale = SpriteArt.NormalizeFactor(sr.sprite, 0.36f);
             sr.sortingOrder = 2;
-            go.transform.localScale = Vector3.one * 0.36f; // 0.5*0.36≈0.18
+            go.transform.localScale = Vector3.one * scale;
             go.SetActive(false);
             return go;
         }

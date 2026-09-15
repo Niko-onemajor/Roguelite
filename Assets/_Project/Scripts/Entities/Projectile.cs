@@ -28,6 +28,9 @@ namespace Roguelite
             life = maxRange / Mathf.Max(0.01f, speed);
             rb.velocity = dir * speed;
             if (sr != null) sr.color = color;
+            // 贴图朝向飞行方向：素材(laser)为水平向右，旋转到 dir 角度
+            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0f, 0f, angle);
         }
 
         void Update()

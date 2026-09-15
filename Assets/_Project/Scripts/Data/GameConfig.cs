@@ -15,16 +15,16 @@ namespace Roguelite
         {
             var cfg = new GameConfig();
 
-            // 武器 4 把
-            cfg.weapons.Add(Weapon("手枪", WeaponType.Ranged, 10f, 0.6f, 8f, 10f, Color.yellow));
-            cfg.weapons.Add(Weapon("冲锋枪", WeaponType.Ranged, 5f, 0.18f, 7f, 12f, Color.cyan));
-            cfg.weapons.Add(Weapon("砍刀", WeaponType.Melee, 14f, 0.8f, 1.6f, 0f, Color.green));
-            cfg.weapons.Add(Weapon("手雷", WeaponType.AoE, 8f, 2.0f, 3.5f, 0f, Color.red));
+            // 武器 4 把(damage 字段为基准伤害；实际伤害=PlayerStats.damage)
+            cfg.weapons.Add(Weapon("手枪", WeaponType.Ranged, 10f, 0.6f, 8.5f, 7f, Color.yellow));
+            cfg.weapons.Add(Weapon("冲锋枪", WeaponType.Ranged, 5f, 0.18f, 7f, 8f, Color.cyan));
+            cfg.weapons.Add(Weapon("砍刀", WeaponType.Melee, 14f, 0.8f, 1.8f, 0f, Color.green));
+            cfg.weapons.Add(Weapon("手雷", WeaponType.AoE, 12f, 2.2f, 3.8f, 0f, Color.red));
 
-            // 敌人 3 种
-            cfg.enemies.Add(Enemy(EnemyType.Chaser, 20f, 2.6f, 10f, 1.5f, 0f, 0f, 0f, 8f, 1, 2, 1f, new Color(0.9f, 0.3f, 0.3f)));
-            cfg.enemies.Add(Enemy(EnemyType.Ranged, 15f, 1.8f, 0f, 2.5f, 4.5f, 8f, 8f, 8f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f)));
-            cfg.enemies.Add(Enemy(EnemyType.Tank, 60f, 1.2f, 20f, 1.5f, 0f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f)));
+            // 敌人 3 种：追兵3.2(玩家8可甩开) / 远程弹6(可躲) / 坦克慢而硬
+            cfg.enemies.Add(Enemy(EnemyType.Chaser, 22f, 3.2f, 8f, 1.4f, 0f, 0f, 0f, 8f, 1, 2, 1f, new Color(0.9f, 0.3f, 0.3f)));
+            cfg.enemies.Add(Enemy(EnemyType.Ranged, 16f, 2.2f, 0f, 2.6f, 4.5f, 8f, 5f, 6f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f)));
+            cfg.enemies.Add(Enemy(EnemyType.Tank, 80f, 1.4f, 14f, 1.6f, 0f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f)));
 
             // 商店 6 项
             cfg.shopItems.Add(Shop("伤害+6", StatType.Damage, 15, 8, 6f));
@@ -37,6 +37,7 @@ namespace Roguelite
             // 波次 20 波(手调递增)，通关后由 WaveManager 进入无尽模式
             cfg.waves = ScriptableObject.CreateInstance<WaveConfig>();
             cfg.waves.prepareTime = 2f;
+            cfg.waves.combatTime = 25f;
             cfg.waves.wave1 = new List<WaveBatch> { B(cfg.enemies[0], 6, 0.7f) };
             cfg.waves.wave2 = new List<WaveBatch> { B(cfg.enemies[0], 8, 0.6f), B(cfg.enemies[1], 3, 1.2f) };
             cfg.waves.wave3 = new List<WaveBatch> { B(cfg.enemies[0], 8, 0.5f), B(cfg.enemies[1], 4, 1.0f), B(cfg.enemies[2], 2, 2.0f) };

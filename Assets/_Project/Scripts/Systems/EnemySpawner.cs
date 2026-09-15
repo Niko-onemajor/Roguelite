@@ -27,6 +27,15 @@ namespace Roguelite
             foreach (WaveBatch b in schedule) pending += b.count;
         }
 
+        /// <summary>中止当前波次，避免继续刷残留敌人（回合倒计时结束时调用）。</summary>
+        public void StopWave()
+        {
+            batchIndex = batches != null ? batches.Count : 0;
+            current = null;
+            remainingInBatch = 0;
+            pending = 0;
+        }
+
         void Update()
         {
             if (pending <= 0) return;
@@ -44,16 +53,6 @@ namespace Roguelite
             spawnCd = current.spawnInterval;
         }
 
-        static Vector2 RandomOffScreenPosition()
-        {
-            Camera cam = Camera.main;
-            if (cam == null) return Random.insideUnitCircle * 5f;
-            float halfH = cam.orthographicSize + 1.5f;
-            float halfW = halfH * cam.aspect + 1.5f;
-            int side = Random.Range(0, 4);
-            float x = side == 0 ? -halfW : side == 1 ? halfW : Random.Range(-halfW, halfW);
-            float y = side == 2 ? -halfH : side == 3 ? halfH : Random.Range(-halfH, halfH);
-            return new Vector2(x, y);
-        }
+        static Vector2 RandomOffScreenPosition() => ArenaBounds.RandomRingPosition();
     }
 }

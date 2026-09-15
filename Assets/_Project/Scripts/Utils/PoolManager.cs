@@ -18,7 +18,13 @@ namespace Roguelite
                 pool[key] = queue;
             }
 
-            GameObject go = queue.Count > 0 ? queue.Dequeue() : Object.Instantiate(prototype);
+            GameObject go = null;
+            while (queue.Count > 0)
+            {
+                GameObject candidate = queue.Dequeue();
+                if (candidate != null) { go = candidate; break; } // 跳过已被销毁的残留
+            }
+            if (go == null) go = Object.Instantiate(prototype);
             var poolable = go.GetComponent<Poolable>();
             if (poolable != null) poolable.Key = key;
             go.transform.SetPositionAndRotation(pos, rot);

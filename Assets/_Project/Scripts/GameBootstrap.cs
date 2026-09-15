@@ -19,8 +19,9 @@ namespace Roguelite
             }
             _instance = this;
 
-            EnsureCamera();
+            var cam = EnsureCamera();
             EnsureEventSystem();
+            ArenaBackground.Build(cam);
 
             GameConfig cfg = GameConfig.Default();
 
@@ -28,24 +29,30 @@ namespace Roguelite
             var stats = playerGo.GetComponent<PlayerStats>();
             var combat = playerGo.GetComponent<CombatSystem>();
             combat.ClearEquips();
-            foreach (var w in cfg.weapons) combat.Equip(w);
+            combat.Equip(cfg.weapons[0]); // 初始仅 1 把武器，避免开局齐射；其余武器留待商店扩展
 
             var spawner = gameObject.AddComponent<EnemySpawner>();
             var shop = gameObject.AddComponent<ShopSystem>();
             shop.stats = stats;
             shop.pool = cfg.shopItems.ToArray();
+            var forge = gameObject.AddComponent<ForgeSystem>();
+            forge.Pool = cfg.shopItems;
             var wave = gameObject.AddComponent<WaveManager>();
 
-            BuildUI(shop);
+            BuildUI(shop, forge);
 
             stats.ResetForRun();
-            wave.BeginRun(cfg.waves, spawner, shop, stats);
+            wave.BeginRun(cfg.waves, spawner, shop, forge, stats);
         }
 
         #region Helpers
-        void EnsureCamera()
+        Camera EnsureCamera()
         {
-            if (Camera.main != null) return;
+            if (Camera.main != null)
+            {
+                Camera.main.transform.position = new Vector3(0f, 0f, -10f); // 竞技场固定视角
+                return Camera.main;
+            }
             var go = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
             go.tag = "MainCamera";
             var cam = go.GetComponent<Camera>();
@@ -53,6 +60,8 @@ namespace Roguelite
             cam.orthographicSize = 6f;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.08f, 0.09f, 0.1f);
+            go.transform.position = new Vector3(0f, 0f, -10f);
+            return cam;
         }
 
         void EnsureEventSystem()
@@ -71,20 +80,23 @@ namespace Roguelite
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = SpriteArt.LoadOrPlaceholder("player");
             sr.color = SpriteArt.HasReal("player") ? Color.white : new Color(0.3f, 0.85f, 0.6f);
+            float playerScale = SpriteArt.NormalizeFactor(sr.sprite, 1f); // 统一角色视觉尺寸(直径1世界单位)，同占位圆
+            go.transform.localScale = Vector3.one * playerScale;
             var rb = go.AddComponent<Rigidbody2D>();
-            rb.isKinematic = true;
+            rb.isKinematic = true; // kinematic + MovePosition 驱动；接触伤害走 Enemy 距离判定，不依赖物理回调
             rb.gravityScale = 0f;
             rb.freezeRotation = true;
             var col = go.AddComponent<CircleCollider2D>();
             col.isTrigger = true;
-            col.radius = 0.4f;
+            col.radius = 0.4f / playerScale; // 世界半径=0.4，视觉直径1单位的0.8倍贴合碰撞
+            go.AddComponent<PlayerStats>(); // 必须先于 PlayerController：其 Awake 需 GetComponent<PlayerStats>()
+            go.AddComponent<HitFlash>(); // 玩家受击闪红
             go.AddComponent<PlayerController>();
-            go.AddComponent<PlayerStats>();
             go.AddComponent<CombatSystem>();
             return go;
         }
 
-        void BuildUI(ShopSystem shop)
+        void BuildUI(ShopSystem shop, ForgeSystem forge)
         {
             var canvas = UIBuilder.Canvas();
             var hud = canvas.AddComponent<HudView>();
@@ -92,6 +104,9 @@ namespace Roguelite
             var shopView = canvas.AddComponent<ShopView>();
             shopView.shop = shop;
             shopView.Build(canvas.transform);
+            var forgeView = canvas.AddComponent<ForgeView>();
+            forgeView.forge = forge;
+            forgeView.Build(canvas.transform);
             var endless = canvas.AddComponent<EndlessChoiceView>();
             endless.Build(canvas.transform);
             var over = canvas.AddComponent<GameOverView>();

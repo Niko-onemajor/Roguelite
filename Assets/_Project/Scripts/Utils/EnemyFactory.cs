@@ -18,7 +18,7 @@ namespace Roguelite
 
         public static GameObject Prototype(EnemyType type)
         {
-            if (!prototypes.TryGetValue(type, out GameObject proto))
+            if (!prototypes.TryGetValue(type, out GameObject proto) || proto == null) // == 检测已销毁对象
             {
                 proto = Build(type);
                 proto.SetActive(false);
@@ -30,7 +30,7 @@ namespace Roguelite
         static GameObject Build(EnemyType type)
         {
             GameObject go = new GameObject("Enemy_" + type,
-                typeof(SpriteRenderer), typeof(Poolable), typeof(Rigidbody2D), typeof(CircleCollider2D));
+                typeof(SpriteRenderer), typeof(Poolable), typeof(Rigidbody2D), typeof(CircleCollider2D), typeof(HitFlash)); // HitFlash：受击闪白
             switch (type)
             {
                 case EnemyType.Ranged: go.AddComponent<EnemyRanged>(); break;
@@ -54,6 +54,11 @@ namespace Roguelite
         public static Enemy Spawn(EnemyData data, Vector3 position)
         {
             GameObject go = PoolManager.Spawn(Prototype(data.type), position, Quaternion.identity);
+            if (go == null)
+            {
+                Debug.LogError("EnemyFactory.Spawn: prototype unavailable for " + data.type);
+                return null;
+            }
             Enemy enemy = go.GetComponent<Enemy>();
             enemy.Init(data);
             return enemy;

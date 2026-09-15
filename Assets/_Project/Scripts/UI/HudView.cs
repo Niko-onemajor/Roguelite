@@ -10,6 +10,7 @@ namespace Roguelite
         Text hpText;
         Text goldText;
         Text waveText;
+        Text timerText;
 
         public void Build(Transform parent)
         {
@@ -31,6 +32,14 @@ namespace Roguelite
             waveGo.rectTransform.anchorMin = new Vector2(0.55f, 0.94f);
             waveGo.rectTransform.anchorMax = new Vector2(0.97f, 0.985f);
             waveText = waveGo;
+
+            // 顶部居中：回合倒计时
+            var timerGo = UIBuilder.Text("Timer", parent, "", 56, new Color(1f, 0.9f, 0.4f), TextAnchor.MiddleCenter);
+            timerGo.rectTransform.anchorMin = new Vector2(0.42f, 0.92f);
+            timerGo.rectTransform.anchorMax = new Vector2(0.58f, 1.0f);
+            timerGo.rectTransform.offsetMin = Vector2.zero;
+            timerGo.rectTransform.offsetMax = Vector2.zero;
+            timerText = timerGo;
         }
 
         #region Unity Lifecycle
@@ -39,6 +48,7 @@ namespace Roguelite
             GameEvents.HPChanged += OnHPChanged;
             GameEvents.GoldChanged += OnGoldChanged;
             GameEvents.WaveChanged += OnWaveChanged;
+            GameEvents.CombatTimeChanged += OnCombatTimeChanged;
         }
 
         void OnDisable()
@@ -46,6 +56,7 @@ namespace Roguelite
             GameEvents.HPChanged -= OnHPChanged;
             GameEvents.GoldChanged -= OnGoldChanged;
             GameEvents.WaveChanged -= OnWaveChanged;
+            GameEvents.CombatTimeChanged -= OnCombatTimeChanged;
         }
         #endregion
 
@@ -66,6 +77,12 @@ namespace Roguelite
         {
             if (waveText == null) return;
             waveText.text = total < 0 ? $"第 {index}/∞ 波" : $"第 {index}/{total} 波";
+        }
+
+        void OnCombatTimeChanged(float remaining)
+        {
+            if (timerText == null) return;
+            timerText.text = remaining > 0f ? Mathf.CeilToInt(remaining).ToString() : "";
         }
         #endregion
     }
