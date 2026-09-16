@@ -54,6 +54,7 @@ namespace Roguelite
 
             stats.AddGold(-price);
             stats.ApplyBonus(slot.Item);
+            stats.TryAddActive(slot.Item); // 带主动效果的装备自动装入主动栏首空槽
             slot.Item = null;
             return true;
         }

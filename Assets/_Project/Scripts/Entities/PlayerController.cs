@@ -34,9 +34,23 @@ namespace Roguelite
             Vector2 move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             if (move.sqrMagnitude > 1f) move = Vector2.ClampMagnitude(move, 1f);
             // 与敌人一致的 transform 位移实现，杜绝物理层(插值/休眠)干扰速度表现
-            transform.position += (Vector3)(move * (Stats != null ? Stats.moveSpeed : 1f) * Time.deltaTime);
+            transform.position += (Vector3)(move * (Stats != null ? Stats.EffectiveMoveSpeed : 1f) * Time.deltaTime);
             transform.position = ArenaBounds.Clamp(transform.position); // 限制在竞技场内
             if (move.sqrMagnitude > 0.0001f) Facing = move.normalized;
+
+            PollActiveSlots();
+        }
+
+        /// <summary>数字键 1-0 触发主动装备栏槽位(Alpha1..Alpha0),触发失败(冷却/法力不足)静默忽略。</summary>
+        void PollActiveSlots()
+        {
+            if (Stats == null) return;
+            for (int i = 0; i < PlayerStats.ActiveSlotCount; i++)
+            {
+                KeyCode key = KeyCode.Alpha1 + i;
+                if (key > KeyCode.Alpha9) key = KeyCode.Alpha0;
+                if (Input.GetKeyDown(key)) Stats.TryUseActive(i, transform.position);
+            }
         }
 
         /// <summary>调试：Scene 视图绘制玩家碰撞体积线框(绿色圆)，核对贴图与碰撞盒是否贴合。</summary>

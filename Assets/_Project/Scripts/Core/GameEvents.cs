@@ -13,6 +13,7 @@ namespace Roguelite
         public static event Action<ShopSystem> ShopOpened;       // 展示商店(内含3槽+锁定状态)
         public static event Action<RuneSystem> RuneOffer;      // 符文选择展示(开局/7/11/15波前)
         public static event Action<ForgeSystem> ForgeOffer;     // 锻体卡牌展示(商店内“锻体”按钮触发)
+        public static event Action ActiveSlotsChanged;          // 主动装备栏增/换/冷却变化
         public static event Action<bool, int, int> GameEnded;   // victory, wavesCleared, kills
         public static event Action EndlessChoiceOffered;        // 通关脚本波后弹出 结算/无尽 选择
         public static event Action<bool> EndlessChosen;         // true=无尽, false=结算
@@ -25,6 +26,7 @@ namespace Roguelite
         public static void RaiseShop(ShopSystem system) => ShopOpened?.Invoke(system);
         public static void RaiseRuneOffer(RuneSystem rune) => RuneOffer?.Invoke(rune);
         public static void RaiseForgeOffer(ForgeSystem forge) => ForgeOffer?.Invoke(forge);
+        public static void RaiseActiveSlotsChanged() => ActiveSlotsChanged?.Invoke();
         public static void RaiseGameEnded(bool victory, int wavesCleared, int kills) =>
             GameEnded?.Invoke(victory, wavesCleared, kills);
         public static void RaiseEndlessChoiceOffered() => EndlessChoiceOffered?.Invoke();
@@ -36,6 +38,7 @@ namespace Roguelite
             HPChanged = null; GoldChanged = null; GoldBanked = null; WaveChanged = null; CombatTimeChanged = null;
             ShopOpened = null; GameEnded = null;
             EndlessChoiceOffered = null; EndlessChosen = null; ForgeOffer = null; RuneOffer = null;
+            ActiveSlotsChanged = null;
         }
     }
 }

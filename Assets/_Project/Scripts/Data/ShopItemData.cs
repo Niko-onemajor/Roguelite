@@ -36,6 +36,16 @@ namespace Roguelite
         ArcaneBolt, // 海克斯科技枪刃 被动法术：冷却受技能急速缩放，消耗法力，伤害=基础+法强×0.7(魔法穿透结算)
     }
 
+    /// <summary>主动效果类型（装备栏 1-0 键触发）：有主动效果的装备购买后自动入槽，冷却受技能急速缩放。</summary>
+    public enum ActiveType
+    {
+        None,
+        Redemption, // 救赎：治疗自身+对半径内敌人魔法伤害
+        ManaMeld,   // 实现者“法力具现”：消耗法力，回血加治疗护盾
+        MoveBurst,  // 舒瑞娅的狂想曲：短暂提升移速
+        AoeBlast,   // 兰顿之兆：对周围敌人魔法伤害
+    }
+
     /// <summary>一组属性加成（多项组合用于 LOL 风格装备；单属性道具走 statType/addValue）。</summary>
     [System.Serializable]
     public class StatBonus
@@ -67,6 +77,12 @@ namespace Roguelite
 
         /// <summary>绑定的战斗被动（默认无；挂上后在 PlayerStats 动态计算增益）。</summary>
         public PassiveType passiveType = PassiveType.None;
+
+        /// <summary>主动效果（装备栏 1-0 键触发）。购买带主动效果的装备自动入槽。</summary>
+        public ActiveType activeType = ActiveType.None;
+
+        /// <summary>主动效果基础冷却(秒)，实际受技能急速缩放。0=不设冷却。</summary>
+        public float activeCooldown = 0f;
 
         public bool IsMulti => bonuses != null && bonuses.Count > 0;
     }

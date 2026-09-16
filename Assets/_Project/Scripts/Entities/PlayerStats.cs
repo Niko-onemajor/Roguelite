@@ -61,6 +61,15 @@ namespace Roguelite
 
         float spellCooldown;
 
+        // ── 主动装备栏（数字键 1-0 触发，购买带主动效果装备自动入槽）──
+        /// <summary>主动栏槽位数（1-0 数字键）。</summary>
+        public const int ActiveSlotCount = 10;
+        readonly ActiveSlot[] _activeSlots = new ActiveSlot[ActiveSlotCount];
+
+        float moveBurstRemaining;                     // 舒瑞娅 移速爆发剩余秒数
+
+        public IReadOnlyList<ActiveSlot> ActiveSlots => _activeSlots;
+
         const float RegenTickSeconds = 1f;
 
         public float CurrentHP { get; private set; }
@@ -153,6 +162,73 @@ namespace Roguelite
 
         /// <summary>技能急速 → 冷却缩放(0 急速=1.0；急速越高系数越小，100 急速≈半冷却)。</summary>
         public float HasteCooldownScale => 100f / (100f + abilityHaste);
+
+        /// <summary>有效移速(舒瑞娅 移速爆发期间提升)。</summary>
+        public float EffectiveMoveSpeed => moveSpeed * (moveBurstRemaining > 0f ? MoveBurstSpeedMult : 1f);
+
+        #region Active Items
+
+        /// <summary>购买带主动效果的装备后自动入首个空槽；满则不放入。</summary>
+        public bool TryAddActive(ShopItemData item)
+        {
+            if (item == null || item.activeType == ActiveType.None) return false;
+            for (int i = 0; i < _activeSlots.Length; i++)
+            {
+                if (_activeSlots[i] == null)
+                {
+                    _activeSlots[i] = new ActiveSlot { Item = item };
+                    GameEvents.RaiseActiveSlotsChanged();
+                    return true;
+                }
+            }
+            return false; // 无空槽
+        }
+
+        /// <summary>交换两个主动槽位的位置(换键：把 3 槽装备换到 1 槽等)。</summary>
+        public void SwapActiveSlots(int a, int b)
+        {
+            if (a == b || a < 0 || a >= _activeSlots.Length || b < 0 || b >= _activeSlots.Length) return;
+            (_activeSlots[a], _activeSlots[b]) = (_activeSlots[b], _activeSlots[a]);
+            GameEvents.RaiseActiveSlotsChanged();
+        }
+
+        /// <summary>尝试触发指定槽位的主动效果：需要冷却就绪(受技能急速缩放)。</summary>
+        public bool TryUseActive(int slotIndex, Vector2 origin)
+        {
+            if (slotIndex < 0 || slotIndex >= _activeSlots.Length) return false;
+            ActiveSlot slot = _activeSlots[slotIndex];
+            if (slot == null) return false;
+            if (slot.Remaining > 0f) return false;
+
+            if (!ActiveEffect.Run(this, slot.Item, origin)) return false;
+            slot.Remaining = slot.Item.activeCooldown * HasteCooldownScale;
+            GameEvents.RaiseActiveSlotsChanged();
+            return true;
+        }
+
+        /// <summary>主动栏冷却与临时增益计时(CombatSystem.Update 每帧驱动)。</summary>
+        public void TickActive(float dt)
+        {
+            for (int i = 0; i < _activeSlots.Length; i++)
+            {
+                if (_activeSlots[i] != null && _activeSlots[i].Remaining > 0f)
+                    _activeSlots[i].Remaining -= dt;
+            }
+            if (moveBurstRemaining > 0f) moveBurstRemaining = Mathf.Max(0f, moveBurstRemaining - dt);
+        }
+
+        /// <summary>触发舒瑞娅的狂想曲 移速爆发(供 ActiveEffect 调用)。</summary>
+        public void StartMoveBurst(float seconds) => moveBurstRemaining = Mathf.Max(moveBurstRemaining, seconds);
+
+        internal static float MoveBurstSpeedMult => 1.6f;
+        internal static float MoveBurstDuration => 5f;
+        internal const float RedemptionHealPct = 0.12f;
+        internal static float AoeBlastRadius => 3.5f;
+        internal static float AoeBlastApRatio => 0.6f;
+        internal static float ManaMeldCost => 12f;
+        internal static float ManaMeldHealPct => 0.1f;
+
+        #endregion
 
         bool _regenRunning;
 

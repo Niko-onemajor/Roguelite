@@ -93,8 +93,9 @@ namespace Roguelite
                 B(StatType.AbilityPower, 5f), B(StatType.AbilityHaste, 8f)));
             cfg.shopItems.Add(Equip("黄昏与黎明", 38, "被动“咒刃”：施放技能后下一次攻击附加额外魔法伤害。",
                 B(StatType.AbilityPower, 5f), B(StatType.MaxHP, 30f), B(StatType.AbilityHaste, 7f), B(StatType.AttackSpeed, 0.8f)));
-            cfg.shopItems.Add(Equip("实现者", 38, "主动“法力具现”：消耗法力提升技能伤害、治疗护盾与冷却。",
+            cfg.shopItems.Add(Equip("实现者", 38, "主动“法力具现”：消耗法力回血。",
                 B(StatType.AbilityPower, 6f), B(StatType.AbilityHaste, 3f)));
+            MarkActive(cfg.shopItems, "实现者", ActiveType.ManaMeld, 8f);
             cfg.shopItems.Add(Equip("海克斯科技枪刃", 38, "主动→被动“奥术弹”：每3秒(受技能急速缩减)自动对最近敌人发射魔法弹，消耗6法力，造伤15+法强×0.7。",
                 B(StatType.AbilityPower, 5f), B(StatType.AttackDamage, 5f), B(StatType.Omnivamp, 0.05f)));
             cfg.shopItems[cfg.shopItems.Count - 1].passiveType = PassiveType.ArcaneBolt;
@@ -126,8 +127,9 @@ namespace Roguelite
                 B(StatType.Armor, 14f), B(StatType.AbilityHaste, 7f)));
             cfg.shopItems.Add(Equip("荆棘之甲", 34, "被动：受到普攻时反弹魔法伤害并施加重伤。",
                 B(StatType.Armor, 17f), B(StatType.MaxHP, 40f)));
-            cfg.shopItems.Add(Equip("兰顿之兆", 34, "被动：受到暴击时减少伤害；主动：降低周围敌人移动速度。",
+            cfg.shopItems.Add(Equip("兰顿之兆", 34, "被动：受到暴击时减少伤害；主动：对周围敌人造成魔法伤害。",
                 B(StatType.Armor, 17f), B(StatType.MaxHP, 40f)));
+            MarkActive(cfg.shopItems, "兰顿之兆", ActiveType.AoeBlast, 8f);
             cfg.shopItems.Add(Equip("自然之力", 35, "被动：受到技能伤害时获得移动速度和魔法抗性。",
                 B(StatType.MagicResist, 17f), B(StatType.MaxHP, 40f), B(StatType.MoveSpeed, 0.4f)));
             cfg.shopItems.Add(Equip("振奋盔甲", 34, "被动：提升所有治疗和护盾效果。",
@@ -155,10 +157,12 @@ namespace Roguelite
                 B(StatType.MaxHP, 20f), B(StatType.AbilityPower, 3f), B(StatType.AbilityHaste, 5f)));
             cfg.shopItems.Add(Equip("流水法杖", 29, "被动：为友军提供护盾/治疗时使其获得法术强度与技能急速。",
                 B(StatType.MaxHP, 20f), B(StatType.AbilityPower, 3f), B(StatType.AbilityHaste, 3f)));
-            cfg.shopItems.Add(Equip("救赎", 29, "主动：在目标区域召唤光束，治疗友军并对敌人造成真实伤害。",
+            cfg.shopItems.Add(Equip("救赎", 29, "主动：治疗自身并对周围敌人造成魔法伤害。",
                 B(StatType.MaxHP, 20f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("舒瑞娅的狂想曲", 31, "主动：提升附近友军的移动速度。",
+            MarkActive(cfg.shopItems, "救赎", ActiveType.Redemption, 10f);
+            cfg.shopItems.Add(Equip("舒瑞娅的狂想曲", 31, "主动：短暂大幅提升移动速度。",
                 B(StatType.AbilityPower, 2f), B(StatType.MaxHP, 35f), B(StatType.AbilityHaste, 5f)));
+            MarkActive(cfg.shopItems, "舒瑞娅的狂想曲", ActiveType.MoveBurst, 12f);
             cfg.shopItems.Add(Equip("基克的聚合", 28, "被动：施放终极技能时生成冰霜风暴，减速敌人并强化友军攻击。",
                 B(StatType.MaxHP, 20f), B(StatType.Armor, 6f), B(StatType.MagicResist, 6f), B(StatType.AbilityHaste, 5f)));
             #endregion
@@ -241,6 +245,15 @@ namespace Roguelite
             i.displayName = name; i.basePrice = baseP; i.passive = passive;
             for (int k = 0; k < stats.Length; k++) i.bonuses.Add(stats[k]);
             return i;
+        }
+
+        /// <summary>按名称给已添加的装备绑定主动效果(装备栏 1-0 键触发)与基础冷却。</summary>
+        static void MarkActive(List<ShopItemData> items, string name, ActiveType type, float cooldown)
+        {
+            ShopItemData item = items.Find(s => s.displayName == name);
+            if (item == null) return;
+            item.activeType = type;
+            item.activeCooldown = cooldown;
         }
 
         static StatBonus B(StatType t, float v) => new StatBonus(t, v);
