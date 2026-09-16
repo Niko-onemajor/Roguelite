@@ -17,7 +17,8 @@ namespace Roguelite
 
         public void Build(Transform parent)
         {
-            const float width = 0.09f, gap = 0.016f;
+            // 正方形技能格: 面板宽=150×2+26px, 格宽/间距相对面板 150/326、26/326, 高=150px
+            const float width = 0.4601f, gap = 0.0798f;
             for (int i = 0; i < 2; i++)
             {
                 int idx = i;

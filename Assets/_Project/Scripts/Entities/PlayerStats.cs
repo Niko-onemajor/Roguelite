@@ -326,7 +326,11 @@ namespace Roguelite
                 instant -= absorbed;
                 if (absorbed > 0f) TriggerSupportBuffs();
             }
-            if (instant > 0f) CurrentHP = Mathf.Max(0f, CurrentHP - instant);
+            if (instant > 0f)
+            {
+                CurrentHP = Mathf.Max(0f, CurrentHP - instant);
+                DamagePopup.Spawn(transform.position, instant, DamageKind.PlayerHit); // 玩家受击红字
+            }
             GameEvents.RaiseHP(CurrentHP, maxHP);
 
             // 自然之力：受技能(魔法)伤害 → 移速层数

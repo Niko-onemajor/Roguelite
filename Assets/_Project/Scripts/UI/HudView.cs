@@ -65,14 +65,20 @@ namespace Roguelite
             BuildSkillBar(parent);
         }
 
-        /// <summary>右下角职业技能栏(E 基础 / R 大招)。</summary>
+        /// <summary>右下角职业技能栏(E 基础 / R 大招)。正方形技能格：边长 150 设计像素(1920×1080)。</summary>
         void BuildSkillBar(Transform parent)
         {
-            // 技能栏由 SkillBarView 组件负责(含冷却读秒与点击查看描述)
+            const float cellPx = 150f;   // 正方形格边长(px)
+            const float gapPx = 26f;     // 两格间距(px)
+            float cellW = cellPx / 1920f; // 格宽锚点
+            float cellH = cellPx / 1080f; // 格高锚点
+            float totalW = cellW * 2f + gapPx / 1920f;
+            float x0 = 1f - totalW;
+            float y0 = 0.012f;
             var skill = UIBuilder.Panel("SkillBar", parent);
             var rt = skill.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.8f, 0.012f);
-            rt.anchorMax = new Vector2(0.985f, 0.125f);
+            rt.anchorMin = new Vector2(x0, y0);
+            rt.anchorMax = new Vector2(1f, y0 + cellH);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             if (GetComponent<SkillBarView>() == null)

@@ -29,9 +29,9 @@ namespace Roguelite
                 new ClassSkillData { Name = "死亡射线", Desc = "向面朝方向发射混乱光线，沿途敌人受魔法伤害", Type = ClassSkillType.MageDeathRay, BaseDamage = 25f, ApRatio = 0.8f, Cooldown = 6f, ManaCost = 25f },
                 new ClassSkillData { Name = "烈焰风暴", Desc = "烈焰在敌方单位间弹射，每次弹射造成魔法伤害", Type = ClassSkillType.MageStorm, BaseDamage = 30f, ApRatio = 0.6f, Cooldown = 25f, ManaCost = 60f }));
             cfg.classes.Add(Class("射手", "远程 · 攻速更快技能冷却更短", WeaponType.Ranged,
-                damage: 11f, ap: 0f, hp: 85f, interval: 0.55f, ms: 8f, armor: 0f, mr: 0f, mana: 40f, haste: 0f,
+                damage: 11f, ap: 0f, hp: 85f, interval: 0.55f, ms: 8f, armor: 0f, mr: 0f, mana: 60f, haste: 0f,
                 new ClassSkillData { Name = "闪避突袭", Desc = "向前翻滚一小段距离，下一次普攻附加物理伤害", Type = ClassSkillType.ArcherDash, BaseDamage = 15f, AdRatio = 0.5f, Cooldown = 4f, ManaCost = 20f },
-                new ClassSkillData { Name = "定圣诀", Desc = "15秒内攻速提升22%，普攻附加魔法伤害并对附近敌人溅射", Type = ClassSkillType.ArcherUlt, BaseDamage = 10f, ApRatio = 0.4f, Cooldown = 45f, ManaCost = 50f }));
+                new ClassSkillData { Name = "定圣诀", Desc = "15秒内攻速提升22%，普攻附加魔法伤害并对附近敌人溅射", Type = ClassSkillType.ArcherUlt, BaseDamage = 10f, ApRatio = 0.4f, Cooldown = 45f, ManaCost = 40f }));
             cfg.classes.Add(Class("坦克", "近战 · 血量最高双抗最高", WeaponType.Melee,
                 damage: 10f, ap: 0f, hp: 210f, interval: 0.8f, ms: 7.5f, armor: 18f, mr: 15f, mana: 40f, haste: 0f,
                 new ClassSkillData { Name = "电击疗法", Desc = "电击自身：4秒内每秒对身周敌人造成魔法伤害并减伤", Type = ClassSkillType.TankShock, BaseDamage = 12f, Cooldown = 10f, ManaCost = 15f },

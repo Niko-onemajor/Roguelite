@@ -106,7 +106,9 @@ namespace Roguelite
             // 有效护甲 = 怪物护甲 - 玩家护甲穿透(下限0) - 黑切破甲；护甲减伤：dmg*100/(100+armor)
             PlayerStats ps = PlayerStats.Instance;
             float effectiveArmor = Mathf.Max(0f, Data.armor - (ps != null ? ps.armorPen : 0f) - shredAmount);
-            ApplyDamage(finalDamage * (100f / (100f + effectiveArmor)));
+            float actual = finalDamage * (100f / (100f + effectiveArmor));
+            DamagePopup.Spawn(transform.position, actual, DamageKind.Physical);
+            ApplyDamage(actual);
         }
 
         /// <summary>魔法伤害：按怪物魔抗与玩家法术穿透结算，并受深渊面具易伤倍率影响。</summary>
@@ -115,13 +117,16 @@ namespace Roguelite
             if (Data == null) return;
             PlayerStats ps = PlayerStats.Instance;
             float effectiveResist = Mathf.Max(0f, Data.magicResist - (ps != null ? ps.magicPen : 0f));
-            ApplyDamage(dmg * (100f / (100f + effectiveResist)) * magicVulnMult);
+            float actual = dmg * (100f / (100f + effectiveResist)) * magicVulnMult;
+            DamagePopup.Spawn(transform.position, actual, DamageKind.Magic);
+            ApplyDamage(actual);
         }
 
         /// <summary>真实伤害(坦克R盛宴)：无视护甲/魔抗，直接结算。</summary>
         public void TakeTrueDamage(float dmg)
         {
             if (Data == null) return;
+            DamagePopup.Spawn(transform.position, dmg, DamageKind.True);
             ApplyDamage(dmg);
         }
 
