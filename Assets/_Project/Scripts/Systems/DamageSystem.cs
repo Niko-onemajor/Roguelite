@@ -11,7 +11,9 @@ namespace Roguelite
         public static void HitEnemy(Enemy enemy, float damage, float critChance)
         {
             if (enemy == null || enemy.Data == null) return;
-            enemy.TakeDamage(DamageUtilities.ComputeCrit(damage, DamageUtilities.RollCrit(critChance, Rng), 2f), true);
+            // 暴击伤害倍率来自玩家属性(装备 CritDamage 词条生效)，默认 2x
+            float critMult = PlayerStats.Instance != null ? PlayerStats.Instance.critMultiplier : 2f;
+            enemy.TakeDamage(DamageUtilities.ComputeCrit(damage, DamageUtilities.RollCrit(critChance, Rng), critMult), true);
         }
 
         public static void RadiusHit(Vector2 origin, float radius, float damage, float critChance)

@@ -38,7 +38,7 @@ namespace Roguelite
             var forge = gameObject.AddComponent<ForgeSystem>();
             forge.Pool = cfg.shopItems;
             var rune = gameObject.AddComponent<RuneSystem>();
-            rune.pool = cfg.shopItems;
+            rune.pool = null; // 符文池待后续补充；商店/锻体共用 cfg.shopItems，符文单独建池
             var wave = gameObject.AddComponent<WaveManager>();
 
             BuildUI(combat, shop, forge, rune, wave);

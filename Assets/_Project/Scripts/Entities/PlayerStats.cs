@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -35,7 +36,14 @@ namespace Roguelite
         public float moveSpeed = 8f;         // 移动速度(追兵3.2，差距2.5倍：能被甩开但需走位)
         public float range = 6f;             // 攻击距离
         public float size = 1f;              // 体型(当前仅存储，视觉缩放后续接入)
+        public float mana = 0f;              // 法力值(当前仅存储，消耗逻辑待技能)
+        public float tenacity = 0f;          // 韧性(控制减免，当前仅存储)
         public float pickupRadius = 2.5f;
+
+        /// <summary>攻速基准间隔(秒/发)：战斗用 武器间隔 × (attackInterval/此处)，使攻速词条统一作用于全部武器。</summary>
+        public const float AttackIntervalBase = 0.8f;
+
+        const float RegenTickSeconds = 1f;
 
         public float CurrentHP { get; private set; }
         public int Gold { get; private set; }
@@ -64,16 +72,57 @@ namespace Roguelite
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseGold(0);
             GameEvents.RaiseGoldBanked(0);
+            StartRegenLoop();
         }
 
-        public void TakeDamage(float dmg)
+        public void TakeDamage(float dmg) => ReceiveDamage(dmg, magicDamage: false);
+
+        /// <summary>魔法伤害：按魔抗减伤后走统一受击管线。</summary>
+        public void TakeMagicDamage(float dmg) => ReceiveDamage(dmg, magicDamage: true);
+
+        void ReceiveDamage(float dmg, bool magicDamage)
         {
-            // 护甲减伤(默认0→满伤)；后续魔法伤害可走 magicResist
-            float reduced = dmg * (100f / (100f + Mathf.Max(0f, armor)));
+            float resist = magicDamage ? magicResist : armor;
+            float reduced = dmg * (100f / (100f + Mathf.Max(0f, resist)));
             CurrentHP = Mathf.Max(0f, CurrentHP - reduced);
             GameEvents.RaiseHP(CurrentHP, maxHP);
             var flash = GetComponent<HitFlash>(); // 玩家受击反馈：闪红
             if (flash != null) flash.Flash(Color.red, 0.12f);
+        }
+
+        /// <summary>治疗：受治疗与护盾强度加成，不溢出当前生命上限。</summary>
+        public void Heal(float amount)
+        {
+            if (amount <= 0f) return;
+            float healed = amount * (1f + healShieldPower);
+            CurrentHP = Mathf.Min(maxHP, CurrentHP + healed);
+            GameEvents.RaiseHP(CurrentHP, maxHP);
+        }
+
+        /// <summary>每秒生命回复结算(供回复协程逐秒调用，也与全能吸血共用 Heal 加算治疗强度)。</summary>
+        public void TickRegen()
+        {
+            if (hpRegen > 0f) Heal(hpRegen);
+        }
+
+        bool _regenRunning;
+
+        /// <summary>启动每秒生命回复循环；防重复启动(回合重置/锻体加 HPRegen 后仍只跑一条)。</summary>
+        public void StartRegenLoop()
+        {
+            if (_regenRunning) return;
+            _regenRunning = true;
+            StartCoroutine(RegenLoop());
+        }
+
+        IEnumerator RegenLoop()
+        {
+            var wait = new WaitForSeconds(RegenTickSeconds);
+            while (true)
+            {
+                yield return wait;
+                TickRegen();
+            }
         }
 
         public void AddGold(int amount)
@@ -142,6 +191,8 @@ namespace Roguelite
                 case StatType.MoveSpeed: moveSpeed += value * multiplier; break;
                 case StatType.AttackRange: range += value * multiplier; break;
                 case StatType.Size: size = Mathf.Max(0.1f, size + value * multiplier); break;
+                case StatType.Mana: mana += value * multiplier; break;
+                case StatType.Tenacity: tenacity += value * multiplier; break;
                 default: break;
             }
         }

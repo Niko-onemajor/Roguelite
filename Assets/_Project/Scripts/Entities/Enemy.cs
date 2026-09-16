@@ -62,13 +62,16 @@ namespace Roguelite
             PoolManager.Return(gameObject); // 撞击即消失，不进入 Die(不掉金币/不记击杀)
         }
 
-        /// <summary>finalDamage 为最终伤害(暴击已算好)；护甲降低受到的物理伤害。</summary>
+        /// <summary>finalDamage 为最终伤害(暴击已算好)；护甲降低受到的物理伤害；吸血按实际造成伤害结算。</summary>
         public void TakeDamage(float finalDamage, bool wasCrit)
         {
             if (Data == null) return;
-            // 护甲减伤：dmg*100/(100+armor)；玩家护甲穿透(armorPen)由后续伤害管线接入
-            float reduced = finalDamage * (100f / (100f + Mathf.Max(0f, Data.armor)));
+            // 有效护甲 = 怪物护甲 - 玩家护甲穿透(下限0)；护甲减伤：dmg*100/(100+armor)
+            PlayerStats ps = PlayerStats.Instance;
+            float effectiveArmor = Mathf.Max(0f, Data.armor - (ps != null ? ps.armorPen : 0f));
+            float reduced = finalDamage * (100f / (100f + effectiveArmor));
             Health -= reduced;
+            if (ps != null && ps.omnivamp > 0f) ps.Heal(reduced * ps.omnivamp); // 全能吸血按实际造成伤害回血
             if (Health > 0f)
             {
                 var flash = GetComponent<HitFlash>(); // 非致命受击闪红(白对白底贴图不可见，改红更清晰)

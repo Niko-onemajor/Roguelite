@@ -51,7 +51,7 @@ namespace Roguelite
                 if (target == null) continue;
                 Vector2 to = (Vector2)target.transform.position - origin;
                 Vector2 dir = to.sqrMagnitude > 0.0001f ? to.normalized : Vector2.right;
-                w.Tick(Time.deltaTime, origin, dir, Stats.damage, Stats.critChance, Stats.range);
+                w.Tick(Time.deltaTime, origin, dir, Stats.damage, Stats.critChance, Stats.range, Stats.attackInterval);
             }
         }
     }

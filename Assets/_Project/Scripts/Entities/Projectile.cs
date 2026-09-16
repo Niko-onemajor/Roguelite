@@ -47,13 +47,15 @@ namespace Roguelite
                 if (enemy != null && enemy.Data != null)
                 {
                     bool crit = DamageUtilities.RollCrit(critChance, DamageSystem.Rng);
-                    enemy.TakeDamage(DamageUtilities.ComputeCrit(damage, crit, 2f), crit);
+                    // 暴击倍率取玩家属性(CritDamage 词条)
+                    float critMult = PlayerStats.Instance != null ? PlayerStats.Instance.critMultiplier : 2f;
+                    enemy.TakeDamage(DamageUtilities.ComputeCrit(damage, crit, critMult), crit);
                     PoolManager.Return(gameObject);
                 }
             }
             else if (other.GetComponentInParent<PlayerController>() != null)
             {
-                if (PlayerStats.Instance != null) PlayerStats.Instance.TakeDamage(damage);
+                if (PlayerStats.Instance != null) PlayerStats.Instance.TakeMagicDamage(damage); // 敌方弹幕走魔抗减伤
                 PoolManager.Return(gameObject);
             }
         }

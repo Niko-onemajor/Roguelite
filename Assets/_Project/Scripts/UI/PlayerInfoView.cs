@@ -84,6 +84,8 @@ namespace Roguelite
             Line(sb, "移速", s.moveSpeed.ToString("0.#"));
             Line(sb, "攻击距离", s.range.ToString("0.#"));
             Line(sb, "体型", "×" + s.size.ToString("0.##"));
+            Line(sb, "法力", s.mana.ToString("0.#"));
+            Line(sb, "韧性", (s.tenacity * 100f).ToString("0.#") + "%");
             return sb.ToString();
         }
 

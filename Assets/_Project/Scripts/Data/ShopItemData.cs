@@ -24,6 +24,8 @@ namespace Roguelite
         MoveSpeed,       // 移动速度
         AttackRange,     // 攻击距离
         Size,            // 体型
+        Mana,            // 法力值
+        Tenacity,        // 韧性(减免控制时间)
     }
 
     /// <summary>一组属性加成（多项组合用于 LOL 风格装备；单属性道具走 statType/addValue）。</summary>
@@ -105,6 +107,8 @@ namespace Roguelite
                 case StatType.MoveSpeed: return $"移速 +{v:0.#}";
                 case StatType.AttackRange: return $"攻击距离 +{v:0.#}";
                 case StatType.Size: return $"体型 +{v:0.##}";
+                case StatType.Mana: return $"法力 +{(int)v}";
+                case StatType.Tenacity: return $"韧性 +{Mathf.RoundToInt(v * 100f)}%";
                 default: return "";
             }
         }

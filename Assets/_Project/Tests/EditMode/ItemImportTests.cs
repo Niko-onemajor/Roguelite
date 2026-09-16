@@ -119,8 +119,8 @@ namespace Roguelite.Tests
         public void GameConfig_Default_Contains_ImportedEquipment()
         {
             var cfg = GameConfig.Default();
-            // 10 基础道具 + 59 件导入装备
-            Assert.That(cfg.shopItems.Count, Is.EqualTo(69));
+            // 10 基础道具 + 59 件导入装备 + 霸王血铠
+            Assert.That(cfg.shopItems.Count, Is.EqualTo(70));
 
             ShopItemData infinityEdge = cfg.shopItems.Find(s => s.displayName == "无尽之刃");
             Assert.That(infinityEdge, Is.Not.Null);
@@ -128,13 +128,24 @@ namespace Roguelite.Tests
             Assert.That(infinityEdge.bonuses.Count, Is.EqualTo(3));
             Assert.That(infinityEdge.basePrice, Is.EqualTo(42));
 
+            // 霸王血铠：+5AD/+55HP/41金，双被动(专横/报复)
+            ShopItemData overlord = cfg.shopItems.Find(s => s.displayName == "霸王血铠");
+            Assert.That(overlord, Is.Not.Null);
+            Assert.That(overlord.basePrice, Is.EqualTo(41));
+            Assert.That(overlord.bonuses.Count, Is.EqualTo(2));
+            Assert.That(overlord.bonuses[0].type, Is.EqualTo(StatType.AttackDamage));
+            Assert.That(overlord.bonuses[0].value, Is.EqualTo(5f));
+            Assert.That(overlord.bonuses[1].type, Is.EqualTo(StatType.MaxHP));
+            Assert.That(overlord.bonuses[1].value, Is.EqualTo(55f));
+            Assert.That(overlord.passive, Does.Contain("专横").And.Contain("报复"));
+
             int multi = 0, withPassive = 0;
             foreach (var s in cfg.shopItems)
             {
                 if (s.IsMulti) multi++;
                 if (!string.IsNullOrEmpty(s.passive)) withPassive++;
             }
-            Assert.That(multi, Is.EqualTo(59));
+            Assert.That(multi, Is.EqualTo(60));
             Assert.That(withPassive, Is.GreaterThanOrEqualTo(50));
         }
     }

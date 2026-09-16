@@ -15,12 +15,13 @@ namespace Roguelite
             cooldown = 0f;
         }
 
-        public void Tick(float dt, Vector2 origin, Vector2 dir, float statDamage, float statCritChance, float statRange)
+        public void Tick(float dt, Vector2 origin, Vector2 dir, float statDamage, float statCritChance, float statRange, float statAttackInterval)
         {
             if (Data == null) return;
             cooldown -= dt;
             if (cooldown > 0f) return;
-            cooldown = Data.attackInterval;
+            // 攻速词条(AttackSpeed 乘算属性)统一作用于全部武器：武器基础间隔 × 玩家攻速基准比率
+            cooldown = Data.attackInterval * (statAttackInterval / PlayerStats.AttackIntervalBase);
             Fire(origin, dir, statDamage, statCritChance, statRange);
         }
 

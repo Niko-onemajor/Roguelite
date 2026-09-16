@@ -28,11 +28,18 @@ namespace Roguelite
 
         public bool IsAwaitingChoice { get; private set; }
 
-        /// <summary>弹出 3 张不重复符文卡。</summary>
+        /// <summary>弹出 3 张不重复符文卡。池为空时直接结束选择，避免卡死波次流程。</summary>
         public void OpenOffer()
         {
             IsAwaitingChoice = true;
             Cards.Clear();
+
+            if (pool == null || pool.Count == 0)
+            {
+                IsAwaitingChoice = false;
+                GameEvents.RaiseRuneOffer(this);
+                return;
+            }
 
             var available = new List<ShopItemData>(pool);
             while (Cards.Count < CardCount && available.Count > 0)
