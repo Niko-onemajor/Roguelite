@@ -187,5 +187,27 @@ namespace Roguelite.Tests
             Assert.That(500f - near.Health, Is.EqualTo(20f + 10f * 0.6f).Within(0.01f)); // 20 + AP×0.6
             Assert.That(outside.Health, Is.EqualTo(500f));
         }
+
+        [Test]
+        public void Mana_Changes_Raise_Event_For_Blue_Bar()
+        {
+            int calls = 0;
+            GameEvents.ManaChanged += (cur, max) => calls++;
+
+            var item = ScriptableObject.CreateInstance<ShopItemData>();
+            item.displayName = "蓝瓶测试";
+            item.statType = StatType.Mana;
+            item.addValue = 20f;
+            stats.ApplyBonus(item); // 法力装备：上限与当前同增 → 广播
+
+            Assert.That(stats.maxMana, Is.EqualTo(20f).Within(0.001f));
+            int afterEquip = calls;
+            Assert.That(afterEquip, Is.GreaterThanOrEqualTo(1));
+
+            Assert.That(stats.TrySpendMana(5f), Is.True); // 消耗 → 广播
+            Assert.That(calls, Is.EqualTo(afterEquip + 1));
+            stats.RechargeMana(); // 每秒回蓝 → 广播
+            Assert.That(calls, Is.EqualTo(afterEquip + 2));
+        }
     }
 }

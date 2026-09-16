@@ -111,6 +111,7 @@ namespace Roguelite
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseGold(Gold);
             GameEvents.RaiseGoldBanked(0);
+            GameEvents.RaiseMana(mana, maxMana);
             StartRegenLoop();
         }
 
@@ -149,6 +150,7 @@ namespace Roguelite
         {
             if (maxMana <= 0f) return;
             mana = Mathf.Min(maxMana, mana + maxMana * ManaRegenFractionPerSec);
+            GameEvents.RaiseMana(mana, maxMana);
         }
 
         /// <summary>尝试消耗法力，不足返回 false(施法失败，调用方应中断本次施放)。</summary>
@@ -157,6 +159,7 @@ namespace Roguelite
             if (cost <= 0f) return true;
             if (mana < cost) return false;
             mana -= cost;
+            GameEvents.RaiseMana(mana, maxMana);
             return true;
         }
 
@@ -343,6 +346,7 @@ namespace Roguelite
                 case StatType.Mana:
                     maxMana += value * multiplier;
                     mana += value * multiplier; // 装备法力值同时提高上限与当前值
+                    GameEvents.RaiseMana(mana, maxMana);
                     break;
                 case StatType.Tenacity: tenacity += value * multiplier; break;
                 default: break;
