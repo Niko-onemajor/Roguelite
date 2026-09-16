@@ -20,6 +20,7 @@ namespace Roguelite
 
         public WaveState State { get; private set; }
         public bool Victory { get; private set; }
+        int _currentWave; // 当前正在进行的 0-based 波号，供暂停页“结算游戏”使用
 
         /// <summary>无尽模式每周期追加的数量/血量/伤害/护甲魔抗增幅。</summary>
         public const int EndlessCountPerCycle = 3;
@@ -42,6 +43,7 @@ namespace Roguelite
             rune = runeSystem;
             stats = playerStats;
             Victory = false;
+            _currentWave = 0;
             StartCoroutine(RunLoop());
         }
 
@@ -58,6 +60,7 @@ namespace Roguelite
             bool endless = false;
             while (true)
             {
+                _currentWave = waveIndex; // 记录当前波号，供暂停页“结算游戏”统计
                 int waveNo = waveIndex + 1; // 1-based
                 List<WaveBatch> schedule = waveIndex < waves.Count
                     ? ScaleScriptedWave(waves[waveIndex], waveNo)
@@ -198,6 +201,15 @@ namespace Roguelite
             e.armor = src.armor + defenseGain;          // 护甲随难度成长
             e.magicResist = src.magicResist + defenseGain; // 魔抗随难度成长
             return e;
+        }
+
+        /// <summary>暂停页“结算游戏”：立即终止波次状态机并以当前波数结算（手动结束按失败处理）。
+        /// StopAllCoroutines 清掉 RunLoop/CombatTick，避免结束面板出现后状态机继续推进。</summary>
+        public void EndRunNow(bool victory)
+        {
+            StopAllCoroutines();
+            if (spawner != null) spawner.StopWave();
+            EndGame(victory, _currentWave);
         }
 
         void EndGame(bool victory, int wavesCleared)

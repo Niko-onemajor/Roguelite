@@ -13,6 +13,8 @@ namespace Roguelite
         public ShopSystem shop;
         /// <summary>由 GameBootstrap 注入：商店内的“锻体”按钮触发锻体覆盖层(ForgeView)。</summary>
         public ForgeSystem forge;
+        /// <summary>由 GameBootstrap 注入：玩家详情面板(属性/装备/符文)，供查看已获增益后搭配购买。</summary>
+        public PlayerInfoView info;
 
         GameObject panel;
         Text goldText;
@@ -54,9 +56,12 @@ namespace Roguelite
             var end = UIBuilder.Button("EndShop", panel.transform, "结束商店", EndShop);
             SetRect(end.GetComponent<RectTransform>(), 0.72f, 0.13f, 0.92f, 0.21f);
 
+            var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 装备 / 符文", OpenInfo);
+            SetRect(viewBtn.GetComponent<RectTransform>(), 0.06f, 0.05f, 0.26f, 0.11f);
+
             var hint = UIBuilder.Text("ShopHint", panel.transform,
-                "购买固定价 · 锁定槽位可保留装备不被刷新替换", 24, new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleCenter);
-            SetRect(hint.rectTransform, 0.2f, 0.05f, 0.8f, 0.11f);
+                "购买固定价 · 锁定槽位可保留装备不被刷新替换", 22, new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleCenter);
+            SetRect(hint.rectTransform, 0.3f, 0.05f, 0.94f, 0.11f);
         }
 
         void BuildSlot(int i)
@@ -123,6 +128,12 @@ namespace Roguelite
         void OpenForge()
         {
             if (forge != null) forge.TryOpenForge(); // ForgeView 覆盖层响应 ForgeOffer
+        }
+
+        /// <summary>查看玩家已获 属性/装备/符文，便于搭配购买(详情覆盖层，关闭后回到商店)。</summary>
+        void OpenInfo()
+        {
+            if (info != null) info.Open();
         }
 
         void EndShop()

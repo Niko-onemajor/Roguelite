@@ -41,13 +41,14 @@ namespace Roguelite
         {
             Behavior(dt, PlayerController.Instance);
             transform.position = ArenaBounds.Clamp(transform.position); // 限制在竞技场内
-            if (Data.contactDamage > 0f) TryContactDamage(dt);
+            if (Data.contactDamage > 0f) TryContactDamage();
         }
         protected abstract void Behavior(float dt, PlayerController player);
 
-        /// <summary>手动距离判定接触伤害：与玩家中心距离 &lt; 双方碰撞半径之和即视为接触。
-        /// 不依赖物理 trigger 回调(kinematic/dynamic 组合或瞬移移动会造成漏检)。</summary>
-        void TryContactDamage(float dt)
+        /// <summary>手动距离判定接触伤害：与玩家中心距离 &lt; 双方碰撞半径之和即视为撞到玩家。
+        /// 撞到后怪物立即消失(不掉金币/不记击杀，防贴脸刷钱)，杜绝与玩家模型重叠。
+        /// internal 供 EditMode 测试直接驱动。</summary>
+        internal void TryContactDamage()
         {
             PlayerController pc = PlayerController.Instance;
             if (pc == null) return;
@@ -57,12 +58,8 @@ namespace Roguelite
             float hitRadius = (my != null ? my.radius * transform.localScale.x : 0.4f)
                             + (other != null ? other.radius * pc.transform.localScale.x : 0.5f);
             if (d > hitRadius) return;
-            attackTimer -= dt;
-            if (attackTimer <= 0f)
-            {
-                attackTimer = Data.attackInterval;
-                if (PlayerStats.Instance != null) PlayerStats.Instance.TakeDamage(Data.contactDamage);
-            }
+            if (PlayerStats.Instance != null) PlayerStats.Instance.TakeDamage(Data.contactDamage);
+            PoolManager.Return(gameObject); // 撞击即消失，不进入 Die(不掉金币/不记击杀)
         }
 
         /// <summary>finalDamage 为最终伤害(暴击已算好)；护甲降低受到的物理伤害。</summary>
@@ -74,8 +71,8 @@ namespace Roguelite
             Health -= reduced;
             if (Health > 0f)
             {
-                var flash = GetComponent<HitFlash>(); // 非致命受击闪白
-                if (flash != null) flash.Flash(Color.white, 0.1f);
+                var flash = GetComponent<HitFlash>(); // 非致命受击闪红(白对白底贴图不可见，改红更清晰)
+                if (flash != null) flash.Flash(Color.red, 0.15f);
             }
             if (Health <= 0f) Die();
         }

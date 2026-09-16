@@ -1,22 +1,21 @@
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Roguelite
 {
-    /// <summary>左上角暂停按钮 + 菜单面板：
-    /// 可 继续游戏 / 暂停游戏，并查看本局已获取的符文(每回合锻体选择的卡牌效果)。
-    /// 暂停用 Time.timeScale=0 冻结全局(UI 按钮仍可点击)。</summary>
+    /// <summary>左上角暂停按钮 + 菜单面板：点击展开即自动暂停(Time.timeScale=0，无需再手动点“暂停”按钮)。
+    /// 面板提供 查看属性/装备/符文(PlayerInfoView) / 结算游戏(结束本局) / 继续游戏。</summary>
     public class PauseView : MonoBehaviour
     {
+        /// <summary>由 GameBootstrap 注入：玩家详情面板(属性/装备/符文)。</summary>
+        public PlayerInfoView info;
+        /// <summary>由 GameBootstrap 注入：用于“结算游戏”立即结束本局。</summary>
+        public WaveManager wave;
+
         GameObject panel;
-        Text runeText;
         Button pauseBtn;
-        Button resumeBtn;
-        Button pauseToggleBtn;
-        Text pauseToggleLabel;
-        bool _paused;
         bool _inputBeforePause = true;
+        bool _subscribed;
 
         public void Build(Transform parent)
         {
@@ -36,108 +35,82 @@ namespace Roguelite
             panel.SetActive(false);
 
             var title = UIBuilder.Text("Title", panel.transform, "游戏菜单", 56, Color.white, TextAnchor.MiddleCenter);
-            title.rectTransform.anchorMin = new Vector2(0.2f, 0.86f);
-            title.rectTransform.anchorMax = new Vector2(0.8f, 0.95f);
-            title.rectTransform.offsetMin = Vector2.zero;
-            title.rectTransform.offsetMax = Vector2.zero;
+            SetRect(title.rectTransform, 0.2f, 0.8f, 0.8f, 0.92f);
 
-            var runeTitle = UIBuilder.Text("RuneTitle", panel.transform,
-                "符文（每回合选择的卡牌效果）", 32, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleLeft);
-            runeTitle.rectTransform.anchorMin = new Vector2(0.1f, 0.74f);
-            runeTitle.rectTransform.anchorMax = new Vector2(0.9f, 0.84f);
-            runeTitle.rectTransform.offsetMin = Vector2.zero;
-            runeTitle.rectTransform.offsetMax = Vector2.zero;
+            var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 装备 / 符文", OpenInfo);
+            SetRect(viewBtn.GetComponent<RectTransform>(), 0.2f, 0.5f, 0.8f, 0.62f);
 
-            var runeGo = UIBuilder.Text("Runes", panel.transform, "暂无符文", 28,
-                new Color(0.9f, 0.9f, 0.9f), TextAnchor.UpperLeft);
-            runeGo.rectTransform.anchorMin = new Vector2(0.1f, 0.34f);
-            runeGo.rectTransform.anchorMax = new Vector2(0.9f, 0.74f);
-            runeGo.rectTransform.offsetMin = Vector2.zero;
-            runeGo.rectTransform.offsetMax = Vector2.zero;
-            runeText = runeGo;
-
-            // 按钮行：暂停 / 继续
-            var pauseToggle = UIBuilder.Button("TogglePause", panel.transform, "暂停游戏", TogglePause);
-            var pRt = pauseToggle.GetComponent<RectTransform>();
-            pRt.anchorMin = new Vector2(0.2f, 0.16f);
-            pRt.anchorMax = new Vector2(0.46f, 0.28f);
-            pRt.offsetMin = Vector2.zero;
-            pRt.offsetMax = Vector2.zero;
-            pauseToggleBtn = pauseToggle.GetComponent<Button>();
-            pauseToggleLabel = pauseToggle.GetComponentInChildren<Text>(true);
-            pauseToggleLabel.fontSize = 30;
+            var settle = UIBuilder.Button("Settle", panel.transform, "结算游戏", Settle);
+            SetRect(settle.GetComponent<RectTransform>(), 0.2f, 0.32f, 0.8f, 0.44f);
 
             var resume = UIBuilder.Button("Resume", panel.transform, "继续游戏", Resume);
-            var rRt = resume.GetComponent<RectTransform>();
-            rRt.anchorMin = new Vector2(0.54f, 0.16f);
-            rRt.anchorMax = new Vector2(0.8f, 0.28f);
-            rRt.offsetMin = Vector2.zero;
-            rRt.offsetMax = Vector2.zero;
-            resumeBtn = resume.GetComponent<Button>();
+            SetRect(resume.GetComponent<RectTransform>(), 0.2f, 0.14f, 0.8f, 0.26f);
+
+            if (!_subscribed)
+            {
+                _subscribed = true;
+                GameEvents.GameEnded += OnGameEnded;
+            }
         }
 
+        #region Unity Lifecycle
+        void OnDisable()
+        {
+            if (!_subscribed) return;
+            _subscribed = false;
+            GameEvents.GameEnded -= OnGameEnded;
+        }
+        #endregion
+
+        /// <summary>展开菜单即自动暂停：冻结全局时间并锁玩家输入(记录恢复值)。</summary>
         void OpenPanel()
         {
             if (panel == null) return;
             _inputBeforePause = PlayerController.Instance == null
                 || PlayerController.Instance.inputEnabled;
-            RefreshRunes();
+            Time.timeScale = 0f;
+            if (PlayerController.Instance != null) PlayerController.Instance.inputEnabled = false;
             panel.SetActive(true);
             pauseBtn.interactable = false;
         }
 
-        void TogglePause()
+        void OpenInfo()
         {
-            _paused = !_paused;
-            if (_paused)
-            {
-                Time.timeScale = 0f;
-                if (PlayerController.Instance != null) PlayerController.Instance.inputEnabled = false;
-                pauseToggleLabel.text = "已暂停";
-                pauseToggleBtn.interactable = false;
-            }
-            else
-            {
-                Time.timeScale = 1f;
-                if (PlayerController.Instance != null)
-                    PlayerController.Instance.inputEnabled = _inputBeforePause;
-                pauseToggleLabel.text = "暂停游戏";
-                pauseToggleBtn.interactable = true;
-            }
+            if (info != null) info.Open();
+        }
+
+        /// <summary>结算游戏：以失败(手动结束)结算当前进度，弹出结算面板。</summary>
+        void Settle()
+        {
+            if (wave == null) return;
+            wave.EndRunNow(false);
         }
 
         void Resume()
         {
-            if (_paused)
-            {
-                Time.timeScale = 1f;
-                _paused = false;
-                if (PlayerController.Instance != null)
-                    PlayerController.Instance.inputEnabled = _inputBeforePause;
-                pauseToggleLabel.text = "暂停游戏";
-                pauseToggleBtn.interactable = true;
-            }
+            Time.timeScale = 1f;
+            if (PlayerController.Instance != null)
+                PlayerController.Instance.inputEnabled = _inputBeforePause;
             panel.SetActive(false);
             pauseBtn.interactable = true;
+            if (info != null) info.Close();
         }
 
-        void RefreshRunes()
+        /// <summary>游戏结算(无论来源)后恢复时间并收起暂停面板，避免残留冻结。</summary>
+        void OnGameEnded(bool victory, int wavesCleared, int kills)
         {
-            var stats = PlayerStats.Instance;
-            if (runeText == null) return;
-            if (stats == null || stats.Runes.Count == 0)
-            {
-                runeText.text = "暂无符文";
-                return;
-            }
-            var sb = new StringBuilder();
-            for (int i = 0; i < stats.Runes.Count; i++)
-            {
-                var r = stats.Runes[i];
-                if (i > 0) sb.AppendLine();
-                sb.Append(i + 1).Append(". ").Append(r.Name).Append(" — ").Append(r.Desc);
-            }
-            runeText.text = sb.ToString();
+            Time.timeScale = 1f;
+            if (panel != null) panel.SetActive(false);
+            if (info != null) info.Close();
+            if (pauseBtn != null) pauseBtn.interactable = true;
+        }
+
+        static void SetRect(RectTransform rt, float x0, float y0, float x1, float y1)
+        {
+            rt.anchorMin = new Vector2(x0, y0);
+            rt.anchorMax = new Vector2(x1, y1);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
     }
 }

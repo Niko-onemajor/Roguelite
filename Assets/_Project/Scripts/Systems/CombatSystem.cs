@@ -10,6 +10,9 @@ namespace Roguelite
 
         readonly List<PlayerWeapon> weapons = new List<PlayerWeapon>();
 
+        /// <summary>当前已装备武器(只读)，供暂停/商店详情面板展示。</summary>
+        public IReadOnlyList<PlayerWeapon> Weapons => weapons;
+
         void Awake() => Stats = GetComponent<PlayerStats>();
 
         public void ClearEquips()

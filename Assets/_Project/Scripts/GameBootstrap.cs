@@ -41,7 +41,7 @@ namespace Roguelite
             rune.pool = cfg.shopItems;
             var wave = gameObject.AddComponent<WaveManager>();
 
-            BuildUI(shop, forge, rune);
+            BuildUI(combat, shop, forge, rune, wave);
 
             stats.ResetForRun();
             wave.BeginRun(cfg.waves, spawner, shop, rune, stats);
@@ -93,7 +93,7 @@ namespace Roguelite
             rb.freezeRotation = true;
             var col = go.AddComponent<CircleCollider2D>();
             col.isTrigger = true;
-            col.radius = 0.6f / playerScale; // 世界半径=0.6，视觉直径1.5的0.8倍贴合碰撞
+            col.radius = 0.4f / playerScale; // 世界半径=0.4：贴合人形贴图的真实身形视觉(视觉整体直径1.5，但身体仅占中间小部分)，比之前0.6更准
             go.AddComponent<PlayerStats>(); // 必须先于 PlayerController：其 Awake 需 GetComponent<PlayerStats>()
             go.AddComponent<HitFlash>(); // 玩家受击闪红
             go.AddComponent<PlayerController>();
@@ -101,12 +101,13 @@ namespace Roguelite
             return go;
         }
 
-        void BuildUI(ShopSystem shop, ForgeSystem forge, RuneSystem rune)
+        void BuildUI(CombatSystem combat, ShopSystem shop, ForgeSystem forge, RuneSystem rune, WaveManager wave)
         {
             var canvas = UIBuilder.Canvas();
             var hud = canvas.AddComponent<HudView>();
             hud.Build(canvas.transform);
             var pause = canvas.AddComponent<PauseView>();
+            pause.wave = wave;
             pause.Build(canvas.transform);
             var shopView = canvas.AddComponent<ShopView>();
             shopView.shop = shop;
@@ -122,6 +123,12 @@ namespace Roguelite
             endless.Build(canvas.transform);
             var over = canvas.AddComponent<GameOverView>();
             over.Build(canvas.transform);
+            // 详情面板最后构建，保证渲染层级在暂停/商店之上
+            var info = canvas.AddComponent<PlayerInfoView>();
+            info.combat = combat;
+            info.Build(canvas.transform);
+            pause.info = info;
+            shopView.info = info;
         }
         #endregion
     }

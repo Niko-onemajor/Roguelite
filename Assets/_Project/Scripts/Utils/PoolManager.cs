@@ -54,7 +54,7 @@ namespace Roguelite
         {
             foreach (var pair in pool)
                 foreach (var go in pair.Value)
-                    if (go != null) Object.Destroy(go);
+                    if (go != null) Object.DestroyImmediate(go); // EditMode 测试中 Destroy 会报错，统一用即时销毁
             pool.Clear();
         }
     }
