@@ -40,6 +40,11 @@ namespace Roguelite
                     PlayFx(ActiveType.AoeBlast, origin);
                     return true;
 
+                case ActiveType.Cleanse: // 米凯尔的祝福：解除控制并治疗
+                    stats.Heal(stats.maxHP * 0.3f);
+                    PlayFx(ActiveType.Cleanse, origin);
+                    return true;
+
                 default:
                     return false;
             }
@@ -67,6 +72,10 @@ namespace Roguelite
                 case ActiveType.AoeBlast: // 兰顿之兆：红紫冲击波
                     FxPlayer.Burst(origin, new Color(1f, 0.4f, 0.55f), 56);
                     FxPlayer.Beep(440f, 0.3f, 0.55f);
+                    break;
+                case ActiveType.Cleanse: // 米凯尔的祝福：乳白净化光
+                    FxPlayer.Burst(origin, new Color(0.95f, 0.95f, 0.85f), 40);
+                    FxPlayer.Beep(660f, 0.22f, 0.5f);
                     break;
             }
         }

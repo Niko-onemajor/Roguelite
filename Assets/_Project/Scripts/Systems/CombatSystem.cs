@@ -42,18 +42,19 @@ namespace Roguelite
             if (pc == null || !pc.inputEnabled) return;
 
             Vector2 origin = transform.position;
-            Stats.TickSpell(Time.deltaTime, origin); // 被动法术(奥术弹等)：消耗法力，冷却受技能急速
-            Stats.TickActive(Time.deltaTime);        // 主动装备栏：冷却倒计时/临时增益计时
+            Stats.TickPassives(Time.deltaTime, origin); // 装备逐帧被动(日炎/DoT/光环/狂徒等)
+            Stats.TickSpell(Time.deltaTime, origin);    // 被动法术(奥术弹等)：消耗法力，冷却受技能急速
+            Stats.TickActive(Time.deltaTime);           // 主动装备栏：冷却倒计时/临时增益计时
             for (int i = 0; i < weapons.Count; i++)
             {
                 PlayerWeapon w = weapons[i];
                 if (w == null || w.Data == null) continue;
-                float effRange = w.Data.range + Stats.range;
+                float effRange = w.Data.range + Stats.Range;
                 Enemy target = EnemyRegistry.Nearest(origin, effRange);
                 if (target == null) continue;
                 Vector2 to = (Vector2)target.transform.position - origin;
                 Vector2 dir = to.sqrMagnitude > 0.0001f ? to.normalized : Vector2.right;
-                w.Tick(Time.deltaTime, origin, dir, Stats.TotalDamage, Stats.critChance, Stats.range, Stats.attackInterval);
+                w.Tick(Time.deltaTime, origin, dir, Stats.TotalDamage, Stats.critChance, Stats.Range, Stats.AttackIntervalEffective);
             }
         }
     }

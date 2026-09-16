@@ -47,126 +47,169 @@ namespace Roguelite
             #region AD 攻击力装备
             cfg.shopItems.Add(Equip("无尽之刃", 42, "",
                 B(StatType.AttackDamage, 9f), B(StatType.CritChance, 0.12f), B(StatType.CritDamage, 0.4f)));
-            cfg.shopItems.Add(Equip("三相之力", 40, "被动“追击”：施放技能后下一次普攻附加额外物理伤害；被动“加速”：普攻后获得移动速度。",
+            cfg.shopItems.Add(Equip("三相之力", 40, "被动“追击”：每1.5秒一次普攻附带 攻击力×1 的额外物理伤害。",
                 B(StatType.AttackDamage, 4f), B(StatType.AttackSpeed, 0.77f), B(StatType.MaxHP, 35f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("斯特拉克的挑战护手", 38, "被动“救主灵刃”：生命值低于30%时获得护盾。",
+            MarkPassive(cfg.shopItems, "三相之力", PassiveType.Spellblade);
+            cfg.shopItems.Add(Equip("斯特拉克的挑战护手", 38, "被动“救主灵刃”：生命值低于30%时获得相当于最大生命35%的护盾（冷却30秒）。",
                 B(StatType.AttackDamage, 5f), B(StatType.MaxHP, 40f)));
-            cfg.shopItems.Add(Equip("黑色切割者", 38, "被动“切割”：物理伤害会削减目标护甲。",
+            MarkPassive(cfg.shopItems, "斯特拉克的挑战护手", PassiveType.Lifeline);
+            cfg.shopItems.Add(Equip("黑色切割者", 38, "被动“切割”：普攻削减目标护甲10点（持续5秒，累加上限30）。",
                 B(StatType.AttackDamage, 5f), B(StatType.MaxHP, 40f), B(StatType.AbilityHaste, 7f)));
-            cfg.shopItems.Add(Equip("死亡之舞", 38, "所受伤害的一部分将以流血形式在3秒内持续扣除。",
+            MarkPassive(cfg.shopItems, "黑色切割者", PassiveType.BlackCleaver);
+            cfg.shopItems.Add(Equip("死亡之舞", 38, "被动：受到的物理伤害30%将以流血形式在3秒内持续扣除。",
                 B(StatType.AttackDamage, 7f), B(StatType.Armor, 13f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("玛莫提乌斯之噬", 38, "被动“救主灵刃”：承受魔法伤害使生命值过低时获得护盾与全能吸血。",
+            MarkPassive(cfg.shopItems, "死亡之舞", PassiveType.DeathDance);
+            cfg.shopItems.Add(Equip("玛莫提乌斯之噬", 38, "被动“救主灵刃”：生命值低于30%时获得相当于最大生命35%的护盾（冷却30秒）。",
                 B(StatType.AttackDamage, 7f), B(StatType.MagicResist, 14f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("朔极之矛", 38, "被动：技能命中敌人后提升下一次技能的伤害。",
+            MarkPassive(cfg.shopItems, "玛莫提乌斯之噬", PassiveType.Lifeline);
+            cfg.shopItems.Add(Equip("朔极之矛", 38, "被动：魔法伤害后，下一次魔法伤害+25%。",
                 B(StatType.AttackDamage, 8f), B(StatType.MaxHP, 45f), B(StatType.AbilityHaste, 8f)));
-            cfg.shopItems.Add(Equip("破败王者之刃", 40, "被动：普攻附加目标当前生命值百分比的额外物理伤害。",
+            MarkPassive(cfg.shopItems, "朔极之矛", PassiveType.SpearPower);
+            cfg.shopItems.Add(Equip("破败王者之刃", 40, "被动：普攻附加目标当前生命值6%的额外物理伤害。",
                 B(StatType.AttackDamage, 5f), B(StatType.AttackSpeed, 0.8f), B(StatType.Omnivamp, 0.05f)));
-            cfg.shopItems.Add(Equip("巨型九头蛇", 40, "被动：普攻对周围敌人造成基于最大生命值的物理伤害。",
+            MarkPassive(cfg.shopItems, "破败王者之刃", PassiveType.RuinKing);
+            cfg.shopItems.Add(Equip("巨型九头蛇", 40, "被动：普攻对周围2.6内敌人造成 攻击力×0.8 的溅射物理伤害。",
                 B(StatType.AttackDamage, 5f), B(StatType.MaxHP, 50f)));
-            cfg.shopItems.Add(Equip("贪欲九头蛇", 40, "被动：普攻和技能对周围敌人造成伤害。",
+            MarkPassive(cfg.shopItems, "巨型九头蛇", PassiveType.TitanicCleave);
+            cfg.shopItems.Add(Equip("贪欲九头蛇", 40, "被动：普攻对周围2.6内敌人造成 本击伤害50% 的溅射物理伤害。",
                 B(StatType.AttackDamage, 9f), B(StatType.AbilityHaste, 7f), B(StatType.Omnivamp, 0.05f)));
-            cfg.shopItems.Add(Equip("饮血剑", 42, "被动“猩红护盾”：生命偷取溢出的治疗量转化为护盾。",
+            MarkPassive(cfg.shopItems, "贪欲九头蛇", PassiveType.RavenousCleave);
+            cfg.shopItems.Add(Equip("饮血剑", 42, "被动“猩红护盾”：生命偷取溢出治疗量转化为护盾（上限最大生命15%）。",
                 B(StatType.AttackDamage, 10f), B(StatType.Omnivamp, 0.07f)));
-            cfg.shopItems.Add(Equip("岚切", 40, "被动“电冲”：盈能攻击附带额外魔法伤害并提供移动速度。",
+            MarkPassive(cfg.shopItems, "饮血剑", PassiveType.Bloodshield);
+            cfg.shopItems.Add(Equip("岚切", 40, "被动“电冲”：每2.5秒一次普攻附带 10+攻击力×0.3 的魔法伤害。",
                 B(StatType.AttackDamage, 6f), B(StatType.AttackSpeed, 0.83f), B(StatType.CritChance, 0.12f)));
-            cfg.shopItems.Add(Equip("无尽饥渴", 38, "被动“饥荒”：额外攻击力提升技能急速；被动“盛宴”：参与击杀后获得全能吸血。",
+            MarkPassive(cfg.shopItems, "岚切", PassiveType.Energized);
+            cfg.shopItems.Add(Equip("无尽饥渴", 38, "被动“盛宴”：参与击杀获得+1%全能吸血（可叠加6层）。",
                 B(StatType.AttackDamage, 7f), B(StatType.Omnivamp, 0.03f)));
-            cfg.shopItems.Add(Equip("海克斯镜片 C44", 35, "被动“高倍望远镜”：距离越远伤害越高；被动“奥术瞄准”：参与击杀后获得额外攻击距离。",
+            MarkPassive(cfg.shopItems, "无尽饥渴", PassiveType.KillVamp);
+            cfg.shopItems.Add(Equip("海克斯镜片 C44", 35, "被动“高倍望远镜”：对距离≥6的敌人伤害+25%；被动“奥术瞄准”：参与击杀+0.5攻击距离（上限3）。",
                 B(StatType.AttackDamage, 6f), B(StatType.CritChance, 0.12f)));
+            MarkPassive(cfg.shopItems, "海克斯镜片 C44", PassiveType.Longshot);
             cfg.shopItems.Add(Equip("霸王血铠", 41, "被动“专横”：获得相当于你2.5%额外生命值的攻击力。被动“报复”：获得基于你的百分比已损失生命值的12%攻击力提升。",
                 B(StatType.AttackDamage, 5f), B(StatType.MaxHP, 55f)));
             cfg.shopItems[cfg.shopItems.Count - 1].passiveType = PassiveType.Tyrant;
             #endregion
 
             #region AP 法术强度装备
-            cfg.shopItems.Add(Equip("卢登的回声", 34, "被动“回声”：技能伤害消耗回声层数造成额外伤害并弹射至附近敌人。",
+            cfg.shopItems.Add(Equip("卢登的回声", 34, "被动“回声”：每2.5秒技能命中附加 12+法强×0.4 魔法伤害，并溅射附近敌人50%。",
                 B(StatType.AbilityPower, 7f), B(StatType.AbilityHaste, 3f)));
-            cfg.shopItems.Add(Equip("兰德里的折磨", 38, "被动：技能造成灼烧，基于目标最大生命值持续魔法伤害。",
+            MarkPassive(cfg.shopItems, "卢登的回声", PassiveType.LudensEcho);
+            cfg.shopItems.Add(Equip("兰德里的折磨", 38, "被动：技能施加灼烧，3秒内每秒造成 目标最大生命1%+法强×0.05 的魔法伤害。",
                 B(StatType.AbilityPower, 6f), B(StatType.MaxHP, 30f)));
-            cfg.shopItems.Add(Equip("灭世者的死亡之帽", 45, "被动：法术强度提升40%。",
+            MarkPassive(cfg.shopItems, "兰德里的折磨", PassiveType.LiandryBurn);
+            cfg.shopItems.Add(Equip("灭世者的死亡之帽", 45, "被动：法术强度×1.4。",
                 B(StatType.AbilityPower, 9f)));
+            MarkPassive(cfg.shopItems, "灭世者的死亡之帽", PassiveType.Deathcap);
             cfg.shopItems.Add(Equip("虚空之杖", 38, "",
                 B(StatType.AbilityPower, 5f), B(StatType.MagicPen, 8f)));
-            cfg.shopItems.Add(Equip("蜕生", 38, "被动“死中焕生”：参与击杀后生成治疗新星。",
+            cfg.shopItems.Add(Equip("蜕生", 38, "被动“死中焕生”：参与击杀回复最大生命5%。",
                 B(StatType.AbilityPower, 5f), B(StatType.AbilityHaste, 7f), B(StatType.MagicPen, 6f)));
-            cfg.shopItems.Add(Equip("裂隙制造者", 38, "被动“虚空腐蚀”：持续作战伤害渐增并获全能吸血；被动“虚空灌注”：额外生命值转化为法术强度。",
+            MarkPassive(cfg.shopItems, "蜕生", PassiveType.ReapHeal);
+            cfg.shopItems.Add(Equip("裂隙制造者", 38, "被动“虚空灌注”：额外生命值6%转化为法术强度。",
                 B(StatType.AbilityPower, 5f), B(StatType.MaxHP, 35f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("视界专注", 34, "被动“高能射击”：远距离施法显形敌人并提升对其伤害。",
+            MarkPassive(cfg.shopItems, "裂隙制造者", PassiveType.VoidInfusion);
+            cfg.shopItems.Add(Equip("视界专注", 34, "被动“高能射击”：魔法伤害+10%。",
                 B(StatType.AbilityPower, 5f), B(StatType.AbilityHaste, 8f)));
-            cfg.shopItems.Add(Equip("黄昏与黎明", 38, "被动“咒刃”：施放技能后下一次攻击附加额外魔法伤害。",
+            MarkPassive(cfg.shopItems, "视界专注", PassiveType.FocusedShot);
+            cfg.shopItems.Add(Equip("黄昏与黎明", 38, "被动“咒刃”：每1.5秒一次普攻附带 法强×1 的额外魔法伤害。",
                 B(StatType.AbilityPower, 5f), B(StatType.MaxHP, 30f), B(StatType.AbilityHaste, 7f), B(StatType.AttackSpeed, 0.8f)));
+            MarkPassive(cfg.shopItems, "黄昏与黎明", PassiveType.SpellbladeArcane);
             cfg.shopItems.Add(Equip("实现者", 38, "主动“法力具现”：消耗法力回血。",
                 B(StatType.AbilityPower, 6f), B(StatType.AbilityHaste, 3f)));
             MarkActive(cfg.shopItems, "实现者", ActiveType.ManaMeld, 8f);
             cfg.shopItems.Add(Equip("海克斯科技枪刃", 38, "主动→被动“奥术弹”：每3秒(受技能急速缩减)自动对最近敌人发射魔法弹，消耗6法力，造伤15+法强×0.7。",
                 B(StatType.AbilityPower, 5f), B(StatType.AttackDamage, 5f), B(StatType.Omnivamp, 0.05f)));
             cfg.shopItems[cfg.shopItems.Count - 1].passiveType = PassiveType.ArcaneBolt;
-            cfg.shopItems.Add(Equip("暗夜收割者", 38, "被动：对敌方英雄造成伤害时附加额外魔法伤害并提供移动速度。",
+            cfg.shopItems.Add(Equip("暗夜收割者", 38, "被动：魔法伤害后 移速×1.3 持续2秒。",
                 B(StatType.AbilityPower, 6f), B(StatType.MaxHP, 30f), B(StatType.AbilityHaste, 8f)));
-            cfg.shopItems.Add(Equip("影焰", 38, "被动：对低生命值敌人造成暴击伤害。",
+            MarkPassive(cfg.shopItems, "暗夜收割者", PassiveType.NightHarvest);
+            cfg.shopItems.Add(Equip("影焰", 38, "被动：对生命低于50%的敌人造成+20%魔法伤害。",
                 B(StatType.AbilityPower, 7f), B(StatType.MaxHP, 20f)));
-            cfg.shopItems.Add(Equip("风暴狂涌", 36, "被动：对敌方英雄造成伤害后触发额外魔法伤害和移动速度。",
+            MarkPassive(cfg.shopItems, "影焰", PassiveType.ShadowflameLowHp);
+            cfg.shopItems.Add(Equip("风暴狂涌", 36, "被动：每4秒一次 技能/普攻附加 10+法强×0.3 魔法伤害，并 移速×1.15 持续1.5秒。",
                 B(StatType.AbilityPower, 6f), B(StatType.AbilityHaste, 5f), B(StatType.MoveSpeed, 0.8f)));
-            cfg.shopItems.Add(Equip("残疫", 35, "被动：终极技能获得额外冷却缩减并对敌人施加灼烧。",
+            MarkPassive(cfg.shopItems, "风暴狂涌", PassiveType.StormSurge);
+            cfg.shopItems.Add(Equip("残疫", 35, "被动：技能命中附加 8+法强×0.3 魔法伤害（每目标2秒至多一次）。",
                 B(StatType.AbilityPower, 6f), B(StatType.AbilityHaste, 7f)));
+            MarkPassive(cfg.shopItems, "残疫", PassiveType.Malignance);
             #endregion
 
             #region 攻速与暴击装备
-            cfg.shopItems.Add(Equip("卢安娜的飓风", 35, "被动：普攻向附近敌人发射分裂箭，造成部分攻击力的物理伤害。",
+            cfg.shopItems.Add(Equip("卢安娜的飓风", 35, "被动“分裂箭”：普攻对附近另一敌人造成50%攻击力的物理伤害。",
                 B(StatType.AttackSpeed, 0.71f), B(StatType.CritChance, 0.12f), B(StatType.MoveSpeed, 0.4f)));
-            cfg.shopItems.Add(Equip("疾射火炮", 32, "被动：盈能攻击获得额外攻击距离和魔法伤害。",
+            MarkPassive(cfg.shopItems, "卢安娜的飓风", PassiveType.Hurricane);
+            cfg.shopItems.Add(Equip("疾射火炮", 32, "被动“盈能”：每2.5秒一次普攻附 10+攻击力×0.3 魔法伤害。",
                 B(StatType.AttackSpeed, 0.74f), B(StatType.CritChance, 0.12f), B(StatType.MoveSpeed, 0.3f)));
-            cfg.shopItems.Add(Equip("幻影之舞", 32, "被动：普攻后获得攻击速度和移动速度。",
+            MarkPassive(cfg.shopItems, "疾射火炮", PassiveType.Energized);
+            cfg.shopItems.Add(Equip("幻影之舞", 32, "被动“斗士热诚”：普攻后2秒内 攻速×0.9、移速×1.1。",
                 B(StatType.AttackSpeed, 0.71f), B(StatType.CritChance, 0.12f), B(StatType.MoveSpeed, 0.55f)));
-            cfg.shopItems.Add(Equip("猎魔人弩箭", 33, "被动“开战弹幕”：施放终极技能后一段时间内获得攻速并必定暴击。",
+            MarkPassive(cfg.shopItems, "幻影之舞", PassiveType.StrikerFervor);
+            cfg.shopItems.Add(Equip("猎魔人弩箭", 33, "被动“开战弹幕”：每6秒获得3次必定暴击的普攻。",
                 B(StatType.AttackSpeed, 0.71f), B(StatType.CritChance, 0.12f), B(StatType.MoveSpeed, 0.3f)));
+            MarkPassive(cfg.shopItems, "猎魔人弩箭", PassiveType.CritBarrage);
             #endregion
 
             #region 坦克与防御装备
-            cfg.shopItems.Add(Equip("日炎圣盾", 35, "被动“献祭”：对周围敌人造成持续魔法伤害。",
+            cfg.shopItems.Add(Equip("日炎圣盾", 35, "被动“献祭”：每秒对周围2.8内敌人造成 5+法强×0.15 魔法伤害。",
                 B(StatType.MaxHP, 45f), B(StatType.Armor, 9f), B(StatType.MagicResist, 9f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("冰霜之心", 31, "被动：降低周围敌人的攻击速度。",
+            MarkPassive(cfg.shopItems, "日炎圣盾", PassiveType.Sunfire);
+            cfg.shopItems.Add(Equip("冰霜之心", 31, "被动“凛冬”：周围4内敌人的攻击间隔×1.5。",
                 B(StatType.Armor, 14f), B(StatType.AbilityHaste, 7f)));
-            cfg.shopItems.Add(Equip("荆棘之甲", 34, "被动：受到普攻时反弹魔法伤害并施加重伤。",
+            MarkPassive(cfg.shopItems, "冰霜之心", PassiveType.FrozenHeart);
+            cfg.shopItems.Add(Equip("荆棘之甲", 34, "被动“荆棘”：受到物理伤害时，反弹30%该伤害的魔法给近处敌人。",
                 B(StatType.Armor, 17f), B(StatType.MaxHP, 40f)));
-            cfg.shopItems.Add(Equip("兰顿之兆", 34, "被动：受到暴击时减少伤害；主动：对周围敌人造成魔法伤害。",
+            MarkPassive(cfg.shopItems, "荆棘之甲", PassiveType.Thornmail);
+            cfg.shopItems.Add(Equip("兰顿之兆", 34, "主动“圣盾”：对周围敌人造成魔法伤害，并短暂减速。",
                 B(StatType.Armor, 17f), B(StatType.MaxHP, 40f)));
             MarkActive(cfg.shopItems, "兰顿之兆", ActiveType.AoeBlast, 8f);
-            cfg.shopItems.Add(Equip("自然之力", 35, "被动：受到技能伤害时获得移动速度和魔法抗性。",
+            cfg.shopItems.Add(Equip("自然之力", 35, "被动“风暴之力”：受到魔法伤害后 移速×1.15/层（最多3层，持续5秒）。",
                 B(StatType.MagicResist, 17f), B(StatType.MaxHP, 40f), B(StatType.MoveSpeed, 0.4f)));
-            cfg.shopItems.Add(Equip("振奋盔甲", 34, "被动：提升所有治疗和护盾效果。",
-                B(StatType.MaxHP, 40f), B(StatType.MagicResist, 11f), B(StatType.AbilityHaste, 7f)));
-            cfg.shopItems.Add(Equip("狂徒铠甲", 38, "被动“狂徒之心”：脱离战斗后每0.5秒回复最大生命值。",
+            MarkPassive(cfg.shopItems, "自然之力", PassiveType.ForceOfNature);
+            cfg.shopItems.Add(Equip("振奋盔甲", 34, "被动：提升所有治疗与护盾效果30%。",
+                B(StatType.MaxHP, 40f), B(StatType.MagicResist, 11f), B(StatType.AbilityHaste, 7f), B(StatType.HealShieldPower, 0.3f)));
+            cfg.shopItems.Add(Equip("狂徒铠甲", 38, "被动“狂徒之心”：脱离战斗5秒后，每秒回复最大生命6%。",
                 B(StatType.MaxHP, 100f), B(StatType.HPRegen, 0.2f)));
-            cfg.shopItems.Add(Equip("无终恨意", 35, "被动“苦楚”：战斗中对附近敌人造成伤害并治疗自身。",
+            MarkPassive(cfg.shopItems, "狂徒铠甲", PassiveType.Warmogs);
+            cfg.shopItems.Add(Equip("无终恨意", 35, "被动“苦楚”：每1.5秒对周围2.8内敌人造成 8+法强×0.2 魔法伤害并回复6生命。",
                 B(StatType.Armor, 14f), B(StatType.MaxHP, 40f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("原生质护带", 31, "被动“救主灵刃”：生命值过低时获得护盾、持续治疗与移速/体型提升。",
+            MarkPassive(cfg.shopItems, "无终恨意", PassiveType.EndlessHatred);
+            cfg.shopItems.Add(Equip("原生质护带", 31, "被动“救主灵刃”：生命低于30%时获得相当于最大生命35%的护盾（冷却30秒）。",
                 B(StatType.MaxHP, 60f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("亡者的板甲", 36, "被动：移动积攒气势，普攻消耗气势造成额外伤害。",
+            MarkPassive(cfg.shopItems, "原生质护带", PassiveType.Lifeline);
+            cfg.shopItems.Add(Equip("亡者的板甲", 36, "被动：移动时每1秒积1层气势（上限5层，每层+4%移速）；普攻消耗全部层数，每层+2伤害。",
                 B(StatType.Armor, 17f), B(StatType.MaxHP, 30f), B(StatType.MoveSpeed, 0.4f)));
-            cfg.shopItems.Add(Equip("深渊面具", 35, "被动：技能伤害使目标承受更多魔法伤害。",
+            MarkPassive(cfg.shopItems, "亡者的板甲", PassiveType.DeadMans);
+            cfg.shopItems.Add(Equip("深渊面具", 35, "被动“腐蚀”：周围4.5内敌人承受的魔法伤害×1.15。",
                 B(StatType.MagicResist, 17f), B(StatType.MaxHP, 40f), B(StatType.AbilityHaste, 7f)));
+            MarkPassive(cfg.shopItems, "深渊面具", PassiveType.AbyssalMask);
             #endregion
 
             #region 辅助装备
-            cfg.shopItems.Add(Equip("班德尔音管", 25, "被动“嘹亮旋律”：减速/定身敌人后获得移速并强化附近友军攻速。",
+            cfg.shopItems.Add(Equip("班德尔音管", 25, "被动“嘹亮旋律”：普攻后2秒内 攻速×0.9、移速×1.1。",
                 B(StatType.MaxHP, 20f), B(StatType.Armor, 6f), B(StatType.MagicResist, 6f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("歌之权冠", 22, "被动：基于最大法力值提升治疗与护盾强度。",
-                B(StatType.MaxHP, 20f), B(StatType.HealShieldPower, 0.15f)));
-            cfg.shopItems.Add(Equip("米凯尔的祝福", 29, "主动：解除友方英雄身上的控制效果并治疗。",
+            MarkPassive(cfg.shopItems, "班德尔音管", PassiveType.StrikerFervor);
+            cfg.shopItems.Add(Equip("歌之权冠", 22, "被动“咏歌”：最大法力×0.3%转化为治疗与护盾强度。",
+                B(StatType.MaxHP, 20f), B(StatType.Mana, 30f), B(StatType.HealShieldPower, 0.15f)));
+            MarkPassive(cfg.shopItems, "歌之权冠", PassiveType.CrownHealPower);
+            cfg.shopItems.Add(Equip("米凯尔的祝福", 29, "主动“净化”：清除自身控制效果并治疗最大生命30%。",
                 B(StatType.MaxHP, 25f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("炽热香炉", 29, "被动：为友军提供护盾/治疗时使其获得攻击速度与额外魔法伤害。",
+            MarkActive(cfg.shopItems, "米凯尔的祝福", ActiveType.Cleanse, 15f);
+            cfg.shopItems.Add(Equip("炽热香炉", 29, "被动“香炉”：治疗或获得护盾后4秒内 攻速×0.88。",
                 B(StatType.MaxHP, 20f), B(StatType.AbilityPower, 3f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("流水法杖", 29, "被动：为友军提供护盾/治疗时使其获得法术强度与技能急速。",
+            MarkPassive(cfg.shopItems, "炽热香炉", PassiveType.ArdentCenser);
+            cfg.shopItems.Add(Equip("流水法杖", 29, "被动“流水”：治疗或获得护盾后4秒内 +4法术强度。",
                 B(StatType.MaxHP, 20f), B(StatType.AbilityPower, 3f), B(StatType.AbilityHaste, 3f)));
-            cfg.shopItems.Add(Equip("救赎", 29, "主动：治疗自身并对周围敌人造成魔法伤害。",
+            MarkPassive(cfg.shopItems, "流水法杖", PassiveType.FlowingStaff);
+            cfg.shopItems.Add(Equip("救赎", 29, "主动“救赎”：治疗自身并对周围敌人造成魔法伤害。",
                 B(StatType.MaxHP, 20f), B(StatType.AbilityHaste, 5f)));
             MarkActive(cfg.shopItems, "救赎", ActiveType.Redemption, 10f);
-            cfg.shopItems.Add(Equip("舒瑞娅的狂想曲", 31, "主动：短暂大幅提升移动速度。",
+            cfg.shopItems.Add(Equip("舒瑞娅的狂想曲", 31, "主动“狂想曲”：短暂大幅提升移动速度。",
                 B(StatType.AbilityPower, 2f), B(StatType.MaxHP, 35f), B(StatType.AbilityHaste, 5f)));
             MarkActive(cfg.shopItems, "舒瑞娅的狂想曲", ActiveType.MoveBurst, 12f);
-            cfg.shopItems.Add(Equip("基克的聚合", 28, "被动：施放终极技能时生成冰霜风暴，减速敌人并强化友军攻击。",
+            cfg.shopItems.Add(Equip("基克的聚合", 28, "被动“冰霜风暴”：普攻减速目标65%，持续2秒。",
                 B(StatType.MaxHP, 20f), B(StatType.Armor, 6f), B(StatType.MagicResist, 6f), B(StatType.AbilityHaste, 5f)));
+            MarkPassive(cfg.shopItems, "基克的聚合", PassiveType.FrostBite);
             #endregion
 
             #region 鞋子
@@ -174,18 +217,21 @@ namespace Roguelite
                 B(StatType.AttackSpeed, 0.77f), B(StatType.MoveSpeed, 1f)));
             cfg.shopItems.Add(Equip("法师之靴", 14, "",
                 B(StatType.MoveSpeed, 1f), B(StatType.MagicPen, 5f)));
-            cfg.shopItems.Add(Equip("铁板靴", 14, "被动：减少来自普攻的伤害。",
+            cfg.shopItems.Add(Equip("铁板靴", 14, "被动“护甲硬化”：受到的物理伤害×0.88。",
                 B(StatType.MoveSpeed, 1f), B(StatType.Armor, 6f)));
-            cfg.shopItems.Add(Equip("水银之靴", 15, "被动：减免控制时间（韧性30%）。",
-                B(StatType.MoveSpeed, 1f), B(StatType.MagicResist, 7f)));
+            MarkPassive(cfg.shopItems, "铁板靴", PassiveType.Steelcaps);
+            cfg.shopItems.Add(Equip("水银之靴", 15, "被动：韧性+30%（减免控制时间）。",
+                B(StatType.MoveSpeed, 1f), B(StatType.MagicResist, 7f), B(StatType.Tenacity, 0.3f)));
             cfg.shopItems.Add(Equip("明朗之靴", 12, "",
                 B(StatType.MoveSpeed, 1f), B(StatType.AbilityHaste, 5f)));
-            cfg.shopItems.Add(Equip("轻灵之靴", 13, "被动：减速抗性25%。",
-                B(StatType.MoveSpeed, 1.3f)));
-            cfg.shopItems.Add(Equip("暴食胫甲", 12, "被动“猎杀”：参与击杀时获得全能吸血，可叠加6层。",
+            cfg.shopItems.Add(Equip("轻灵之靴", 13, "被动：韧性+25%（替代减速抗性）。",
+                B(StatType.MoveSpeed, 1.3f), B(StatType.Tenacity, 0.25f)));
+            cfg.shopItems.Add(Equip("暴食胫甲", 12, "被动“猎杀”：参与击杀时永久+1%全能吸血（上限叠加6层）。",
                 B(StatType.MoveSpeed, 1f), B(StatType.Omnivamp, 0.02f)));
-            cfg.shopItems.Add(Equip("贪婪胫甲", 12, "被动：生命值高于50%时造成额外伤害，低于50%时治疗护盾回复提升。",
+            MarkPassive(cfg.shopItems, "暴食胫甲", PassiveType.KillVamp);
+            cfg.shopItems.Add(Equip("贪婪胫甲", 12, "被动“贪婪”：生命值≥50%时伤害+8%；低于50%时治疗与护盾+20%。",
                 B(StatType.MoveSpeed, 1f), B(StatType.Omnivamp, 0.02f)));
+            MarkPassive(cfg.shopItems, "贪婪胫甲", PassiveType.GreedTreads);
             #endregion
 
             // 波次 20 波(手调递增)，通关后由 WaveManager 进入无尽模式
@@ -247,6 +293,14 @@ namespace Roguelite
             i.displayName = name; i.basePrice = baseP; i.passive = passive;
             for (int k = 0; k < stats.Length; k++) i.bonuses.Add(stats[k]);
             return i;
+        }
+
+        /// <summary>按名称给已添加的装备绑定战斗被动(位掩码叠加，多件被动装备可共存)。</summary>
+        static void MarkPassive(List<ShopItemData> items, string name, PassiveType type)
+        {
+            ShopItemData item = items.Find(s => s.displayName == name);
+            if (item == null) return;
+            item.passiveType = type;
         }
 
         /// <summary>按名称给已添加的装备绑定主动效果(装备栏 1-0 键触发)与基础冷却。</summary>

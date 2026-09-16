@@ -46,10 +46,8 @@ namespace Roguelite
                 Enemy enemy = other.GetComponentInParent<Enemy>();
                 if (enemy != null && enemy.Data != null)
                 {
-                    bool crit = DamageUtilities.RollCrit(critChance, DamageSystem.Rng);
-                    // 暴击倍率取玩家属性(CritDamage 词条)
-                    float critMult = PlayerStats.Instance != null ? PlayerStats.Instance.critMultiplier : 2f;
-                    enemy.TakeDamage(DamageUtilities.ComputeCrit(damage, crit, critMult), crit);
+                    // 走统一命中入口：触发普攻 on-hit 被动(咒刃/破败/黑切等)与暴击结算
+                    DamageSystem.HitEnemy(enemy, damage, critChance);
                     PoolManager.Return(gameObject);
                 }
             }

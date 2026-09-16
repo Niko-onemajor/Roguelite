@@ -61,6 +61,50 @@ namespace Roguelite
 
         float spellCooldown;
 
+        // ── 被动装备位掩码(多件被动可共存；passiveType 保留“最后绑定”兼容展示与旧测试) ──
+        ulong passiveMask;
+
+        /// <summary>当前总护盾值(救主灵刃/猩红护盾等)，受击先扣盾再扣生命。</summary>
+        public float Shield;
+
+        // ── 被动运行时状态 ──
+        float spellbladeCd;      // 咒刃(三相/黄昏)冷却
+        float energizedCd;       // 盈能(岚切/疾射火炮)冷却
+        float stormSurgeCd;      // 风暴狂涌冷却
+        float ludenCd;           // 卢登回声冷却
+        float lifelineCd;        // 救主灵刃冷却
+        float timeSinceDamaged;  // 距上次受伤秒数(狂徒脱战判定)
+        float timeSinceAttack;   // 距上次攻击秒数(亡者叠层判定)
+        float deadmanStackTimer;
+        int deadmanStacks;       // 亡者的板甲 气势层数
+        int barrageCount;        // 猎魔人弩箭 剩余必暴次数
+        float barrageTimer;      // 猎魔人 弹幕刷新计时
+        float msAmpRemaining;    // 通用移速增幅(暗夜收割者/风暴狂涌)
+        float msAmpValue = 1f;
+        float msFervorRemaining; // 命中攻速移速(幻影/班德尔)
+        float msFervorValue = 1f;
+        float asBuffRemaining;   // 攻速增益(香炉/幻影/班德尔)剩余秒数
+        float asBuffMult = 1f;   // 攻速增益倍率(作用于攻击间隔)
+        float apBuffRemaining;   // 流水法杖 法强增益剩余秒数
+        float apBuffValue;       // 流水法杖 法强增益点数
+        float natureMsRemaining; // 自然之力 层数剩余
+        int natureStacks;        // 自然之力 移速层数
+        float burnTimer = 1f;    // 日炎 献祭周期
+        float endlessTimer = 1.5f; // 无终恨意 周期
+        float bleedPool;         // 死亡之舞 待结算流血
+        bool spearBoost;         // 朔极之矛 充能标记
+        int omnivampKillStacks;  // 击杀叠吸血层数
+        float rangeBonus;        // 海克斯镜片 击杀叠攻击距离
+        readonly List<BurnDot> burns = new List<BurnDot>();
+
+        /// <summary>灼烧 DoT(兰德里的折磨)：每秒 dps 魔法伤害，持续 duration。</summary>
+        sealed class BurnDot
+        {
+            public Enemy Enemy;
+            public float Dps;
+            public float Remaining;
+        }
+
         // ── 主动装备栏（数字键 1-0 触发，购买带主动效果装备自动入槽）──
         /// <summary>主动栏槽位数（1-0 数字键）。</summary>
         public const int ActiveSlotCount = 10;
@@ -76,15 +120,58 @@ namespace Roguelite
         public int Gold { get; private set; }
         public int Kills { get; private set; }
 
-        /// <summary>战斗实际面板攻击力 = 基础攻击力 + 被动动态加成(如霸王血铠 专横/报复)。</summary>
+        /// <summary>被动是否生效：被动掩码命中 或 最后绑定被动(兼容直接赋值/旧测试)。
+        /// 多件被动装备同时持有时可共存叠加(位掩码)。</summary>
+        public bool HasPassive(PassiveType p) =>
+            p != PassiveType.None && ((passiveMask & (1UL << (int)p)) != 0 || passiveType == p);
+
+        /// <summary>猎魔人弩箭：剩余必定暴击的普攻次数(HitEnemy 每次命中消耗)。</summary>
+        public int BarrageCount { get => barrageCount; set => barrageCount = Mathf.Max(0, value); }
+
+        /// <summary>攻击距离(含海克斯镜片 击杀叠层)。</summary>
+        public float Range => range + rangeBonus;
+
+        /// <summary>实际攻速间隔(香炉/幻影/班德尔 攻速增益 乘算)，供武器冷却计算。</summary>
+        public float AttackIntervalEffective => attackInterval * (asBuffRemaining > 0f ? asBuffMult : 1f);
+
+        /// <summary>实际面板法术强度 = 基础法强 + 裂隙制造者(额外生命6%) + 流水法杖增益，再 × 死亡之帽1.4。</summary>
+        public float TotalAbilityPower
+        {
+            get
+            {
+                float ap = abilityPower;
+                if (HasPassive(PassiveType.VoidInfusion)) ap += Mathf.Max(0f, maxHP - BaseHP) * 0.06f;
+                if (HasPassive(PassiveType.Deathcap)) ap *= 1.4f;
+                if (apBuffRemaining > 0f) ap += apBuffValue;
+                return ap;
+            }
+        }
+
+        /// <summary>实际治疗与护盾强度 = 基础 + 歌之权冠(最大法力×0.003)；贪婪胫甲低血时再加20%。</summary>
+        public float TotalHealShieldPower
+        {
+            get
+            {
+                float hsp = healShieldPower;
+                if (HasPassive(PassiveType.CrownHealPower)) hsp += maxMana * 0.003f;
+                if (HasPassive(PassiveType.GreedTreads) && maxHP > 0f && CurrentHP / maxHP < 0.5f) hsp += 0.2f;
+                return hsp;
+            }
+        }
+
+        /// <summary>战斗实际面板攻击力 = 基础攻击力 + 被动动态加成(贪婪胫甲/霸王血铠 专横/报复)。</summary>
         public float TotalDamage
         {
             get
             {
-                if (passiveType != PassiveType.Tyrant) return damage;
+                float total = damage;
+                // 贪婪胫甲：生命≥50% 时造成伤害+8%
+                if (HasPassive(PassiveType.GreedTreads) && maxHP > 0f && CurrentHP / maxHP >= 0.5f)
+                    total *= 1.08f;
+                if (!HasPassive(PassiveType.Tyrant)) return total;
                 float bonusHp = Mathf.Max(0f, maxHP - BaseHP); // 额外生命值
                 float missingPct = maxHP > 0f ? Mathf.Clamp01(1f - CurrentHP / maxHP) : 0f;
-                return damage + bonusHp * TyrantHpToDamage + damage * missingPct * TyrantMissingToDamage;
+                return total + bonusHp * TyrantHpToDamage + total * missingPct * TyrantMissingToDamage;
             }
         }
 
@@ -108,6 +195,9 @@ namespace Roguelite
             Kills = 0;
             BankedGold = 0;
             Runes.Clear();
+            Shield = 0f;
+            bleedPool = 0f;
+            burns.Clear();
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseGold(Gold);
             GameEvents.RaiseGoldBanked(0);
@@ -124,19 +214,86 @@ namespace Roguelite
         {
             float resist = magicDamage ? magicResist : armor;
             float reduced = dmg * (100f / (100f + Mathf.Max(0f, resist)));
-            CurrentHP = Mathf.Max(0f, CurrentHP - reduced);
+            // 铁板靴：受到的物理(普攻类)伤害 ×0.88
+            if (!magicDamage && HasPassive(PassiveType.Steelcaps)) reduced *= 0.88f;
+
+            // 荆棘之甲：受物理伤害 反弹 30% 魔法伤害给最近敌人
+            if (!magicDamage && HasPassive(PassiveType.Thornmail) && reduced > 0f)
+            {
+                Enemy target = EnemyRegistry.Nearest(transform.position, float.MaxValue);
+                if (target != null) DamageSystem.CastMagic(target, reduced * 0.3f, 0f);
+            }
+
+            // 死亡之舞：物理伤害 30% 转 3s 流血延迟扣除(流血在 TickPassives 结算，不受护盾/抗性影响)
+            float instant = reduced;
+            if (!magicDamage && HasPassive(PassiveType.DeathDance))
+            {
+                instant = reduced * 0.7f;
+                bleedPool += reduced * 0.3f;
+            }
+
+            // 护盾吸收(救主灵刃/猩红护盾)
+            if (instant > 0f && Shield > 0f)
+            {
+                float absorbed = Mathf.Min(Shield, instant);
+                Shield -= absorbed;
+                instant -= absorbed;
+                if (absorbed > 0f) TriggerSupportBuffs();
+            }
+            if (instant > 0f) CurrentHP = Mathf.Max(0f, CurrentHP - instant);
             GameEvents.RaiseHP(CurrentHP, maxHP);
+
+            // 自然之力：受技能(魔法)伤害 → 移速层数
+            if (magicDamage && HasPassive(PassiveType.ForceOfNature) && reduced > 0f)
+            {
+                natureStacks = Mathf.Min(3, natureStacks + 1);
+                natureMsRemaining = 5f;
+            }
+
+            // 救主灵刃(斯特拉克/玛莫提乌斯/原生质护带)：生命<30% 获得护盾
+            if (HasPassive(PassiveType.Lifeline) && lifelineCd <= 0f && maxHP > 0f && CurrentHP / maxHP < 0.3f)
+            {
+                Shield = Mathf.Max(Shield, maxHP * 0.35f);
+                lifelineCd = 30f;
+                TriggerSupportBuffs();
+            }
+
+            timeSinceDamaged = 0f; // 狂徒 脱战计时重置
             var flash = GetComponent<HitFlash>(); // 玩家受击反馈：闪红
             if (flash != null) flash.Flash(Color.red, 0.12f);
         }
 
-        /// <summary>治疗：受治疗与护盾强度加成，不溢出当前生命上限。</summary>
+        /// <summary>治疗：受治疗与护盾强度加成，不溢出当前生命上限；
+        /// 溢出的治疗量在持有饮血剑时转化为猩红护盾。</summary>
         public void Heal(float amount)
         {
             if (amount <= 0f) return;
-            float healed = amount * (1f + healShieldPower);
-            CurrentHP = Mathf.Min(maxHP, CurrentHP + healed);
+            float healed = amount * (1f + TotalHealShieldPower);
+            float capped = Mathf.Min(maxHP - CurrentHP, healed);
+            if (capped > 0f) CurrentHP += capped;
+            // 饮血剑 猩红护盾：溢出治疗转护盾(上限最大生命15%)
+            if (HasPassive(PassiveType.Bloodshield) && healed > capped)
+            {
+                float overflow = Mathf.Min(maxHP * 0.15f - Shield, healed - capped);
+                if (overflow > 0f) Shield += overflow;
+            }
             GameEvents.RaiseHP(CurrentHP, maxHP);
+            TriggerSupportBuffs(); // 治疗/护盾交互(香炉/流水法杖)
+        }
+
+        /// <summary>治疗/护盾交互后 触发 香炉(攻速)与流水法杖(法强)增益(单机简化：对自身生效)。</summary>
+        void TriggerSupportBuffs()
+        {
+            if (HasPassive(PassiveType.ArdentCenser))
+            {
+                asBuffMult = 1f / 1.15f; // 攻速+15% → 攻击间隔 ×0.87
+                asBuffRemaining = 4f;
+            }
+            if (HasPassive(PassiveType.FlowingStaff))
+            {
+                apBuffValue = 4f;
+                apBuffRemaining = 4f;
+            }
         }
 
         /// <summary>每秒生命回复结算(供回复协程逐秒调用，也与全能吸血共用 Heal 加算治疗强度)。</summary>
@@ -166,8 +323,277 @@ namespace Roguelite
         /// <summary>技能急速 → 冷却缩放(0 急速=1.0；急速越高系数越小，100 急速≈半冷却)。</summary>
         public float HasteCooldownScale => 100f / (100f + abilityHaste);
 
-        /// <summary>有效移速(舒瑞娅 移速爆发期间提升)。</summary>
-        public float EffectiveMoveSpeed => moveSpeed * (moveBurstRemaining > 0f ? MoveBurstSpeedMult : 1f);
+        /// <summary>有效移速 = 基础移速 ×(舒瑞娅爆发/暗夜收割者/风暴狂涌/幻影/班德尔/自然之力/亡者板甲 被动叠加)。</summary>
+        public float EffectiveMoveSpeed
+        {
+            get
+            {
+                float mult = moveSpeed;
+                if (moveBurstRemaining > 0f) mult *= MoveBurstSpeedMult;
+                if (msAmpRemaining > 0f) mult *= msAmpValue;
+                if (msFervorRemaining > 0f) mult *= msFervorValue;
+                mult *= 1f + natureStacks * 0.15f;   // 自然之力：每层+15%移速
+                mult *= 1f + deadmanStacks * 0.04f;  // 亡者的板甲：每层气势+4%移速
+                return mult;
+            }
+        }
+
+        #region 装备被动挂钩(OnAttackHit / OnKill / TickPassives)
+
+        /// <summary>普攻命中敌人后触发被动(DamageSystem.HitEnemy 每发普攻调用一次)。
+        /// dealt 为实际造成伤害；cleaveHit 标识溅射命中的目标(不重复触发 on-hit 效果，防递归)。</summary>
+        public void OnAttackHit(Enemy enemy, float dealt, Vector2 pos, bool cleaveHit = false)
+        {
+            if (enemy == null) return;
+            timeSinceAttack = 0f;
+            if (cleaveHit) return;
+
+            // 三相之力/黄昏与黎明 “咒刃”：每1.5s一次普攻附带 攻击力/法强×1
+            if (spellbladeCd <= 0f)
+            {
+                if (HasPassive(PassiveType.Spellblade))
+                {
+                    enemy.TakeDamage(damage, false);
+                    spellbladeCd = 1.5f;
+                }
+                else if (HasPassive(PassiveType.SpellbladeArcane))
+                {
+                    DamageSystem.CastMagic(enemy, abilityPower, 0f);
+                    spellbladeCd = 1.5f;
+                }
+            }
+            // 破败王者之刃：普攻附加目标当前生命6% 物理伤害
+            if (HasPassive(PassiveType.RuinKing) && enemy.Health > 0f)
+                enemy.TakeDamage(enemy.Health * 0.06f, false);
+            // 岚切/疾射火炮 “盈能”：每2.5s一次 普攻附带 10+攻击力×0.3 魔法伤害
+            if (HasPassive(PassiveType.Energized) && energizedCd <= 0f)
+            {
+                DamageSystem.CastMagic(enemy, 10f + damage * 0.3f, 0f);
+                energizedCd = 2.5f;
+            }
+            // 黑色切割者：削减目标护甲10(持续5s，累加上限30)
+            if (HasPassive(PassiveType.BlackCleaver)) enemy.Shred(10f, 5f);
+            // 基克的聚合：减速目标35%、2s
+            if (HasPassive(PassiveType.FrostBite)) enemy.Slow(0.65f, 2f);
+            // 亡者的板甲：普攻消耗全部气势层数，每层+2 物理伤害
+            if (HasPassive(PassiveType.DeadMans) && deadmanStacks > 0)
+            {
+                enemy.TakeDamage(deadmanStacks * 2f, false);
+                deadmanStacks = 0;
+            }
+            // 海克斯镜片“高倍望远镜”：距离≥6 时伤害+25%
+            if (HasPassive(PassiveType.Longshot) &&
+                (enemy.transform.position - transform.position).sqrMagnitude >= 36f)
+                enemy.TakeDamage(dealt * 0.25f, false);
+            // 幻影之舞/班德尔音管：命中后 2s 内 攻速×0.9、移速×1.1
+            if (HasPassive(PassiveType.StrikerFervor))
+            {
+                asBuffMult = 0.9f;
+                asBuffRemaining = 2f;
+                msFervorValue = 1.1f;
+                msFervorRemaining = 2f;
+            }
+            // 卢安娜的飓风：对附近另一敌人造成 50% 伤害(直接结算，不在触发 on-hit，避免递归)
+            if (HasPassive(PassiveType.Hurricane))
+            {
+                Enemy other = NearbyEnemy(pos, enemy);
+                if (other != null) other.TakeDamage(dealt * 0.5f, false);
+            }
+            // 巨型九头蛇/贪欲九头蛇：普攻对周围2.6内敌人溅射
+            if (HasPassive(PassiveType.TitanicCleave) || HasPassive(PassiveType.RavenousCleave))
+            {
+                float splash = HasPassive(PassiveType.TitanicCleave) ? damage * 0.8f : dealt * 0.5f;
+                var copy = new List<Enemy>(EnemyRegistry.All);
+                float r2 = 2.6f * 2.6f;
+                for (int i = 0; i < copy.Count; i++)
+                {
+                    Enemy e = copy[i];
+                    if (e == null || e == enemy || e.Data == null) continue;
+                    if (((Vector2)e.transform.position - pos).sqrMagnitude > r2) continue;
+                    e.TakeDamage(splash, false);
+                }
+            }
+        }
+
+        /// <summary>普攻半径内最近的另一敌人(卢安娜分裂箭)。</summary>
+        Enemy NearbyEnemy(Vector2 origin, Enemy exclude)
+        {
+            float r2 = 2.6f * 2.6f;
+            Enemy best = null;
+            float bestSq = r2;
+            for (int i = 0; i < EnemyRegistry.All.Count; i++)
+            {
+                Enemy e = EnemyRegistry.All[i];
+                if (e == null || e == exclude || e.Data == null) continue;
+                float sq = ((Vector2)e.transform.position - origin).sqrMagnitude;
+                if (sq <= bestSq) { bestSq = sq; best = e; }
+            }
+            return best;
+        }
+
+        /// <summary>敌人死亡(非撞击消失)触发被动：击杀叠吸血(无尽饥渴/暴食胫甲)、蜕生回血、海克斯镜片叠距离。</summary>
+        public void OnKill(Enemy enemy)
+        {
+            if (HasPassive(PassiveType.KillVamp) && omnivampKillStacks < 6)
+            {
+                omnivamp += 0.01f;
+                omnivampKillStacks++;
+            }
+            if (HasPassive(PassiveType.ReapHeal)) Heal(maxHP * 0.05f);
+            if (HasPassive(PassiveType.Longshot) && rangeBonus < 3f)
+            {
+                float add = Mathf.Min(3f - rangeBonus, 0.5f);
+                rangeBonus += add;
+            }
+        }
+
+        /// <summary>逐帧被动驱动(CombatSystem.Update 每帧调用)：日炎/无终恨意/狂徒脱战回血/亡者叠层/
+        /// 猎魔人弹幕刷新/死亡之舞流血/灼烧DoT/冰霜之心与深渊面具光环。EditMode 测试可显式调用。</summary>
+        public void TickPassives(float dt, Vector2 origin)
+        {
+            if (passiveMask == 0 && passiveType == PassiveType.None) return;
+            timeSinceDamaged += dt;
+            timeSinceAttack += dt;
+
+            // 通用冷却计时
+            spellbladeCd = Mathf.Max(0f, spellbladeCd - dt);
+            energizedCd = Mathf.Max(0f, energizedCd - dt);
+            stormSurgeCd = Mathf.Max(0f, stormSurgeCd - dt);
+            ludenCd = Mathf.Max(0f, ludenCd - dt);
+            lifelineCd = Mathf.Max(0f, lifelineCd - dt);
+            msAmpRemaining = Mathf.Max(0f, msAmpRemaining - dt);
+            msFervorRemaining = Mathf.Max(0f, msFervorRemaining - dt);
+            asBuffRemaining = Mathf.Max(0f, asBuffRemaining - dt);
+            apBuffRemaining = Mathf.Max(0f, apBuffRemaining - dt);
+            if (natureMsRemaining > 0f)
+            {
+                natureMsRemaining -= dt;
+                if (natureMsRemaining <= 0f) natureStacks = 0;
+            }
+
+            // 狂徒铠甲：脱战(5s未受伤)后每秒回复最大生命6%
+            if (HasPassive(PassiveType.Warmogs) && timeSinceDamaged >= 5f && CurrentHP < maxHP)
+                Heal(maxHP * 0.06f * dt);
+
+            // 亡者的板甲：离开攻击1s后 每1s积1层气势(上限5)；普攻消耗见 OnAttackHit
+            if (HasPassive(PassiveType.DeadMans) && timeSinceAttack > 1f)
+            {
+                deadmanStackTimer -= dt;
+                if (deadmanStackTimer <= 0f)
+                {
+                    deadmanStacks = Mathf.Min(5, deadmanStacks + 1);
+                    deadmanStackTimer = 1f;
+                }
+            }
+
+            // 猎魔人弩箭：每6s刷新 3次必定暴击弹幕
+            if (HasPassive(PassiveType.CritBarrage))
+            {
+                barrageTimer -= dt;
+                if (barrageTimer <= 0f) { barrageCount = 3; barrageTimer = 6f; }
+            }
+
+            // 日炎圣盾“献祭”：每秒对周围2.8敌人 5+法强×0.15 魔法伤害
+            if (HasPassive(PassiveType.Sunfire))
+            {
+                burnTimer -= dt;
+                if (burnTimer <= 0f) { DamageSystem.CastMagicAoe(origin, 2.8f, 5f, 0.15f); burnTimer = 1f; }
+            }
+            // 无终恨意“苦楚”：每1.5s 对周围2.8敌人 8+法强×0.2 魔法伤害 并回复6生命
+            if (HasPassive(PassiveType.EndlessHatred))
+            {
+                endlessTimer -= dt;
+                if (endlessTimer <= 0f)
+                {
+                    DamageSystem.CastMagicAoe(origin, 2.8f, 8f, 0.2f);
+                    Heal(6f);
+                    endlessTimer = 1.5f;
+                }
+            }
+
+            // 死亡之舞：3s 流血结算(真实伤害，不吃护盾/抗性)
+            if (HasPassive(PassiveType.DeathDance) && bleedPool > 0f)
+            {
+                float loss = bleedPool * dt / 3f;
+                bleedPool = Mathf.Max(0f, bleedPool - loss);
+                if (loss > 0f)
+                {
+                    CurrentHP = Mathf.Max(0f, CurrentHP - loss);
+                    GameEvents.RaiseHP(CurrentHP, maxHP);
+                    timeSinceDamaged = 0f;
+                }
+            }
+
+            // 兰德里的折磨 灼烧DoT
+            if (burns.Count > 0)
+            {
+                for (int i = burns.Count - 1; i >= 0; i--)
+                {
+                    BurnDot dot = burns[i];
+                    if (dot == null || dot.Enemy == null || dot.Enemy.Health <= 0f) { burns.RemoveAt(i); continue; }
+                    dot.Remaining -= dt;
+                    if (dot.Remaining <= 0f) { burns.RemoveAt(i); continue; }
+                    dot.Enemy.TakeMagicDamage(dot.Dps * dt);
+                }
+            }
+
+            // 冰霜之心/深渊面具 光环：范围内敌人 攻速×1.5 / 承魔伤×1.15，范围外复位
+            if (HasPassive(PassiveType.FrozenHeart) || HasPassive(PassiveType.AbyssalMask))
+            {
+                var copy = new List<Enemy>(EnemyRegistry.All);
+                for (int i = 0; i < copy.Count; i++)
+                {
+                    Enemy e = copy[i];
+                    if (e == null || e.Data == null) continue;
+                    float distSq = ((Vector2)e.transform.position - origin).sqrMagnitude;
+                    e.attackIntervalMult = HasPassive(PassiveType.FrozenHeart) && distSq <= 4f * 4f ? 1.5f : 1f;
+                    e.magicVulnMult = HasPassive(PassiveType.AbyssalMask) && distSq <= 4.5f * 4.5f ? 1.15f : 1f;
+                }
+            }
+        }
+
+        /// <summary>兰德里的折磨：为目标施加灼烧(刷新时间；每秒 目标最大生命1%+法强×0.05 魔法伤害)。</summary>
+        public void ApplyBurn(Enemy enemy, float dps, float duration)
+        {
+            for (int i = 0; i < burns.Count; i++)
+            {
+                if (burns[i].Enemy == enemy)
+                {
+                    burns[i].Dps = dps;
+                    burns[i].Remaining = duration;
+                    return;
+                }
+            }
+            burns.Add(new BurnDot { Enemy = enemy, Dps = dps, Remaining = duration });
+        }
+
+        /// <summary>通用移速增幅(暗夜收割者/风暴狂涌)。</summary>
+        public void PushMoveAmp(float mult, float duration)
+        {
+            msAmpValue = mult;
+            msAmpRemaining = Mathf.Max(msAmpRemaining, duration);
+        }
+
+        /// <summary>朔极之矛：取走并消费充能标记(魔法伤害×1.25 一次)。</summary>
+        public bool TakeSpearBoost()
+        {
+            bool ready = spearBoost;
+            spearBoost = false;
+            return ready;
+        }
+
+        /// <summary>朔极之矛：魔法命中后 给下一次充能。</summary>
+        public void SetSpearBoost() => spearBoost = true;
+
+        /// <summary>风暴狂涌：每4s一次的附伤就绪标记。</summary>
+        public bool StormSurgeReady => stormSurgeCd <= 0f;
+        public void ConsumeStormSurge() => stormSurgeCd = 4f;
+
+        /// <summary>卢登的回声：每2.5s一次的溅射附伤就绪标记。</summary>
+        public bool LudenReady => ludenCd <= 0f;
+        public void ConsumeLuden() => ludenCd = 2.5f;
+
+        #endregion
 
         #region Active Items
 
@@ -264,11 +690,11 @@ namespace Roguelite
         /// 法力不足或范围内无目标时提前重试，不空消耗。</summary>
         public void TickSpell(float dt, Vector2 origin)
         {
-            if (passiveType != PassiveType.ArcaneBolt) return;
+            if (!HasPassive(PassiveType.ArcaneBolt)) return;
             spellCooldown -= dt;
             if (spellCooldown > 0f) return;
 
-            Enemy target = EnemyRegistry.Nearest(origin, range);
+            Enemy target = EnemyRegistry.Nearest(origin, Range);
             if (target == null) { spellCooldown = AbortRetryInterval; return; }
             if (!TrySpendMana(ArcaneManaCost)) { spellCooldown = AbortRetryInterval; return; }
 
@@ -314,7 +740,11 @@ namespace Roguelite
             {
                 ApplyStat(item.statType, item.addValue, multiplier);
             }
-            if (item.passiveType != PassiveType.None) passiveType = item.passiveType; // 绑定战斗被动(血铠 专横/报复)
+            if (item.passiveType != PassiveType.None)
+            {
+                passiveType = item.passiveType;              // 最后绑定(兼容展示/旧测试)
+                passiveMask |= 1UL << (int)item.passiveType; // 位掩码：多件被动装备可共存
+            }
             GameEvents.RaiseHP(CurrentHP, maxHP);
         }
 

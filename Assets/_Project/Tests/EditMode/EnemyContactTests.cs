@@ -44,6 +44,7 @@ namespace Roguelite.Tests
 
             var enemy = EnemyFactory.Spawn(Data(), player.transform.position); // 与玩家重叠
             float hpBefore = stats.CurrentHP;
+            int goldBefore = stats.Gold;
             Assert.That(enemy, Is.Not.Null);
 
             enemy.TryContactDamage();
@@ -51,7 +52,7 @@ namespace Roguelite.Tests
             Assert.That(stats.CurrentHP, Is.EqualTo(hpBefore - 5f).Within(0.001f)); // 吃到接触伤害
             Assert.That(enemy.gameObject.activeSelf, Is.False);                     // 撞击后立即消失
             Assert.That(stats.Kills, Is.EqualTo(0));                                // 不记击杀
-            Assert.That(stats.Gold, Is.EqualTo(0));                                 // 不掉金币(防贴脸刷钱)
+            Assert.That(stats.Gold, Is.EqualTo(goldBefore));                        // 不掉金币(防贴脸刷钱)
         }
 
         [Test]

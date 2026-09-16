@@ -13,13 +13,13 @@ namespace Roguelite
             Vector2 dir = dist > 0.001f ? to / dist : Vector2.zero;
             float keep = Mathf.Max(0.1f, Data.keepDistance);
 
-            if (dist < keep * 0.9f) transform.position += (Vector3)(-dir * (Data.moveSpeed * dt));
-            else if (dist > keep * 1.4f) transform.position += (Vector3)(dir * (Data.moveSpeed * dt));
+            if (dist < keep * 0.9f) transform.position += (Vector3)(-dir * (Data.moveSpeed * speedMult * dt));
+            else if (dist > keep * 1.4f) transform.position += (Vector3)(dir * (Data.moveSpeed * speedMult * dt));
 
             attackTimer -= dt;
             if (attackTimer <= 0f && dist < Data.range && dist > 0.001f)
             {
-                attackTimer = Data.attackInterval;
+                attackTimer = Data.attackInterval * attackIntervalMult; // 冰霜之心光环放慢远程敌人射击
                 GameObject bullet = PoolManager.Spawn(ProjectileFactory.EnemyPrototype, transform.position, Quaternion.identity);
                 bullet.GetComponent<Projectile>().Shoot(dir, Data.projectileSpeed, Data.projectileDamage, 1, Data.range, 0f, Color.magenta);
             }

@@ -9,6 +9,20 @@ namespace Roguelite
         public EnemyData Data { get; private set; }
         public float Health { get; private set; }
 
+        // ── 装备被动临时状态(默认无增益；由被动光环/命中效果写入) ──
+        /// <summary>移速倍率(基克减速/冰霜等改变，1=正常)，由 TickDebuffs 计时恢复。</summary>
+        public float speedMult = 1f;
+        /// <summary>攻击间隔倍率(冰霜之心光环 1.5，1=正常)。</summary>
+        public float attackIntervalMult = 1f;
+        /// <summary>承伤魔法伤害倍率(深渊面具易伤 1.15，1=正常)。</summary>
+        public float magicVulnMult = 1f;
+        /// <summary>残疫单目标附伤内置冷却(秒)。</summary>
+        public float malignCd;
+
+        float shredAmount;   // 黑切 破甲值(平减)
+        float shredTimer;    // 破甲剩余秒
+        float slowTimer;     // 减速剩余秒
+
         protected float attackTimer;
         SpriteRenderer sr;
 
@@ -39,11 +53,34 @@ namespace Roguelite
 
         protected virtual void EnemyUpdate(float dt)
         {
+            TickDebuffs(dt); // 破甲/减速计时恢复(由 LateUpdate 每帧驱动)
             Behavior(dt, PlayerController.Instance);
             transform.position = ArenaBounds.Clamp(transform.position); // 限制在竞技场内
             if (Data.contactDamage > 0f) TryContactDamage();
         }
         protected abstract void Behavior(float dt, PlayerController player);
+
+        /// <summary>装备被动施加：物理破甲(黑切)。duration 秒后失效；平减数值可多次叠加累计(上限30)。</summary>
+        public void Shred(float amount, float duration)
+        {
+            shredAmount = Mathf.Min(30f, shredAmount + amount);
+            shredTimer = duration;
+        }
+
+        /// <summary>装备被动施加：减速(基克)。持续 duration 秒后恢复原速。</summary>
+        public void Slow(float targetSpeedMult, float duration)
+        {
+            speedMult = targetSpeedMult;
+            slowTimer = duration;
+        }
+
+        /// <summary>装备被动状态计时(每帧)：破甲/减速到期恢复、残疫单目标附伤冷却。EditMode 测试可显式调用。</summary>
+        internal void TickDebuffs(float dt)
+        {
+            if (shredTimer > 0f) { shredTimer -= dt; if (shredTimer <= 0f) shredAmount = 0f; }
+            if (slowTimer > 0f) { slowTimer -= dt; if (slowTimer <= 0f) speedMult = 1f; }
+            if (malignCd > 0f) malignCd -= dt;
+        }
 
         /// <summary>手动距离判定接触伤害：与玩家中心距离 &lt; 双方碰撞半径之和即视为撞到玩家。
         /// 撞到后怪物立即消失(不掉金币/不记击杀，防贴脸刷钱)，杜绝与玩家模型重叠。
@@ -62,23 +99,23 @@ namespace Roguelite
             PoolManager.Return(gameObject); // 撞击即消失，不进入 Die(不掉金币/不记击杀)
         }
 
-        /// <summary>finalDamage 为最终物理伤害(暴击已算好)；护甲降低受到的物理伤害；吸血按实际造成伤害结算。</summary>
+        /// <summary>finalDamage 为最终物理伤害(暴击已算好)；护甲/黑切破甲降低受到的物理伤害；吸血按实际造成伤害结算。</summary>
         public void TakeDamage(float finalDamage, bool wasCrit)
         {
             if (Data == null) return;
-            // 有效护甲 = 怪物护甲 - 玩家护甲穿透(下限0)；护甲减伤：dmg*100/(100+armor)
+            // 有效护甲 = 怪物护甲 - 玩家护甲穿透(下限0) - 黑切破甲；护甲减伤：dmg*100/(100+armor)
             PlayerStats ps = PlayerStats.Instance;
-            float effectiveArmor = Mathf.Max(0f, Data.armor - (ps != null ? ps.armorPen : 0f));
+            float effectiveArmor = Mathf.Max(0f, Data.armor - (ps != null ? ps.armorPen : 0f) - shredAmount);
             ApplyDamage(finalDamage * (100f / (100f + effectiveArmor)));
         }
 
-        /// <summary>魔法伤害：按怪物魔抗与玩家法术穿透结算(技能急速/法强装备触发的法术伤害走此路径)。</summary>
+        /// <summary>魔法伤害：按怪物魔抗与玩家法术穿透结算，并受深渊面具易伤倍率影响。</summary>
         public void TakeMagicDamage(float dmg)
         {
             if (Data == null) return;
             PlayerStats ps = PlayerStats.Instance;
             float effectiveResist = Mathf.Max(0f, Data.magicResist - (ps != null ? ps.magicPen : 0f));
-            ApplyDamage(dmg * (100f / (100f + effectiveResist)));
+            ApplyDamage(dmg * (100f / (100f + effectiveResist)) * magicVulnMult);
         }
 
         /// <summary>统一伤害结算：扣血/吸血/受击闪红/死亡。reduced 为已过减伤后的最终数值。</summary>
@@ -98,7 +135,12 @@ namespace Roguelite
 
         protected virtual void Die()
         {
-            if (PlayerStats.Instance != null) PlayerStats.Instance.NotifyKill();
+            PlayerStats ps = PlayerStats.Instance;
+            if (ps != null)
+            {
+                ps.NotifyKill();
+                ps.OnKill(this); // 装备击杀被动挂钩(击杀叠吸血/蜕生回血等)
+            }
             int gold = Random.Range(Data.goldMin, Data.goldMax + 1);
             PickupFactory.Spawn(transform.position, gold);
             PoolManager.Return(gameObject);
