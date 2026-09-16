@@ -60,7 +60,7 @@ namespace Roguelite
             SetRect(viewBtn.GetComponent<RectTransform>(), 0.06f, 0.05f, 0.26f, 0.11f);
 
             var hint = UIBuilder.Text("ShopHint", panel.transform,
-                "购买固定价 · 锁定槽位可保留装备不被刷新替换", 22, new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleCenter);
+                "购买固定价 · 锁定装备保留至下一次商店", 22, new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleCenter);
             SetRect(hint.rectTransform, 0.3f, 0.05f, 0.94f, 0.11f);
         }
 

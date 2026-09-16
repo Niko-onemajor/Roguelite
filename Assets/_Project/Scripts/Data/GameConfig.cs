@@ -10,6 +10,8 @@ namespace Roguelite
         public List<WeaponData> weapons = new List<WeaponData>();
         public List<EnemyData> enemies = new List<EnemyData>();
         public List<ShopItemData> shopItems = new List<ShopItemData>();
+        /// <summary>锻体独立池(基础属性卡，锻体白/金/彩倍率强化)，与商店装备池互不共用。</summary>
+        public List<ShopItemData> forgeItems = new List<ShopItemData>();
 
         public static GameConfig Default()
         {
@@ -27,17 +29,17 @@ namespace Roguelite
             cfg.enemies.Add(Enemy(EnemyType.Ranged, 16f, 2.2f, 0f, 2.6f, 4.5f, 8f, 5f, 6f, 1, 2, 1f, new Color(0.7f, 0.4f, 0.9f), 2f, 6f));
             cfg.enemies.Add(Enemy(EnemyType.Tank, 80f, 1.4f, 14f, 1.6f, 0f, 0f, 0f, 8f, 3, 5, 1.6f, new Color(0.5f, 0.5f, 0.6f), 15f, 10f));
 
-            // 基础道具(低价常见)：单属性，保留原价带
-            cfg.shopItems.Add(Shop("攻击力+6", StatType.AttackDamage, 15, 6f));
-            cfg.shopItems.Add(Shop("攻速×0.85", StatType.AttackSpeed, 15, 0.85f));
-            cfg.shopItems.Add(Shop("生命+20", StatType.MaxHP, 10, 20f));
-            cfg.shopItems.Add(Shop("移速+0.5", StatType.MoveSpeed, 10, 0.5f));
-            cfg.shopItems.Add(Shop("攻击距离+1", StatType.AttackRange, 10, 1f));
-            cfg.shopItems.Add(Shop("暴击+8%", StatType.CritChance, 20, 0.08f));
-            cfg.shopItems.Add(Shop("暴击伤害+0.3", StatType.CritDamage, 20, 0.3f));
-            cfg.shopItems.Add(Shop("护甲+10", StatType.Armor, 15, 10f));
-            cfg.shopItems.Add(Shop("魔抗+10", StatType.MagicResist, 15, 10f));
-            cfg.shopItems.Add(Shop("法术强度+6", StatType.AbilityPower, 15, 6f));
+            // 锻体专属池(低价基础属性卡，与商店装备分离；锻体按稀有度白/金/彩 1x/1.5x/2x 强化)
+            cfg.forgeItems.Add(Shop("攻击力+6", StatType.AttackDamage, 15, 6f));
+            cfg.forgeItems.Add(Shop("攻速×0.85", StatType.AttackSpeed, 15, 0.85f));
+            cfg.forgeItems.Add(Shop("生命+20", StatType.MaxHP, 10, 20f));
+            cfg.forgeItems.Add(Shop("移速+0.5", StatType.MoveSpeed, 10, 0.5f));
+            cfg.forgeItems.Add(Shop("攻击距离+1", StatType.AttackRange, 10, 1f));
+            cfg.forgeItems.Add(Shop("暴击+8%", StatType.CritChance, 20, 0.08f));
+            cfg.forgeItems.Add(Shop("暴击伤害+0.3", StatType.CritDamage, 20, 0.3f));
+            cfg.forgeItems.Add(Shop("护甲+10", StatType.Armor, 15, 10f));
+            cfg.forgeItems.Add(Shop("魔抗+10", StatType.MagicResist, 15, 10f));
+            cfg.forgeItems.Add(Shop("法术强度+6", StatType.AbilityPower, 15, 6f));
 
             // ── 装备导入(LOL 风格，数值按当前基数缩放：基础攻击10/生命120/移速8/价带10~45) ──
             // 缩放基准：攻击力/8、法术强度/15、生命/10、护甲魔抗/3.5、移速/45→量、攻速按 1/(1+%)、

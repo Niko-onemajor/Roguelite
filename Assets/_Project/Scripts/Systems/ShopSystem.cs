@@ -26,22 +26,33 @@ namespace Roguelite
         readonly System.Random rng = new System.Random();
         readonly List<ShopSlot> slots = new List<ShopSlot>();
 
+        /// <summary>已拥有的装备(按实例去重)：同一件装备只可购买一次，此后商店不再出现。</summary>
+        readonly HashSet<ShopItemData> owned = new HashSet<ShopItemData>();
+
         public bool IsAwaitingChoice { get; private set; }
         public IReadOnlyList<ShopSlot> Slots => slots;
 
         public int PriceOf(ShopItemData item) => item != null ? item.basePrice : 0;
 
-        /// <summary>开启本回合商店：清空并按池子补满 3 个槽位，触发 UI 展示。</summary>
+        /// <summary>开启本回合商店：保留上回合锁定的槽位(锁定装备跨回合继续锁定)，
+        /// 其余槽位从(未拥有)池子补满，触发 UI 展示。</summary>
         public void OpenOffer()
         {
             IsAwaitingChoice = true;
+            var retained = new List<ShopSlot>();
+            foreach (var s in slots)
+                if (s != null && s.Locked && s.Item != null) retained.Add(s);
+
             slots.Clear();
-            for (int i = 0; i < SlotCount; i++) slots.Add(new ShopSlot());
-            for (int i = 0; i < slots.Count; i++) FillSlot(slots[i]);
+            for (int i = 0; i < SlotCount; i++)
+            {
+                if (i < retained.Count) slots.Add(retained[i]);
+                else { var ns = new ShopSlot(); FillSlot(ns); slots.Add(ns); }
+            }
             GameEvents.RaiseShop(this);
         }
 
-        /// <summary>购买槽位装备：固定价格，买后槽位清空(锁定状态保留)。</summary>
+        /// <summary>购买槽位装备：固定价格，买后槽位清空并解锁(同件装备不再出现在商店)。</summary>
         public bool TryPurchase(int slotIndex)
         {
             if (!IsAwaitingChoice || stats == null) return false;
@@ -53,9 +64,11 @@ namespace Roguelite
             if (stats.Gold < price) return false;
 
             stats.AddGold(-price);
+            owned.Add(slot.Item); // 唯一购买：标记已拥有，此后商店不再提供该装备
             stats.ApplyBonus(slot.Item);
             stats.TryAddActive(slot.Item); // 带主动效果的装备自动装入主动栏首空槽
             slot.Item = null;
+            slot.Locked = false; // 已购买槽位解除锁定，下次刷新正常补货
             return true;
         }
 
@@ -81,10 +94,9 @@ namespace Roguelite
             return true;
         }
 
-        /// <summary>结束商店，进入下一波。</summary>
+        /// <summary>结束商店，进入下一波。锁定状态与锁定装备保留，下回合打开商店延续。</summary>
         public void End()
         {
-            for (int i = 0; i < slots.Count; i++) slots[i].Locked = false;
             IsAwaitingChoice = false;
         }
 
@@ -93,19 +105,24 @@ namespace Roguelite
             slot.Item = PickItem();
         }
 
+        /// <summary>从未拥有的装备中按价格加权抽取；全部已入手则返回 null(槽位空置)。</summary>
         ShopItemData PickItem()
         {
             if (pool == null || pool.Length == 0) return null;
-            // 按价格加权(Brotato 风格)：高价装备出现概率更低，低价基础道具更常见
-            int total = 0;
-            for (int i = 0; i < pool.Length; i++) total += WeightOf(pool[i].basePrice);
-            int roll = rng.Next(total);
+            var avail = new List<ShopItemData>(pool.Length);
             for (int i = 0; i < pool.Length; i++)
+                if (!owned.Contains(pool[i])) avail.Add(pool[i]);
+            if (avail.Count == 0) return null;
+
+            int total = 0;
+            for (int i = 0; i < avail.Count; i++) total += WeightOf(avail[i].basePrice);
+            int roll = rng.Next(total);
+            for (int i = 0; i < avail.Count; i++)
             {
-                roll -= WeightOf(pool[i].basePrice);
-                if (roll < 0) return pool[i];
+                roll -= WeightOf(avail[i].basePrice);
+                if (roll < 0) return avail[i];
             }
-            return pool[pool.Length - 1];
+            return avail[avail.Count - 1];
         }
 
         static int WeightOf(int price)

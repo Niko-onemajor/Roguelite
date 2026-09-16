@@ -148,13 +148,49 @@ namespace Roguelite.Tests
         }
 
         [Test]
-        public void End_Clears_Locks_And_Closes()
+        public void End_Closes_Keeping_Locks_For_Next_Round()
         {
             shop.OpenOffer();
             shop.ToggleLock(2);
             shop.End();
             Assert.That(shop.IsAwaitingChoice, Is.False);
-            foreach (var s in shop.Slots) Assert.That(s.Locked, Is.False);
+            Assert.That(shop.Slots[2].Locked, Is.True); // 锁定装备跨回合保留
+        }
+
+        [Test]
+        public void OpenOffer_Preserves_Locked_Slot_Across_Rounds()
+        {
+            shop.OpenOffer();
+            shop.ToggleLock(0);
+            ShopItemData kept = shop.Slots[0].Item;
+
+            shop.End();
+            shop.OpenOffer(); // 下一回合再次打开商店
+
+            Assert.That(shop.Slots[0].Item, Is.SameAs(kept)); // 锁定装备原样保留
+            Assert.That(shop.Slots[0].Locked, Is.True);
+        }
+
+        [Test]
+        public void OpenOffer_Excludes_Already_Owned_Items()
+        {
+            var single = new GameObject("single");
+            var singleShop = single.AddComponent<ShopSystem>();
+            singleShop.stats = stats;
+            singleShop.pool = new[] { pool[0], pool[1] };
+            singleShop.OpenOffer();
+            ShopItemData bought = singleShop.Slots[0].Item;
+            Assert.That(singleShop.TryPurchase(0), Is.True);
+
+            singleShop.End();
+            singleShop.OpenOffer(); // 已购装备从池中剔除，商店不再出现
+
+            foreach (var s in singleShop.Slots)
+            {
+                Assert.That(s.Item, Is.Not.Null);
+                Assert.That(s.Item, Is.Not.SameAs(bought)); // 唯一购买：同一件装备不出第二次
+            }
+            Object.DestroyImmediate(single);
         }
 
         [Test]

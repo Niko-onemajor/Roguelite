@@ -119,8 +119,10 @@ namespace Roguelite.Tests
         public void GameConfig_Default_Contains_ImportedEquipment()
         {
             var cfg = GameConfig.Default();
-            // 10 基础道具 + 59 件导入装备 + 霸王血铠
-            Assert.That(cfg.shopItems.Count, Is.EqualTo(70));
+            // 商店池=60 件导入装备；锻体独立池=10 张基础属性卡(商店不再出现)
+            Assert.That(cfg.shopItems.Count, Is.EqualTo(60));
+            Assert.That(cfg.forgeItems.Count, Is.EqualTo(10));
+            Assert.That(cfg.forgeItems.TrueForAll(s => !s.IsMulti)); // 锻体卡均为单属性
 
             ShopItemData infinityEdge = cfg.shopItems.Find(s => s.displayName == "无尽之刃");
             Assert.That(infinityEdge, Is.Not.Null);

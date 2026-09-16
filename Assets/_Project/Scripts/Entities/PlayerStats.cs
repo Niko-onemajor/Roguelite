@@ -109,7 +109,7 @@ namespace Roguelite
             BankedGold = 0;
             Runes.Clear();
             GameEvents.RaiseHP(CurrentHP, maxHP);
-            GameEvents.RaiseGold(0);
+            GameEvents.RaiseGold(Gold);
             GameEvents.RaiseGoldBanked(0);
             StartRegenLoop();
         }
@@ -206,15 +206,21 @@ namespace Roguelite
             return true;
         }
 
-        /// <summary>主动栏冷却与临时增益计时(CombatSystem.Update 每帧驱动)。</summary>
+        /// <summary>主动栏冷却与临时增益计时(CombatSystem.Update 每帧驱动)。
+        /// 冷却显示秒数发生变化时广播 ActiveSlotsChanged，HUD 主动栏自动读秒刷新。</summary>
         public void TickActive(float dt)
         {
+            bool displayChanged = false;
             for (int i = 0; i < _activeSlots.Length; i++)
             {
-                if (_activeSlots[i] != null && _activeSlots[i].Remaining > 0f)
-                    _activeSlots[i].Remaining -= dt;
+                ActiveSlot slot = _activeSlots[i];
+                if (slot == null || slot.Remaining <= 0f) continue;
+                int before = Mathf.CeilToInt(slot.Remaining);
+                slot.Remaining = Mathf.Max(0f, slot.Remaining - dt);
+                if (Mathf.CeilToInt(slot.Remaining) != before) displayChanged = true;
             }
             if (moveBurstRemaining > 0f) moveBurstRemaining = Mathf.Max(0f, moveBurstRemaining - dt);
+            if (displayChanged) GameEvents.RaiseActiveSlotsChanged();
         }
 
         /// <summary>触发舒瑞娅的狂想曲 移速爆发(供 ActiveEffect 调用)。</summary>

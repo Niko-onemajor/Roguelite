@@ -36,7 +36,7 @@ namespace Roguelite
             shop.stats = stats;
             shop.pool = cfg.shopItems.ToArray();
             var forge = gameObject.AddComponent<ForgeSystem>();
-            forge.Pool = cfg.shopItems;
+            forge.Pool = cfg.forgeItems; // 锻体独立池(基础属性卡)，与商店装备池分离
             var rune = gameObject.AddComponent<RuneSystem>();
             rune.pool = null; // 符文池待后续补充；商店/锻体共用 cfg.shopItems，符文单独建池
             var wave = gameObject.AddComponent<WaveManager>();
@@ -44,6 +44,7 @@ namespace Roguelite
             BuildUI(combat, shop, forge, rune, wave);
 
             stats.ResetForRun();
+            stats.AddGold(99999); // 测试用：开局大额金币便于商店刷齐装备验证(需要时删掉此行)
             wave.BeginRun(cfg.waves, spawner, shop, rune, stats);
         }
 
