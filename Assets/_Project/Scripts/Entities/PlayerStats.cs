@@ -43,11 +43,29 @@ namespace Roguelite
         /// <summary>攻速基准间隔(秒/发)：战斗用 武器间隔 × (attackInterval/此处)，使攻速词条统一作用于全部武器。</summary>
         public const float AttackIntervalBase = 0.8f;
 
+        // ── 被动增益参数（由装备 passiveType 绑定，见 ApplyBonus）──
+        public const float BaseHP = 120f;              // 基础生命值(计算“额外生命值”用)
+        public PassiveType passiveType = PassiveType.None;
+        const float TyrantHpToDamage = 0.025f;         // 专横：额外生命值 2.5% → 攻击力
+        const float TyrantMissingToDamage = 0.12f;     // 报复：已损失生命值% 的 12% → 攻击力
+
         const float RegenTickSeconds = 1f;
 
         public float CurrentHP { get; private set; }
         public int Gold { get; private set; }
         public int Kills { get; private set; }
+
+        /// <summary>战斗实际面板攻击力 = 基础攻击力 + 被动动态加成(如霸王血铠 专横/报复)。</summary>
+        public float TotalDamage
+        {
+            get
+            {
+                if (passiveType != PassiveType.Tyrant) return damage;
+                float bonusHp = Mathf.Max(0f, maxHP - BaseHP); // 额外生命值
+                float missingPct = maxHP > 0f ? Mathf.Clamp01(1f - CurrentHP / maxHP) : 0f;
+                return damage + bonusHp * TyrantHpToDamage + damage * missingPct * TyrantMissingToDamage;
+            }
+        }
 
         /// <summary>自动入库金币累计值(回合末未拾取金币自动结算的部分)。</summary>
         public int BankedGold { get; private set; }
@@ -163,6 +181,7 @@ namespace Roguelite
             {
                 ApplyStat(item.statType, item.addValue, multiplier);
             }
+            if (item.passiveType != PassiveType.None) passiveType = item.passiveType; // 绑定战斗被动(血铠 专横/报复)
             GameEvents.RaiseHP(CurrentHP, maxHP);
         }
 

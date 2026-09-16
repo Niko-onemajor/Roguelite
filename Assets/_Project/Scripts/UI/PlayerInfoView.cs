@@ -67,7 +67,7 @@ namespace Roguelite
         static string BuildStatsText(PlayerStats s)
         {
             var sb = new StringBuilder();
-            Line(sb, "攻击力", s.damage.ToString("0.#"));
+            Line(sb, "攻击力", s.TotalDamage.ToString("0.#"));
             Line(sb, "法术强度", s.abilityPower.ToString("0.#"));
             Line(sb, "攻速(发/秒)", (1f / Mathf.Max(0.001f, s.attackInterval)).ToString("0.##"));
             Line(sb, "暴击几率", (s.critChance * 100f).ToString("0.#") + "%");

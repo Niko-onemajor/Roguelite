@@ -188,6 +188,29 @@ namespace Roguelite.Tests
         }
 
         [Test]
+        public void OverlordArmor_Tyrant_Passive_Grants_AttackDamage()
+        {
+            var item = ScriptableObject.CreateInstance<ShopItemData>();
+            item.displayName = "霸王血铠";
+            item.basePrice = 41;
+            item.bonuses.Add(new StatBonus(StatType.AttackDamage, 5f));
+            item.bonuses.Add(new StatBonus(StatType.MaxHP, 55f));
+            item.passiveType = PassiveType.Tyrant;
+
+            stats.ApplyBonus(item);
+
+            // 战斗挂钩：被动类型绑定 + 专横(额外生命值 2.5%→攻击力)
+            Assert.That(stats.passiveType, Is.EqualTo(PassiveType.Tyrant));
+            Assert.That(stats.damage, Is.EqualTo(15f).Within(0.001f)); // 基础 10 + 5
+            Assert.That(stats.maxHP, Is.EqualTo(175f).Within(0.001f)); // 120 + 55
+            Assert.That(stats.TotalDamage, Is.EqualTo(15f + 55f * 0.025f).Within(0.001f)); // 满血：只有专横
+
+            // 报复：损失 50% 生命 → 攻击力 +12% × 已损失比
+            stats.TakeDamage(stats.maxHP * 0.5f);
+            Assert.That(stats.TotalDamage, Is.EqualTo(15f + 55f * 0.025f + 15f * 0.5f * 0.12f).Within(0.02f));
+        }
+
+        [Test]
         public void Empty_Rune_Pool_OpenOffer_AutoSkips()
         {
             var runeGo = new GameObject("Rune");

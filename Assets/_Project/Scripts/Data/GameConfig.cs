@@ -73,6 +73,7 @@ namespace Roguelite
                 B(StatType.AttackDamage, 6f), B(StatType.CritChance, 0.12f)));
             cfg.shopItems.Add(Equip("霸王血铠", 41, "被动“专横”：获得相当于你2.5%额外生命值的攻击力。被动“报复”：获得基于你的百分比已损失生命值的12%攻击力提升。",
                 B(StatType.AttackDamage, 5f), B(StatType.MaxHP, 55f)));
+            cfg.shopItems[cfg.shopItems.Count - 1].passiveType = PassiveType.Tyrant;
             #endregion
 
             #region AP 法术强度装备

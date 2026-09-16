@@ -28,6 +28,13 @@ namespace Roguelite
         Tenacity,        // 韧性(减免控制时间)
     }
 
+    /// <summary>被动效果类型：绑定的战斗被动在 PlayerStats 计算动态增益。</summary>
+    public enum PassiveType
+    {
+        None,
+        Tyrant, // 霸王血铠“专横+报复”：额外生命值→攻击力 + 已损失生命值%→攻击力
+    }
+
     /// <summary>一组属性加成（多项组合用于 LOL 风格装备；单属性道具走 statType/addValue）。</summary>
     [System.Serializable]
     public class StatBonus
@@ -56,6 +63,9 @@ namespace Roguelite
 
         /// <summary>被动/主动效果文案（仅展示，战斗挂钩后续实现）。</summary>
         public string passive = "";
+
+        /// <summary>绑定的战斗被动（默认无；挂上后在 PlayerStats 动态计算增益）。</summary>
+        public PassiveType passiveType = PassiveType.None;
 
         public bool IsMulti => bonuses != null && bonuses.Count > 0;
     }

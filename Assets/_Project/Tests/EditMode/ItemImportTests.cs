@@ -138,6 +138,7 @@ namespace Roguelite.Tests
             Assert.That(overlord.bonuses[1].type, Is.EqualTo(StatType.MaxHP));
             Assert.That(overlord.bonuses[1].value, Is.EqualTo(55f));
             Assert.That(overlord.passive, Does.Contain("专横").And.Contain("报复"));
+            Assert.That(overlord.passiveType, Is.EqualTo(PassiveType.Tyrant));
 
             int multi = 0, withPassive = 0;
             foreach (var s in cfg.shopItems)
