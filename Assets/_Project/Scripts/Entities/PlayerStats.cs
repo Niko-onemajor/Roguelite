@@ -181,6 +181,7 @@ namespace Roguelite
             warriorRHpBonus = 0f;
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseMana(mana, maxMana);
+            GameEvents.RaiseSkillCooldownChanged(); // 技能栏初始渲染(E/R)
         }
 
         /// <summary>普攻实际伤害 = 面板攻击力 + 法术强度×0.6(法师 攻击力0 亦能靠法强打普攻)。</summary>
