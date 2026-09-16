@@ -8,8 +8,24 @@ namespace Roguelite
         static GameObject friendly;
         static GameObject enemy;
 
-        public static GameObject FriendlyPrototype => friendly ??= Build("Bullet_Friendly");
-        public static GameObject EnemyPrototype => enemy ??= Build("Bullet_Enemy");
+        public static GameObject FriendlyPrototype
+        {
+            get
+            {
+                // 不能用 ??= ：场景重载后 friendly 指向被销毁的对象，Unity 伪 null 会让 ??= 误判为非空
+                if (friendly == null) friendly = Build("Bullet_Friendly");
+                return friendly;
+            }
+        }
+
+        public static GameObject EnemyPrototype
+        {
+            get
+            {
+                if (enemy == null) enemy = Build("Bullet_Enemy");
+                return enemy;
+            }
+        }
 
         static GameObject Build(string name)
         {
