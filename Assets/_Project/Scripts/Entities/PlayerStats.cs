@@ -102,35 +102,48 @@ namespace Roguelite
         public void ApplyBonus(ShopItemData item) => ApplyBonus(item, 1f);
 
         /// <summary>全属性增益：multiplier 为倍率(锻体白1x/金1.5x/彩2x；商店/符文为1x)。
-        /// AttackSpeed 是乘算词条，用 addValue^multiplier 使高阶收益递增(更强更快)，其余加算。</summary>
+        /// 多属性装备逐项应用；AttackSpeed 是乘算词条，用 value^multiplier 使高阶收益递增(更强更快)，其余加算。</summary>
         public void ApplyBonus(ShopItemData item, float multiplier)
         {
-            switch (item.statType)
+            if (item == null) return;
+            if (item.IsMulti)
             {
-                case StatType.AttackDamage: damage += item.addValue * multiplier; break;
-                case StatType.AbilityPower: abilityPower += item.addValue * multiplier; break;
-                case StatType.AttackSpeed: attackInterval *= Mathf.Pow(item.addValue, multiplier); break;
-                case StatType.CritChance: critChance += item.addValue * multiplier; break;
-                case StatType.CritDamage: critMultiplier += item.addValue * multiplier; break;
-                case StatType.ArmorPen: armorPen += item.addValue * multiplier; break;
-                case StatType.MagicPen: magicPen += item.addValue * multiplier; break;
-                case StatType.Omnivamp: omnivamp += item.addValue * multiplier; break;
+                foreach (var b in item.bonuses) ApplyStat(b.type, b.value, multiplier);
+            }
+            else
+            {
+                ApplyStat(item.statType, item.addValue, multiplier);
+            }
+            GameEvents.RaiseHP(CurrentHP, maxHP);
+        }
+
+        void ApplyStat(StatType type, float value, float multiplier)
+        {
+            switch (type)
+            {
+                case StatType.AttackDamage: damage += value * multiplier; break;
+                case StatType.AbilityPower: abilityPower += value * multiplier; break;
+                case StatType.AttackSpeed: attackInterval *= Mathf.Pow(value, multiplier); break;
+                case StatType.CritChance: critChance += value * multiplier; break;
+                case StatType.CritDamage: critMultiplier += value * multiplier; break;
+                case StatType.ArmorPen: armorPen += value * multiplier; break;
+                case StatType.MagicPen: magicPen += value * multiplier; break;
+                case StatType.Omnivamp: omnivamp += value * multiplier; break;
                 case StatType.MaxHP:
-                    float bonus = item.addValue * multiplier;
+                    float bonus = value * multiplier;
                     maxHP += bonus;
                     CurrentHP += bonus;
                     break;
-                case StatType.HPRegen: hpRegen += item.addValue * multiplier; break;
-                case StatType.Armor: armor += item.addValue * multiplier; break;
-                case StatType.MagicResist: magicResist += item.addValue * multiplier; break;
-                case StatType.HealShieldPower: healShieldPower += item.addValue * multiplier; break;
-                case StatType.AbilityHaste: abilityHaste += item.addValue * multiplier; break;
-                case StatType.MoveSpeed: moveSpeed += item.addValue * multiplier; break;
-                case StatType.AttackRange: range += item.addValue * multiplier; break;
-                case StatType.Size: size = Mathf.Max(0.1f, size + item.addValue * multiplier); break;
-                default: return;
+                case StatType.HPRegen: hpRegen += value * multiplier; break;
+                case StatType.Armor: armor += value * multiplier; break;
+                case StatType.MagicResist: magicResist += value * multiplier; break;
+                case StatType.HealShieldPower: healShieldPower += value * multiplier; break;
+                case StatType.AbilityHaste: abilityHaste += value * multiplier; break;
+                case StatType.MoveSpeed: moveSpeed += value * multiplier; break;
+                case StatType.AttackRange: range += value * multiplier; break;
+                case StatType.Size: size = Mathf.Max(0.1f, size + value * multiplier); break;
+                default: break;
             }
-            GameEvents.RaiseHP(CurrentHP, maxHP);
         }
     }
 }

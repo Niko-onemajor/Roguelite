@@ -37,12 +37,23 @@ namespace Roguelite
         public static void BuildConfigAssets()
         {
             EnsureFolder(SoDir, "ScriptableObjects");
-            Shop("Shop_攻击力", "攻击力+6", StatType.AttackDamage, 15, 6f);
-            Shop("Shop_攻速", "攻速×0.85", StatType.AttackSpeed, 15, 0.85f);
-            Shop("Shop_生命", "生命+20", StatType.MaxHP, 10, 20f);
-            Shop("Shop_移速", "移速+0.5", StatType.MoveSpeed, 10, 0.5f);
-            Shop("Shop_攻击距离", "攻击距离+1", StatType.AttackRange, 10, 1f);
-            Shop("Shop_暴击", "暴击+8%", StatType.CritChance, 20, 0.08f);
+
+            // 商店道具：直接从运行时配置落盘，保证与 GameConfig.Default() 一致(含导入装备)
+            var cfg = GameConfig.Default();
+            for (int i = 0; i < cfg.shopItems.Count; i++)
+            {
+                var src = cfg.shopItems[i];
+                var dst = LoadOrCreate<ShopItemData>(SoDir + "/Shop_" + i + ".asset");
+                dst.displayName = src.displayName;
+                dst.basePrice = src.basePrice;
+                dst.passive = src.passive;
+                dst.statType = src.statType;
+                dst.addValue = src.addValue;
+                dst.bonuses.Clear();
+                for (int k = 0; k < src.bonuses.Count; k++)
+                    dst.bonuses.Add(new StatBonus(src.bonuses[k].type, src.bonuses[k].value));
+                EditorUtility.SetDirty(dst);
+            }
 
             Weapon("Weapon_手枪", "手枪", WeaponType.Ranged, 10f, 0.6f, 8f, 10f, Color.yellow);
             Weapon("Weapon_冲锋枪", "冲锋枪", WeaponType.Ranged, 5f, 0.18f, 7f, 12f, Color.cyan);
@@ -72,13 +83,6 @@ namespace Roguelite
             if (AssetDatabase.IsValidFolder(dir)) return;
             if (!AssetDatabase.IsValidFolder("Assets/_Project")) AssetDatabase.CreateFolder("Assets", "_Project");
             AssetDatabase.CreateFolder("Assets/_Project", leaf);
-        }
-
-        static void Shop(string asset, string name, StatType s, int baseP, float add)
-        {
-            var i = LoadOrCreate<ShopItemData>(SoDir + "/" + asset + ".asset");
-            i.displayName = name; i.statType = s; i.basePrice = baseP; i.addValue = add;
-            EditorUtility.SetDirty(i);
         }
 
         static void Weapon(string asset, string name, WeaponType t, float dmg, float interval, float range, float speed, Color c)

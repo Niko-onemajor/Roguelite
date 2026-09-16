@@ -95,7 +95,24 @@ namespace Roguelite
         ShopItemData PickItem()
         {
             if (pool == null || pool.Length == 0) return null;
-            return pool[rng.Next(pool.Length)];
+            // 按价格加权(Brotato 风格)：高价装备出现概率更低，低价基础道具更常见
+            int total = 0;
+            for (int i = 0; i < pool.Length; i++) total += WeightOf(pool[i].basePrice);
+            int roll = rng.Next(total);
+            for (int i = 0; i < pool.Length; i++)
+            {
+                roll -= WeightOf(pool[i].basePrice);
+                if (roll < 0) return pool[i];
+            }
+            return pool[pool.Length - 1];
+        }
+
+        static int WeightOf(int price)
+        {
+            if (price >= 40) return 2;  // 传说级，最稀有
+            if (price >= 30) return 3;  // 史诗级
+            if (price >= 20) return 5;  // 精良级
+            return 8;                   // 基础/廉价，最常见
         }
     }
 }
