@@ -306,7 +306,7 @@ namespace Roguelite.Tests
             item.activeType = ActiveType.Cleanse;
             item.activeCooldown = 15f;
             stats.ApplyBonus(item);
-            stats.TryAddActive(item); // 商店购买路径会自动入槽，测试显式补入
+            stats.TryAddEquip(item); // 商店购买路径会自动入槽，测试显式补入
 
             stats.TakeDamage(60f); // → 60/120
             stats.TryUseActive(0, Vector3.zero);

@@ -15,9 +15,9 @@ namespace Roguelite
         Text waveText;
         Text timerText;
 
-        // 底部主动装备栏(数字键 1-0)：显示冷却，鼠标拖拽槽位交换绑定(目标有货则交换，空槽则移入)
-        readonly Text[] activeLabels = new Text[PlayerStats.ActiveSlotCount];
-        readonly GameObject[] activeButtons = new GameObject[PlayerStats.ActiveSlotCount];
+        // 底部装备栏(数字键 1-8)：显示所有装备，主动装备带冷却读秒；鼠标拖拽槽位交换绑定(目标有货则交换，空槽则移入)
+        readonly Text[] activeLabels = new Text[PlayerStats.EquipmentSlotCount];
+        readonly GameObject[] activeButtons = new GameObject[PlayerStats.EquipmentSlotCount];
 
         public void Build(Transform parent)
         {
@@ -69,15 +69,16 @@ namespace Roguelite
             BuildActiveBar(parent);
         }
 
-        /// <summary>底部 1-0 主动装备栏：10 等宽槽。显示 数字键+装备名；冷却中显示剩余秒并置灰。
+        /// <summary>底部 1-8 装备栏：8 等宽槽。显示 数字键+装备名(被动装备)；主动装备冷却中显示剩余秒并置灰。
         /// 支持拖拽：按住槽位拖到其他槽松手，目标槽有装备则交换，空槽则移入，拖到栏外不变化。</summary>
         void BuildActiveBar(Transform parent)
         {
-            const float width = 0.086f, gap = 0.012f, left = 0.016f;
-            for (int i = 0; i < PlayerStats.ActiveSlotCount; i++)
+            const float width = 0.103f, gap = 0.012f; // 8 槽等宽居中：总宽 8*0.103+7*0.012=0.908
+            float left = (1f - (PlayerStats.EquipmentSlotCount * width + (PlayerStats.EquipmentSlotCount - 1) * gap)) * 0.5f;
+            for (int i = 0; i < PlayerStats.EquipmentSlotCount; i++)
             {
                 int idx = i;
-                string digit = i < 9 ? (i + 1).ToString() : "0";
+                string digit = (i + 1).ToString();
                 var go = UIBuilder.Button($"ActiveSlot_{i}", parent, digit, null);
                 var rt = go.GetComponent<RectTransform>();
                 rt.anchorMin = new Vector2(left + i * (width + gap), 0.015f);
@@ -126,7 +127,7 @@ namespace Roguelite
             return -1;
         }
 
-        /// <summary>主动栏重绘：装备名/空位与冷却剩余。</summary>
+        /// <summary>装备栏重绘：装备名/空位与冷却剩余。</summary>
         void RefreshActiveBar()
         {
             var stats = PlayerStats.Instance;
@@ -134,8 +135,8 @@ namespace Roguelite
             {
                 Text label = activeLabels[i];
                 if (label == null) continue;
-                string digit = i < 9 ? (i + 1).ToString() : "0";
-                ActiveSlot slot = stats != null ? stats.ActiveSlots[i] : null;
+                string digit = (i + 1).ToString();
+                ActiveSlot slot = stats != null ? stats.EquipSlots[i] : null;
                 bool has = slot != null && slot.Item != null;
                 if (has && slot.Remaining > 0f)
                 {

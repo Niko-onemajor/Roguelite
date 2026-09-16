@@ -16,6 +16,9 @@ namespace Roguelite
         /// <summary>由 GameBootstrap 注入：玩家详情面板(属性/装备/符文)，供查看已获增益后搭配购买。</summary>
         public PlayerInfoView info;
 
+        /// <summary>出售覆盖层：商店内卖出已装备道具(八折返金)。</summary>
+        SellView sellView;
+
         GameObject panel;
         Text goldText;
         bool _subscribed;
@@ -59,9 +62,17 @@ namespace Roguelite
             var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 装备 / 符文", OpenInfo);
             SetRect(viewBtn.GetComponent<RectTransform>(), 0.06f, 0.05f, 0.26f, 0.11f);
 
+            var sellBtn = UIBuilder.Button("OpenSell", panel.transform, "出售装备", OpenSell);
+            SetRect(sellBtn.GetComponent<RectTransform>(), 0.3f, 0.05f, 0.42f, 0.11f);
+
             var hint = UIBuilder.Text("ShopHint", panel.transform,
-                "购买固定价 · 锁定装备保留至下一次商店", 22, new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleCenter);
-            SetRect(hint.rectTransform, 0.3f, 0.05f, 0.94f, 0.11f);
+                "购买固定价 · 锁定装备保留至下一次商店 · 满 8 件需先出售", 20, new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleLeft);
+            SetRect(hint.rectTransform, 0.45f, 0.05f, 0.94f, 0.11f);
+
+            // 出售覆盖层最后构建，渲染层级位于商店所有内容之上
+            sellView = gameObject.AddComponent<SellView>();
+            sellView.shop = shop;
+            sellView.Build(panel.transform);
         }
 
         void BuildSlot(int i)
@@ -134,6 +145,12 @@ namespace Roguelite
         void OpenInfo()
         {
             if (info != null) info.Open();
+        }
+
+        /// <summary>打开出售覆盖层：原价八折卖出已装备道具。</summary>
+        void OpenSell()
+        {
+            if (sellView != null) sellView.Open();
         }
 
         void EndShop()

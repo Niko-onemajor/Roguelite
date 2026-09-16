@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Roguelite
 {
-    /// <summary>主动装备栏槽位：一件带主动效果的装备 + 剩余冷却(受技能急速缩放)。</summary>
+    /// <summary>装备栏槽位：一件装备(主动或被动) + 剩余冷却(仅主动效果使用)。</summary>
     public class ActiveSlot
     {
         public ShopItemData Item;

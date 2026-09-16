@@ -41,15 +41,13 @@ namespace Roguelite
             PollActiveSlots();
         }
 
-        /// <summary>数字键 1-0 触发主动装备栏槽位(Alpha1..Alpha0),触发失败(冷却/法力不足)静默忽略。</summary>
+        /// <summary>数字键 1-8 触发装备栏对应槽位的主动效果(被动装备静默忽略),触发失败(冷却/法力不足)静默忽略。</summary>
         void PollActiveSlots()
         {
             if (Stats == null) return;
-            for (int i = 0; i < PlayerStats.ActiveSlotCount; i++)
+            for (int i = 0; i < PlayerStats.EquipmentSlotCount; i++)
             {
-                KeyCode key = KeyCode.Alpha1 + i;
-                if (key > KeyCode.Alpha9) key = KeyCode.Alpha0;
-                if (Input.GetKeyDown(key)) Stats.TryUseActive(i, transform.position);
+                if (Input.GetKeyDown(KeyCode.Alpha1 + i)) Stats.TryUseActive(i, transform.position);
             }
         }
 

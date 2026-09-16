@@ -105,14 +105,14 @@ namespace Roguelite
             public float Remaining;
         }
 
-        // ── 主动装备栏（数字键 1-0 触发，购买带主动效果装备自动入槽）──
-        /// <summary>主动栏槽位数（1-0 数字键）。</summary>
-        public const int ActiveSlotCount = 10;
-        readonly ActiveSlot[] _activeSlots = new ActiveSlot[ActiveSlotCount];
+        // ── 装备栏（Brotato 式：所有装备共占 8 槽，数字键 1-8 触发带主动效果的装备；槽满不可再购）──
+        /// <summary>装备栏槽位数（1-8 数字键）。</summary>
+        public const int EquipmentSlotCount = 8;
+        readonly ActiveSlot[] _equipSlots = new ActiveSlot[EquipmentSlotCount];
 
         float moveBurstRemaining;                     // 舒瑞娅 移速爆发剩余秒数
 
-        public IReadOnlyList<ActiveSlot> ActiveSlots => _activeSlots;
+        public IReadOnlyList<ActiveSlot> EquipSlots => _equipSlots;
 
         const float RegenTickSeconds = 1f;
 
@@ -597,15 +597,29 @@ namespace Roguelite
 
         #region Active Items
 
-        /// <summary>购买带主动效果的装备后自动入首个空槽；满则不放入。</summary>
-        public bool TryAddActive(ShopItemData item)
+        /// <summary>装备栏是否已满(最多 EquipmentSlotCount 件)。</summary>
+        public bool IsEquipFull => EquippedCount >= EquipmentSlotCount;
+
+        /// <summary>当前已装备数量(槽位非空数)。</summary>
+        public int EquippedCount
         {
-            if (item == null || item.activeType == ActiveType.None) return false;
-            for (int i = 0; i < _activeSlots.Length; i++)
+            get
             {
-                if (_activeSlots[i] == null)
+                int n = 0;
+                for (int i = 0; i < _equipSlots.Length; i++) if (_equipSlots[i] != null) n++;
+                return n;
+            }
+        }
+
+        /// <summary>购买装备后自动装入首个空槽(主动/被动装备均可)；满则不放入。</summary>
+        public bool TryAddEquip(ShopItemData item)
+        {
+            if (item == null) return false;
+            for (int i = 0; i < _equipSlots.Length; i++)
+            {
+                if (_equipSlots[i] == null)
                 {
-                    _activeSlots[i] = new ActiveSlot { Item = item };
+                    _equipSlots[i] = new ActiveSlot { Item = item };
                     GameEvents.RaiseActiveSlotsChanged();
                     return true;
                 }
@@ -613,20 +627,38 @@ namespace Roguelite
             return false; // 无空槽
         }
 
-        /// <summary>交换两个主动槽位的位置(换键：把 3 槽装备换到 1 槽等)。</summary>
+        /// <summary>出售装备：从装备栏移除(含属性与被动反向清除)。返回是否移除成功。</summary>
+        public bool RemoveEquip(ShopItemData item)
+        {
+            if (item == null) return false;
+            for (int i = 0; i < _equipSlots.Length; i++)
+            {
+                if (_equipSlots[i] != null && _equipSlots[i].Item == item)
+                {
+                    _equipSlots[i] = null;
+                    RemoveBonus(item);
+                    GameEvents.RaiseActiveSlotsChanged();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>交换两个装备栏槽位的位置(换键：把 3 槽装备换到 1 槽等)。</summary>
         public void SwapActiveSlots(int a, int b)
         {
-            if (a == b || a < 0 || a >= _activeSlots.Length || b < 0 || b >= _activeSlots.Length) return;
-            (_activeSlots[a], _activeSlots[b]) = (_activeSlots[b], _activeSlots[a]);
+            if (a == b || a < 0 || a >= _equipSlots.Length || b < 0 || b >= _equipSlots.Length) return;
+            (_equipSlots[a], _equipSlots[b]) = (_equipSlots[b], _equipSlots[a]);
             GameEvents.RaiseActiveSlotsChanged();
         }
 
-        /// <summary>尝试触发指定槽位的主动效果：需要冷却就绪(受技能急速缩放)。</summary>
+        /// <summary>尝试触发指定槽位的主动效果：需要槽内有主动装备且冷却就绪(受技能急速缩放)。</summary>
         public bool TryUseActive(int slotIndex, Vector2 origin)
         {
-            if (slotIndex < 0 || slotIndex >= _activeSlots.Length) return false;
-            ActiveSlot slot = _activeSlots[slotIndex];
-            if (slot == null) return false;
+            if (slotIndex < 0 || slotIndex >= _equipSlots.Length) return false;
+            ActiveSlot slot = _equipSlots[slotIndex];
+            if (slot == null || slot.Item == null) return false;
+            if (slot.Item.activeType == ActiveType.None) return false; // 被动装备无主动效果
             if (slot.Remaining > 0f) return false;
 
             if (!ActiveEffect.Run(this, slot.Item, origin)) return false;
@@ -635,14 +667,14 @@ namespace Roguelite
             return true;
         }
 
-        /// <summary>主动栏冷却与临时增益计时(CombatSystem.Update 每帧驱动)。
-        /// 冷却显示秒数发生变化时广播 ActiveSlotsChanged，HUD 主动栏自动读秒刷新。</summary>
+        /// <summary>装备栏冷却与临时增益计时(CombatSystem.Update 每帧驱动)。
+        /// 冷却显示秒数发生变化时广播 ActiveSlotsChanged，HUD 装备栏自动读秒刷新。</summary>
         public void TickActive(float dt)
         {
             bool displayChanged = false;
-            for (int i = 0; i < _activeSlots.Length; i++)
+            for (int i = 0; i < _equipSlots.Length; i++)
             {
-                ActiveSlot slot = _activeSlots[i];
+                ActiveSlot slot = _equipSlots[i];
                 if (slot == null || slot.Remaining <= 0f) continue;
                 int before = Mathf.CeilToInt(slot.Remaining);
                 slot.Remaining = Mathf.Max(0f, slot.Remaining - dt);
@@ -779,6 +811,61 @@ namespace Roguelite
                     GameEvents.RaiseMana(mana, maxMana);
                     break;
                 case StatType.Tenacity: tenacity += value * multiplier; break;
+                default: break;
+            }
+        }
+
+        /// <summary>出售装备时的属性反向清除(与 ApplyBonus 互逆)：减去加算属性、攻速除法还原，
+        /// 生命/法力扣减时钳制当前值不越上限；清被动位掩码，最后绑定一致时重置 passiveType。</summary>
+        public void RemoveBonus(ShopItemData item)
+        {
+            if (item == null) return;
+            if (item.IsMulti)
+            {
+                foreach (var b in item.bonuses) RemoveStat(b.type, b.value);
+            }
+            else
+            {
+                RemoveStat(item.statType, item.addValue);
+            }
+            if (item.passiveType != PassiveType.None)
+            {
+                passiveMask &= ~(1UL << (int)item.passiveType);
+                if (passiveType == item.passiveType) passiveType = PassiveType.None;
+            }
+            GameEvents.RaiseHP(CurrentHP, maxHP);
+        }
+
+        void RemoveStat(StatType type, float value)
+        {
+            switch (type)
+            {
+                case StatType.AttackDamage: damage = Mathf.Max(0f, damage - value); break;
+                case StatType.AbilityPower: abilityPower = Mathf.Max(0f, abilityPower - value); break;
+                case StatType.AttackSpeed: attackInterval = Mathf.Max(0.05f, attackInterval / value); break;
+                case StatType.CritChance: critChance = Mathf.Max(0f, critChance - value); break;
+                case StatType.CritDamage: critMultiplier = Mathf.Max(1f, critMultiplier - value); break;
+                case StatType.ArmorPen: armorPen = Mathf.Max(0f, armorPen - value); break;
+                case StatType.MagicPen: magicPen = Mathf.Max(0f, magicPen - value); break;
+                case StatType.Omnivamp: omnivamp = Mathf.Max(0f, omnivamp - value); break;
+                case StatType.MaxHP:
+                    maxHP = Mathf.Max(0f, maxHP - value);
+                    if (CurrentHP > maxHP) CurrentHP = maxHP;
+                    break;
+                case StatType.HPRegen: hpRegen = Mathf.Max(0f, hpRegen - value); break;
+                case StatType.Armor: armor = Mathf.Max(0f, armor - value); break;
+                case StatType.MagicResist: magicResist = Mathf.Max(0f, magicResist - value); break;
+                case StatType.HealShieldPower: healShieldPower = Mathf.Max(0f, healShieldPower - value); break;
+                case StatType.AbilityHaste: abilityHaste = Mathf.Max(0f, abilityHaste - value); break;
+                case StatType.MoveSpeed: moveSpeed = Mathf.Max(0f, moveSpeed - value); break;
+                case StatType.AttackRange: range = Mathf.Max(0f, range - value); break;
+                case StatType.Size: size = Mathf.Max(0.1f, size - value); break;
+                case StatType.Mana:
+                    maxMana = Mathf.Max(0f, maxMana - value);
+                    if (mana > maxMana) mana = maxMana;
+                    GameEvents.RaiseMana(mana, maxMana);
+                    break;
+                case StatType.Tenacity: tenacity = Mathf.Max(0f, tenacity - value); break;
                 default: break;
             }
         }

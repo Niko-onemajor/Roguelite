@@ -52,7 +52,8 @@ namespace Roguelite
             GameEvents.RaiseShop(this);
         }
 
-        /// <summary>购买槽位装备：固定价格，买后槽位清空并解锁(同件装备不再出现在商店)。</summary>
+        /// <summary>购买槽位装备：固定价格，买后槽位清空并解锁(同件装备不再出现在商店)。
+        /// 装备栏满(8 件)时拒绝购买。</summary>
         public bool TryPurchase(int slotIndex)
         {
             if (!IsAwaitingChoice || stats == null) return false;
@@ -62,15 +63,32 @@ namespace Roguelite
 
             int price = slot.Item.basePrice;
             if (stats.Gold < price) return false;
+            if (stats.IsEquipFull) return false; // 装备栏已满(最多8件)，需先出售再购
 
             stats.AddGold(-price);
             owned.Add(slot.Item); // 唯一购买：标记已拥有，此后商店不再提供该装备
             stats.ApplyBonus(slot.Item);
-            stats.TryAddActive(slot.Item); // 带主动效果的装备自动装入主动栏首空槽
+            stats.TryAddEquip(slot.Item); // 所有装备(含被动)装入装备栏首空槽
             slot.Item = null;
             slot.Locked = false; // 已购买槽位解除锁定，下次刷新正常补货
             return true;
         }
+
+        /// <summary>出售装备：返还原价八折金币，移除属性与被动并清空装备栏槽位；
+        /// 该装备从“已拥有”移除，此后可重新在商店出现(可再入手)。</summary>
+        public bool TrySell(ShopItemData item)
+        {
+            if (!IsAwaitingChoice || stats == null) return false;
+            if (item == null) return false;
+            if (!stats.RemoveEquip(item)) return false; // 该装备不在装备栏
+
+            stats.AddGold(SellPriceOf(item));
+            owned.Remove(item);
+            return true;
+        }
+
+        /// <summary>出售价格：原价八折(四舍五入)。</summary>
+        public static int SellPriceOf(ShopItemData item) => item != null ? Mathf.RoundToInt(item.basePrice * 0.8f) : 0;
 
         /// <summary>切换槽位锁定状态(空槽不可锁)。</summary>
         public void ToggleLock(int slotIndex)

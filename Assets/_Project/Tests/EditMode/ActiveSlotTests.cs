@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Roguelite.Tests
 {
-    /// <summary>主动装备栏：自动入槽/交换/冷却(受技能急速缩放)/数字键效果分发(救赎/实现者/舒瑞娅/兰顿)。</summary>
+    /// <summary>装备栏(Brotato 式 8 槽，含主动/被动装备)：自动入槽/交换/冷却(受技能急速缩放)/数字键效果分发(救赎/实现者/舒瑞娅/兰顿)。</summary>
     public class ActiveSlotTests
     {
         class TestEnemy : Enemy
@@ -63,24 +63,29 @@ namespace Roguelite.Tests
         }
 
         [Test]
-        public void AddActive_Fills_First_Empty_Slot_And_Full_Returns_False()
+        public void AddEquip_Fills_First_Empty_Slot_And_Full_Returns_False()
         {
-            for (int i = 0; i < PlayerStats.ActiveSlotCount; i++)
-                Assert.That(stats.TryAddActive(Active(ActiveType.MoveBurst)), Is.True);
+            for (int i = 0; i < PlayerStats.EquipmentSlotCount; i++)
+                Assert.That(stats.TryAddEquip(Active(ActiveType.MoveBurst)), Is.True);
 
-            Assert.That(stats.TryAddActive(Active(ActiveType.MoveBurst)), Is.False); // 满仓不入
+            Assert.That(stats.TryAddEquip(Active(ActiveType.MoveBurst)), Is.False); // 满仓不入
             int filled = 0;
-            for (int i = 0; i < stats.ActiveSlots.Count; i++)
-                if (stats.ActiveSlots[i] != null) filled++;
-            Assert.That(filled, Is.EqualTo(PlayerStats.ActiveSlotCount)); // 10 槽全满
-            Assert.That(stats.ActiveSlots[1].Item.activeType, Is.EqualTo(ActiveType.MoveBurst));
+            for (int i = 0; i < stats.EquipSlots.Count; i++)
+                if (stats.EquipSlots[i] != null) filled++;
+            Assert.That(filled, Is.EqualTo(PlayerStats.EquipmentSlotCount)); // 8 槽全满
+            Assert.That(stats.EquipSlots[1].Item.activeType, Is.EqualTo(ActiveType.MoveBurst));
+            Assert.That(stats.IsEquipFull, Is.True);
         }
 
         [Test]
-        public void AddActive_Ignores_NonActive_Item()
+        public void AddEquip_Accepts_PassiveItem_But_Cannot_Trigger_It()
         {
-            var item = Active(ActiveType.None);
-            Assert.That(stats.TryAddActive(item), Is.False);
+            var item = Active(ActiveType.None); // 无主动效果的被动装备也能占槽
+            Assert.That(stats.TryAddEquip(item), Is.True);
+            Assert.That(stats.EquipSlots[0].Item, Is.SameAs(item));
+            Assert.That(stats.EquipSlots[0].Remaining, Is.EqualTo(0f)); // 被动装备无冷却
+
+            Assert.That(stats.TryUseActive(0, Vector2.zero), Is.False); // 被动装备不可触发
         }
 
         [Test]
@@ -88,22 +93,22 @@ namespace Roguelite.Tests
         {
             var a = Active(ActiveType.Redemption, 10f);
             var b = Active(ActiveType.AoeBlast, 8f);
-            stats.TryAddActive(a);
-            stats.TryAddActive(b);
+            stats.TryAddEquip(a);
+            stats.TryAddEquip(b);
 
             stats.SwapActiveSlots(0, 1);
 
-            Assert.That(stats.ActiveSlots[0].Item, Is.SameAs(b));
-            Assert.That(stats.ActiveSlots[1].Item, Is.SameAs(a));
+            Assert.That(stats.EquipSlots[0].Item, Is.SameAs(b));
+            Assert.That(stats.EquipSlots[1].Item, Is.SameAs(a));
         }
 
         [Test]
         public void UseActive_Triggers_Enters_Cooldown_Then_Refreshes()
         {
-            stats.TryAddActive(Active(ActiveType.MoveBurst, 10f));
+            stats.TryAddEquip(Active(ActiveType.MoveBurst, 10f));
 
             Assert.That(stats.TryUseActive(0, Vector2.zero), Is.True);
-            Assert.That(stats.ActiveSlots[0].Remaining, Is.EqualTo(10f).Within(0.001f));
+            Assert.That(stats.EquipSlots[0].Remaining, Is.EqualTo(10f).Within(0.001f));
             Assert.That(stats.TryUseActive(0, Vector2.zero), Is.False); // 冷却中禁用
 
             stats.TickActive(10f);
@@ -113,18 +118,18 @@ namespace Roguelite.Tests
         [Test]
         public void UseActive_Cooldown_Scaled_By_AbilityHaste()
         {
-            stats.TryAddActive(Active(ActiveType.MoveBurst, 10f));
+            stats.TryAddEquip(Active(ActiveType.MoveBurst, 10f));
             stats.abilityHaste = 100f; // HasteCooldownScale = 0.5
 
             stats.TryUseActive(0, Vector2.zero);
 
-            Assert.That(stats.ActiveSlots[0].Remaining, Is.EqualTo(5f).Within(0.001f));
+            Assert.That(stats.EquipSlots[0].Remaining, Is.EqualTo(5f).Within(0.001f));
         }
 
         [Test]
         public void MoveBurst_Boosts_Effective_MoveSpeed_Then_Expires()
         {
-            stats.TryAddActive(Active(ActiveType.MoveBurst, 5f));
+            stats.TryAddEquip(Active(ActiveType.MoveBurst, 5f));
             Assert.That(stats.EffectiveMoveSpeed, Is.EqualTo(8f).Within(0.001f)); // 基准移速
 
             stats.TryUseActive(0, Vector2.zero);
@@ -145,11 +150,11 @@ namespace Roguelite.Tests
         [Test]
         public void ManaMeld_NoMana_Fails_Without_Cooldown()
         {
-            stats.TryAddActive(Active(ActiveType.ManaMeld, 8f));
+            stats.TryAddEquip(Active(ActiveType.ManaMeld, 8f));
             stats.mana = stats.maxMana = 0f; // 无法力
 
             Assert.That(stats.TryUseActive(0, Vector2.zero), Is.False); // 触发失败
-            Assert.That(stats.ActiveSlots[0].Remaining, Is.EqualTo(0f).Within(0.001f)); // 未进入冷却
+            Assert.That(stats.EquipSlots[0].Remaining, Is.EqualTo(0f).Within(0.001f)); // 未进入冷却
 
             stats.TakeDamage(50f); // 制造缺口以便测回血
             stats.mana = stats.maxMana = 20f;
@@ -165,7 +170,7 @@ namespace Roguelite.Tests
             float hp = stats.CurrentHP;
             Enemy near = Spawn(Vector2.one, 500f);       // 半径 5 内
             Enemy far = Spawn(new Vector3(50f, 0f, 0f), 500f);
-            stats.TryAddActive(Active(ActiveType.Redemption, 10f));
+            stats.TryAddEquip(Active(ActiveType.Redemption, 10f));
 
             stats.TryUseActive(0, Vector2.zero);
 
@@ -180,7 +185,7 @@ namespace Roguelite.Tests
             stats.abilityPower = 10f;
             Enemy near = Spawn(Vector2.right * 2f, 500f);   // 半径 3.5 内
             Enemy outside = Spawn(Vector2.right * 9f, 500f);
-            stats.TryAddActive(Active(ActiveType.AoeBlast, 8f));
+            stats.TryAddEquip(Active(ActiveType.AoeBlast, 8f));
 
             stats.TryUseActive(0, Vector2.zero);
 
