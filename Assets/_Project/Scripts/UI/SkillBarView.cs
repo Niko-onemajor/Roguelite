@@ -7,8 +7,9 @@ namespace Roguelite
     /// 点击格子展开技能描述覆盖层：名称/定位/描述/伤害构成/实际冷却/耗蓝。冷却由 SkillCooldownChanged 事件驱动刷新。</summary>
     public class SkillBarView : MonoBehaviour
     {
-        readonly Text[] labels = new Text[2];
-        readonly Image[] cdMasks = new Image[2];   // 冷却遮罩:fillAmount=剩余比例, 从上往下盖, 转好=0
+        readonly Text[] labels = new Text[2];       // 键位+技能名
+        readonly Text[] cdTexts = new Text[2];      // 冷却大字倒计时(居中覆盖)
+        readonly Image[] cdMasks = new Image[2];    // 冷却遮罩:fillAmount=剩余比例, 从上往下盖, 转好=0
         GameObject detailPanel;
         Text detailText;
         int detailSlot = -1; // 当前展开的技能槽(-1=无)
@@ -16,7 +17,7 @@ namespace Roguelite
 
         public void Build(Transform parent)
         {
-            const float width = 0.06f, gap = 0.014f;
+            const float width = 0.09f, gap = 0.016f;
             for (int i = 0; i < 2; i++)
             {
                 int idx = i;
@@ -28,11 +29,22 @@ namespace Roguelite
                 rt.offsetMin = Vector2.zero;
                 rt.offsetMax = Vector2.zero;
                 var lbl = go.GetComponentInChildren<Text>();
-                lbl.fontSize = 15;
+                lbl.fontSize = 16;
                 lbl.alignment = TextAnchor.MiddleCenter;
                 labels[i] = lbl;
 
-                // 冷却遮罩(帮衬格内, 常驻最底层之下? 置于 label 之下)：fillAmount 从上往下盖, 冷却比例
+                // 冷却大字倒计时(独立 Text 覆盖格内, 冷却时显示剩余秒数)
+                var cdText = UIBuilder.Text("CdText_" + key, go.transform, "", 42,
+                    new Color(1f, 0.96f, 0.35f), TextAnchor.MiddleCenter);
+                var ct = cdText.rectTransform;
+                ct.anchorMin = Vector2.zero;
+                ct.anchorMax = Vector2.one;
+                ct.offsetMin = Vector2.zero;
+                ct.offsetMax = Vector2.zero;
+                cdText.gameObject.SetActive(false);
+                cdTexts[i] = cdText;
+
+                // 冷却遮罩(背景之上、文字之下)：fillAmount 从上往下盖, 冷却比例
                 var maskGo = new GameObject("CD", typeof(Image));
                 var maskTransform = maskGo.transform as RectTransform;
                 maskTransform.SetParent(go.transform, false);
@@ -45,7 +57,7 @@ namespace Roguelite
                 mask.type = Image.Type.Filled;
                 mask.fillMethod = Image.FillMethod.Vertical;
                 mask.fillOrigin = (int)Image.OriginVertical.Top; // 剩余越多覆盖越满
-                maskGo.transform.SetAsFirstSibling(); // 文字标签置于遮罩之上，保持可读
+                maskGo.transform.SetAsFirstSibling(); // 位于技能名之下, 保持可读
                 cdMasks[i] = mask;
             }
 
@@ -140,7 +152,7 @@ namespace Roguelite
 
         void Subscribe() => OnEnable();
 
-        /// <summary>重绘 E/R 格子：冷却中显示剩余秒数并盖上渐变遮罩(fillAmount=剩余比例)，就绪显示技能名。</summary>
+        /// <summary>重绘 E/R 格子：冷却中技能名置灰+渐变遮罩, 格中央显示大字倒计时(整秒); 就绪恢复并隐藏倒计时。</summary>
         void Refresh()
         {
             PlayerStats s = PlayerStats.Instance;
@@ -152,20 +164,25 @@ namespace Roguelite
                 ClassSkillData sk = i == 0 ? (s != null ? s.QSkill : null) : (s != null ? s.RSkill : null);
                 float remaining = i == 0 ? (s != null ? s.QCooldown : 0f) : (s != null ? s.RCooldown : 0f);
                 string name = sk != null && !string.IsNullOrEmpty(sk.Name) ? sk.Name : "未解锁";
-                if (remaining > 0.01f && sk != null)
+                bool cooling = remaining > 0.01f && sk != null;
+                if (cooling)
                 {
                     int total = Mathf.Max(1, Mathf.RoundToInt(sk.Cooldown * s.HasteCooldownScale));
                     if (cdMasks[i] != null) cdMasks[i].fillAmount = Mathf.Clamp01(remaining / total);
-                    lbl.text = key + "\n" + name + "\n" + Mathf.CeilToInt(remaining) + "s";
-                    lbl.color = Color.white;
-                    lbl.fontSize = 15;
+                    lbl.text = key + "\n" + name;
+                    lbl.color = new Color(0.75f, 0.75f, 0.75f, 0.9f);
+                    if (cdTexts[i] != null)
+                    {
+                        cdTexts[i].text = Mathf.CeilToInt(remaining).ToString();
+                        cdTexts[i].gameObject.SetActive(true);
+                    }
                 }
                 else
                 {
                     if (cdMasks[i] != null) cdMasks[i].fillAmount = 0f;
                     lbl.text = key + "\n" + name;
                     lbl.color = Color.white;
-                    lbl.fontSize = 15;
+                    if (cdTexts[i] != null) cdTexts[i].gameObject.SetActive(false);
                 }
             }
         }

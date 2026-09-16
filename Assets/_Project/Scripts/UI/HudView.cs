@@ -71,8 +71,8 @@ namespace Roguelite
             // 技能栏由 SkillBarView 组件负责(含冷却读秒与点击查看描述)
             var skill = UIBuilder.Panel("SkillBar", parent);
             var rt = skill.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.86f, 0.01f);
-            rt.anchorMax = new Vector2(0.99f, 0.09f);
+            rt.anchorMin = new Vector2(0.8f, 0.012f);
+            rt.anchorMax = new Vector2(0.985f, 0.125f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             if (GetComponent<SkillBarView>() == null)
