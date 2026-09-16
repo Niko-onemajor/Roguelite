@@ -24,11 +24,14 @@ namespace Roguelite
             var go = new GameObject("Fx_Burst");
             go.transform.position = worldPos;
             var ps = go.AddComponent<ParticleSystem>();
+            // AddComponent 默认 playOnAwake=true，挂上即自动播放；先停止并清空使其进入停止态，
+            // 否则随后修改 duration 等参数会报 “Setting the duration while system is still playing”
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
             var main = ps.main;
+            main.playOnAwake = false;
             main.duration = 0.5f;
             main.loop = false;
-            main.playOnAwake = false;
             main.startLifetime = 0.55f;
             main.startSpeed = 5f;
             main.startSize = 0.45f;
