@@ -39,6 +39,7 @@ namespace Roguelite
             if (move.sqrMagnitude > 0.0001f) Facing = move.normalized;
 
             PollActiveSlots();
+            PollClassSkills();
         }
 
         /// <summary>数字键 1-8 触发装备栏对应槽位的主动效果(被动装备静默忽略),触发失败(冷却/法力不足)静默忽略。</summary>
@@ -49,6 +50,14 @@ namespace Roguelite
             {
                 if (Input.GetKeyDown(KeyCode.Alpha1 + i)) Stats.TryUseActive(i, transform.position);
             }
+        }
+
+        /// <summary>Q=基础技能 / R=大招，触发失败(冷却/法力不足)静默忽略。</summary>
+        void PollClassSkills()
+        {
+            if (Stats == null) return;
+            if (Input.GetKeyDown(KeyCode.Q)) Stats.TryCastSkill(false, transform.position);
+            if (Input.GetKeyDown(KeyCode.R)) Stats.TryCastSkill(true, transform.position);
         }
 
         /// <summary>调试：Scene 视图绘制玩家碰撞体积线框(绿色圆)，核对贴图与碰撞盒是否贴合。</summary>

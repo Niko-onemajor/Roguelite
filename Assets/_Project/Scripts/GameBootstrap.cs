@@ -40,12 +40,44 @@ namespace Roguelite
             var rune = gameObject.AddComponent<RuneSystem>();
             rune.pool = null; // 符文池待后续补充；商店/锻体共用 cfg.shopItems，符文单独建池
             var wave = gameObject.AddComponent<WaveManager>();
+            var classSelect = gameObject.AddComponent<ClassSelectSystem>();
+            classSelect.classes = cfg.classes.ToArray();
 
-            BuildUI(combat, shop, forge, rune, wave);
+            BuildUI(combat, shop, forge, rune, wave, classSelect);
+
+            // 开局流程：弹职业选择 → 应用职业(基础属性/技能/武器) → 开波(第1波前符文三选一由 WaveManager 处理)
+            StartCoroutine(StartFlow(cfg, stats, combat, spawner, shop, rune, wave, classSelect));
+        }
+
+        /// <summary>开局流程：锁输入 → 职业四选一 → 应用职业并按职业装备初始武器 → 开波。</summary>
+        System.Collections.IEnumerator StartFlow(GameConfig cfg, PlayerStats stats, CombatSystem combat,
+            EnemySpawner spawner, ShopSystem shop, RuneSystem rune, WaveManager wave,
+            ClassSelectSystem classSelect)
+        {
+            if (PlayerController.Instance != null) PlayerController.Instance.inputEnabled = false;
+            classSelect.OpenOffer();
+            yield return new UnityEngine.WaitUntil(() => classSelect.Selected != null);
+            if (PlayerController.Instance != null) PlayerController.Instance.inputEnabled = true;
+
+            stats.ApplyClass(classSelect.Selected);          // 职业基础属性 + Q/R 技能
+            combat.ClearEquips();
+            combat.Equip(WeaponFor(cfg, classSelect.Selected)); // 按职业 近战挥砍/远程飞弹(不再区分手枪/冲锋枪)
 
             stats.ResetForRun();
             stats.AddGold(99999); // 测试用：开局大额金币便于商店刷齐装备验证(需要时删掉此行)
             wave.BeginRun(cfg.waves, spawner, shop, rune, stats);
+        }
+
+        /// <summary>职业对应的初始武器：就近取同类型(近战/远程)武器，找不到则退回第一把。</summary>
+        static WeaponData WeaponFor(GameConfig cfg, ClassData cls)
+        {
+            if (cfg.weapons != null && cfg.weapons.Count > 0)
+            {
+                for (int i = 0; i < cfg.weapons.Count; i++)
+                    if (cfg.weapons[i] != null && cfg.weapons[i].type == cls.Weapon)
+                        return cfg.weapons[i];
+            }
+            return cfg.weapons.Count > 0 ? cfg.weapons[0] : null;
         }
 
         #region Helpers
@@ -102,7 +134,7 @@ namespace Roguelite
             return go;
         }
 
-        void BuildUI(CombatSystem combat, ShopSystem shop, ForgeSystem forge, RuneSystem rune, WaveManager wave)
+        void BuildUI(CombatSystem combat, ShopSystem shop, ForgeSystem forge, RuneSystem rune, WaveManager wave, ClassSelectSystem classSelect)
         {
             var canvas = UIBuilder.Canvas();
             var hud = canvas.AddComponent<HudView>();
@@ -110,6 +142,10 @@ namespace Roguelite
             var pause = canvas.AddComponent<PauseView>();
             pause.wave = wave;
             pause.Build(canvas.transform);
+            // 职业选择覆盖层最先构建(渲染在最底层，无遮挡)：开局四选一
+            var classView = canvas.AddComponent<ClassSelectView>();
+            classView.selector = classSelect;
+            classView.Build(canvas.transform);
             var shopView = canvas.AddComponent<ShopView>();
             shopView.shop = shop;
             shopView.forge = forge;

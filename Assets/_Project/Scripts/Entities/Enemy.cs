@@ -118,6 +118,13 @@ namespace Roguelite
             ApplyDamage(dmg * (100f / (100f + effectiveResist)) * magicVulnMult);
         }
 
+        /// <summary>真实伤害(坦克R盛宴)：无视护甲/魔抗，直接结算。</summary>
+        public void TakeTrueDamage(float dmg)
+        {
+            if (Data == null) return;
+            ApplyDamage(dmg);
+        }
+
         /// <summary>统一伤害结算：扣血/吸血/受击闪红/死亡。reduced 为已过减伤后的最终数值。</summary>
         void ApplyDamage(float reduced)
         {

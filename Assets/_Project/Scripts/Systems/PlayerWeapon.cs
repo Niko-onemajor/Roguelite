@@ -15,6 +15,9 @@ namespace Roguelite
             cooldown = 0f;
         }
 
+        /// <summary>是否处于可开火状态(冷却结束)。供 CombatSystem 决定是否消费“下一次普攻附加伤害”。</summary>
+        public bool Ready => cooldown <= 0f;
+
         public void Tick(float dt, Vector2 origin, Vector2 dir, float statDamage, float statCritChance, float statRange, float statAttackInterval)
         {
             if (Data == null) return;

@@ -92,6 +92,44 @@ namespace Roguelite
             }
         }
 
+        /// <summary>带攻击力加成的范围魔法伤害(战士R终极统治)：基础值 附加 攻击力×adRatio，再走 CastMagic 的法强加成。</summary>
+        public static void CastMagicAoe(Vector2 origin, float radius, float baseDamage, float adRatio, float apRatio)
+        {
+            PlayerStats ps = PlayerStats.Instance;
+            float ad = ps != null ? ps.TotalDamage : 0f;
+            CastMagicAoe(origin, radius, baseDamage + ad * adRatio, apRatio);
+        }
+
+        /// <summary>直线魔法伤害(法师Q死亡射线)：从 origin 沿 dir 方向 length 长度、width 宽度内的敌人。</summary>
+        public static void CastMagicLine(Vector2 origin, Vector2 dir, float length, float width, float baseDamage, float apRatio)
+        {
+            Vector2 d = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
+            float halfW = width * 0.5f;
+            for (int i = EnemyRegistry.All.Count - 1; i >= 0; i--)
+            {
+                Enemy e = EnemyRegistry.All[i];
+                if (e == null || e.Data == null) continue;
+                Vector2 to = (Vector2)e.transform.position - origin;
+                float along = Vector2.Dot(to, d);
+                if (along < -0.2f || along > length) continue;
+                float perpSq = (to - d * along).sqrMagnitude;
+                if (perpSq <= halfW * halfW) CastMagic(e, baseDamage, apRatio);
+            }
+        }
+
+        /// <summary>弹射魔法伤害(法师R烈焰风暴)：从 origin 起命中最近敌人并在 radius 内依次弹射 maxBounces 次。</summary>
+        public static void CastMagicBounce(Vector2 origin, float radius, int maxBounces, float baseDamage, float apRatio)
+        {
+            Enemy current = EnemyRegistry.Nearest(origin, radius);
+            for (int i = 0; i < maxBounces && current != null; i++)
+            {
+                CastMagic(current, baseDamage, apRatio);
+                Enemy prev = current;
+                Vector2 from = current.transform.position;
+                current = Nearest(prev, from, radius);
+            }
+        }
+
         public static void RadiusHit(Vector2 origin, float radius, float damage, float critChance)
         {
             float r2 = radius * radius;

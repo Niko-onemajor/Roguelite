@@ -114,6 +114,84 @@ namespace Roguelite
 
         public IReadOnlyList<ActiveSlot> EquipSlots => _equipSlots;
 
+        #region 职业与职业技能(Q/R)
+
+        /// <summary>当前职业(开局四选一)，决定基础属性与 Q/R 技能。</summary>
+        public ClassData Class { get; private set; }
+        public ClassSkillData QSkill { get; private set; }
+        public ClassSkillData RSkill { get; private set; }
+
+        /// <summary>Q(基础技能)/R(大招) 当前冷却剩余秒数(受技能急速缩放)。</summary>
+        public float QCooldown { get; private set; }
+        public float RCooldown { get; private set; }
+
+        /// <summary>射手Q 闪避突袭：下一次普攻的附加伤害(开火时消费)。</summary>
+        public float NextAttackBonus { get; private set; }
+
+        // ── 持续技能运行时状态 ──
+        float archerRRemaining;   // 射手R 定圣诀 剩余秒数
+        float warriorRRemaining;  // 战士R 终极统治 剩余秒数
+        float warriorRHpBonus;    // 终极统治 附加的最大生命(到期扣回)
+        float warriorRTick;       // 终极统治 每秒伤害计时
+        float tankQRemaining;     // 坦克Q 电击疗法 剩余秒数
+        float tankQTick;          // 电击疗法 每秒伤害计时
+
+        // ── 技能参数(数值与 ClassData 配置一致；此处为效果实现常量) ──
+        const float ArcherUltIntervalMult = 0.82f;   // 定圣诀 攻速×1.22 → 攻击间隔×0.82
+        const float ArcherUltDuration = 15f;
+        const float ArcherSplashRatio = 0.3f;        // 定圣诀 溅射 30% 物理伤害
+        const float ArcherSplashRadius = 2.2f;       // 定圣诀 溅射半径
+        const float MageRayLength = 7f;              // 死亡射线 最大射程
+        const float MageRayWidth = 0.8f;             // 死亡射线 判定宽度
+        const float MageStormRadius = 6f;            // 烈焰风暴 弹射半径
+        const int MageStormBounces = 5;              // 烈焰风暴 最大弹射次数
+        const float ArcherDashDistance = 3f;         // 闪避突袭 翻滚距离
+        const float WarriorCleaveRadius = 2.5f;      // 大杀四方 挥击半径
+        const float WarriorCleaveDelay = 0.75f;      // 大杀四方 施法延迟
+        const float WarriorReignRadius = 2.8f;       // 终极统治 每秒伤害半径
+        const float WarriorReignDuration = 15f;
+        const float WarriorReignHp = 100f;           // 终极统治 附加最大生命
+        const float TankShockRadius = 2.5f;          // 电击疗法 每秒伤害半径
+        const float TankShockDuration = 4f;
+        const float TankShockDamageReduction = 0.25f; // 电击疗法 持续期间减伤25%
+        const float TankFeastGrowth = 40f;           // 盛宴 击杀后永久最大生命成长
+
+        #endregion
+
+        /// <summary>应用职业：覆盖基础属性(法师攻击力0/坦克高血高抗等)、开局满蓝，绑定 Q/R 技能。</summary>
+        public void ApplyClass(ClassData c)
+        {
+            Class = c;
+            damage = c.damage;
+            abilityPower = c.abilityPower;
+            maxHP = c.maxHP;
+            attackInterval = c.attackInterval;
+            moveSpeed = c.moveSpeed;
+            armor = c.armor;
+            magicResist = c.magicResist;
+            abilityHaste = c.abilityHaste;
+            maxMana = c.maxMana;
+            mana = c.maxMana; // 开局满蓝
+            CurrentHP = maxHP;
+            QSkill = c.QSkill;
+            RSkill = c.RSkill;
+            QCooldown = RCooldown = 0f;
+            NextAttackBonus = 0f;
+            archerRRemaining = warriorRRemaining = tankQRemaining = 0f;
+            warriorRHpBonus = 0f;
+            GameEvents.RaiseHP(CurrentHP, maxHP);
+            GameEvents.RaiseMana(mana, maxMana);
+        }
+
+        /// <summary>普攻实际伤害 = 面板攻击力 + 法术强度×0.6(法师 攻击力0 亦能靠法强打普攻)。</summary>
+        public float BasicDamage => TotalDamage + TotalAbilityPower * 0.6f;
+
+        /// <summary>为下一次普攻附加伤害(射手Q 闪避突袭)。</summary>
+        public void GrantNextAttackBonus(float v) => NextAttackBonus = Mathf.Max(NextAttackBonus, v);
+
+        /// <summary>取走并清零下一次普攻附加伤害(实际开火时调用一次)。</summary>
+        public float ConsumeNextAttackBonus() { float v = NextAttackBonus; NextAttackBonus = 0f; return v; }
+
         const float RegenTickSeconds = 1f;
 
         public float CurrentHP { get; private set; }
@@ -131,8 +209,9 @@ namespace Roguelite
         /// <summary>攻击距离(含海克斯镜片 击杀叠层)。</summary>
         public float Range => range + rangeBonus;
 
-        /// <summary>实际攻速间隔(香炉/幻影/班德尔 攻速增益 乘算)，供武器冷却计算。</summary>
-        public float AttackIntervalEffective => attackInterval * (asBuffRemaining > 0f ? asBuffMult : 1f);
+        /// <summary>实际攻速间隔(香炉/幻影/班德尔 攻速增益、射手R定圣诀 乘算)，供武器冷却计算。</summary>
+        public float AttackIntervalEffective =>
+            attackInterval * (asBuffRemaining > 0f ? asBuffMult : 1f) * (archerRRemaining > 0f ? ArcherUltIntervalMult : 1f);
 
         /// <summary>实际面板法术强度 = 基础法强 + 裂隙制造者(额外生命6%) + 流水法杖增益，再 × 死亡之帽1.4。</summary>
         public float TotalAbilityPower
@@ -198,6 +277,10 @@ namespace Roguelite
             Shield = 0f;
             bleedPool = 0f;
             burns.Clear();
+            QCooldown = RCooldown = 0f;
+            NextAttackBonus = 0f;
+            archerRRemaining = warriorRRemaining = tankQRemaining = 0f;
+            warriorRHpBonus = 0f;
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseGold(Gold);
             GameEvents.RaiseGoldBanked(0);
@@ -214,6 +297,8 @@ namespace Roguelite
         {
             float resist = magicDamage ? magicResist : armor;
             float reduced = dmg * (100f / (100f + Mathf.Max(0f, resist)));
+            // 坦克Q 电击疗法：持续期间受到的伤害 -25%
+            if (tankQRemaining > 0f) reduced *= (1f - TankShockDamageReduction);
             // 铁板靴：受到的物理(普攻类)伤害 ×0.88
             if (!magicDamage && HasPassive(PassiveType.Steelcaps)) reduced *= 0.88f;
 
@@ -347,6 +432,25 @@ namespace Roguelite
             if (enemy == null) return;
             timeSinceAttack = 0f;
             if (cleaveHit) return;
+
+            // 射手R 定圣诀：普攻附加魔法伤害并对主目标附近敌人溅射 30% 物理伤害(直接结算，不递归触发 on-hit)
+            ClassSkillData rSkill = Class != null ? Class.RSkill : null;
+            if (rSkill != null && rSkill.Type == ClassSkillType.ArcherUlt && archerRRemaining > 0f)
+            {
+                enemy.TakeMagicDamage(rSkill.BaseDamage + TotalAbilityPower * rSkill.ApRatio);
+                float splash = dealt * ArcherSplashRatio;
+                if (splash > 0f)
+                {
+                    float r2 = ArcherSplashRadius * ArcherSplashRadius;
+                    for (int i = EnemyRegistry.All.Count - 1; i >= 0; i--)
+                    {
+                        Enemy e = EnemyRegistry.All[i];
+                        if (e == null || e == enemy || e.Data == null) continue;
+                        if (((Vector2)e.transform.position - pos).sqrMagnitude > r2) continue;
+                        e.TakeDamage(splash, false);
+                    }
+                }
+            }
 
             // 三相之力/黄昏与黎明 “咒刃”：每1.5s一次普攻附带 攻击力/法强×1
             if (spellbladeCd <= 0f)
@@ -592,6 +696,168 @@ namespace Roguelite
         /// <summary>卢登的回声：每2.5s一次的溅射附伤就绪标记。</summary>
         public bool LudenReady => ludenCd <= 0f;
         public void ConsumeLuden() => ludenCd = 2.5f;
+
+        #endregion
+
+        #region 职业技能(Q/R)施放
+
+        /// <summary>尝试施放职业技能：ultimate=false 为 Q(基础技能)/true 为 R(大招)。
+        /// 冷却中或法力不足返回 false(不进入冷却)。施放后进入冷却(受技能急速缩放)并广播冷却事件。</summary>
+        public bool TryCastSkill(bool ultimate, Vector2 origin)
+        {
+            ClassSkillData skill = ultimate ? RSkill : QSkill;
+            if (skill == null || skill.Type == ClassSkillType.None) return false;
+            if (ultimate ? RCooldown > 0f : QCooldown > 0f) return false;
+            if (!TrySpendMana(skill.ManaCost)) return false;
+
+            switch (skill.Type)
+            {
+                case ClassSkillType.MageDeathRay: DamageSystem.CastMagicLine(origin, FacingDir(), MageRayLength, MageRayWidth, skill.BaseDamage, skill.ApRatio); break;
+                case ClassSkillType.MageStorm: DamageSystem.CastMagicBounce(origin, MageStormRadius, MageStormBounces, skill.BaseDamage, skill.ApRatio); break;
+                case ClassSkillType.ArcherDash: CastArcherDash(origin, skill); break;
+                case ClassSkillType.ArcherUlt: archerRRemaining = ArcherUltDuration; break;
+                case ClassSkillType.WarriorCleave: StartCoroutine(WarriorCleaveDelayed(origin)); break;
+                case ClassSkillType.WarriorReign: BeginWarriorReign(skill); break;
+                case ClassSkillType.TankShock: tankQRemaining = TankShockDuration; tankQTick = 0f; break;
+                case ClassSkillType.TankFeast: CastTankFeast(origin, skill); break;
+            }
+
+            if (ultimate) RCooldown = skill.Cooldown * HasteCooldownScale;
+            else QCooldown = skill.Cooldown * HasteCooldownScale;
+            GameEvents.RaiseSkillCooldownChanged();
+            return true;
+        }
+
+        /// <summary>职业技能驱动(CombatSystem.Update 每帧调用)：Q/R 冷却倒计时 + 持续技能(射手R/战士R/坦克Q)计时。
+        /// 冷却显示秒数变化时广播 SkillCooldownChanged(HUD 读秒)。EditMode 测试可显式调用。</summary>
+        public void TickSkills(float dt, Vector2 origin)
+        {
+            int beforeQ = Mathf.CeilToInt(QCooldown);
+            int beforeR = Mathf.CeilToInt(RCooldown);
+            QCooldown = Mathf.Max(0f, QCooldown - dt);
+            RCooldown = Mathf.Max(0f, RCooldown - dt);
+
+            if (archerRRemaining > 0f) archerRRemaining = Mathf.Max(0f, archerRRemaining - dt);
+
+            if (warriorRRemaining > 0f)
+            {
+                warriorRRemaining -= dt;
+                warriorRTick -= dt;
+                if (warriorRTick <= 0f)
+                {
+                    ClassSkillData r = RSkill;
+                    if (r != null) DamageSystem.CastMagicAoe(origin, WarriorReignRadius, r.BaseDamage, r.AdRatio, r.ApRatio);
+                    warriorRTick = 1f;
+                }
+                if (warriorRRemaining <= 0f)
+                {
+                    maxHP = Mathf.Max(1f, maxHP - warriorRHpBonus);
+                    if (CurrentHP > maxHP) CurrentHP = maxHP;
+                    warriorRHpBonus = 0f;
+                    GameEvents.RaiseHP(CurrentHP, maxHP);
+                }
+            }
+
+            if (tankQRemaining > 0f)
+            {
+                tankQRemaining -= dt;
+                tankQTick -= dt;
+                if (tankQTick <= 0f)
+                {
+                    ClassSkillData q = QSkill;
+                    if (q != null)
+                    {
+                        float dmg = q.BaseDamage;
+                        float r2 = TankShockRadius * TankShockRadius;
+                        for (int i = EnemyRegistry.All.Count - 1; i >= 0; i--)
+                        {
+                            Enemy e = EnemyRegistry.All[i];
+                            if (e == null || e.Data == null) continue;
+                            if (((Vector2)e.transform.position - origin).sqrMagnitude <= r2)
+                                e.TakeMagicDamage(dmg);
+                        }
+                    }
+                    tankQTick = 1f;
+                }
+            }
+
+            if (Mathf.CeilToInt(QCooldown) != beforeQ || Mathf.CeilToInt(RCooldown) != beforeR)
+                GameEvents.RaiseSkillCooldownChanged();
+        }
+
+        /// <summary>施法朝向：优先玩家面朝方向，否则默认为右。</summary>
+        Vector2 FacingDir()
+        {
+            PlayerController pc = PlayerController.Instance;
+            return pc != null && pc.Facing.sqrMagnitude > 0.0001f ? pc.Facing : Vector2.right;
+        }
+
+        /// <summary>射手Q 闪避突袭：向面朝方向翻滚一段距离，并获得下一次普攻附加伤害(基础+攻击力×系数，不暴击)。</summary>
+        void CastArcherDash(Vector2 origin, ClassSkillData skill)
+        {
+            Vector2 dir = FacingDir();
+            transform.position = ArenaBounds.Clamp(transform.position + (Vector3)(dir * ArcherDashDistance));
+            GrantNextAttackBonus(skill.BaseDamage + TotalDamage * skill.AdRatio);
+        }
+
+        /// <summary>战士R 终极统治：立即获得最大生命加成(到期扣回)，期间每秒对身周敌人造成魔法伤害。</summary>
+        void BeginWarriorReign(ClassSkillData skill)
+        {
+            warriorRRemaining = WarriorReignDuration;
+            warriorRTick = 0f;
+            warriorRHpBonus = WarriorReignHp;
+            maxHP += WarriorReignHp;
+            CurrentHP += WarriorReignHp;
+            GameEvents.RaiseHP(CurrentHP, maxHP);
+        }
+
+        /// <summary>战士Q 大杀四方：延迟后挥击身周敌人(物理)，每个命中回复已损失生命10%(总额上限30%最大生命)。</summary>
+        IEnumerator WarriorCleaveDelayed(Vector2 origin)
+        {
+            yield return new WaitForSeconds(WarriorCleaveDelay);
+            ExecuteWarriorCleave(origin);
+        }
+
+        /// <summary>战士Q 结算(延迟到点后执行)。internal 供 EditMode 测试直接驱动。</summary>
+        internal void ExecuteWarriorCleave(Vector2 origin)
+        {
+            ClassSkillData q = QSkill;
+            if (q == null) return;
+            float healCap = maxHP * 0.3f;
+            float healedTotal = 0f;
+            float r2 = WarriorCleaveRadius * WarriorCleaveRadius;
+            for (int i = EnemyRegistry.All.Count - 1; i >= 0; i--)
+            {
+                Enemy e = EnemyRegistry.All[i];
+                if (e == null || e.Data == null) continue;
+                if (((Vector2)e.transform.position - origin).sqrMagnitude > r2) continue;
+                e.TakeDamage(q.BaseDamage + TotalDamage * q.AdRatio, false);
+                if (healedTotal < healCap && CurrentHP < maxHP)
+                {
+                    float capped = Mathf.Min(healCap - healedTotal, (maxHP - CurrentHP) * 0.1f);
+                    if (capped > 0f)
+                    {
+                        float before = CurrentHP;
+                        Heal(capped);
+                        healedTotal += CurrentHP - before;
+                    }
+                }
+            }
+        }
+
+        /// <summary>坦克R 盛宴：对最近敌人造成真实伤害，击杀后最大生命永久+40(每层叠加)。</summary>
+        void CastTankFeast(Vector2 origin, ClassSkillData skill)
+        {
+            Enemy target = EnemyRegistry.Nearest(origin, float.MaxValue);
+            if (target == null) return;
+            target.TakeTrueDamage(skill.BaseDamage);
+            if (target.Health <= 0f)
+            {
+                maxHP += TankFeastGrowth;
+                CurrentHP += TankFeastGrowth;
+                GameEvents.RaiseHP(CurrentHP, maxHP);
+            }
+        }
 
         #endregion
 

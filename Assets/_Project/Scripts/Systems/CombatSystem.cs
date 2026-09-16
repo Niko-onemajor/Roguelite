@@ -45,6 +45,7 @@ namespace Roguelite
             Stats.TickPassives(Time.deltaTime, origin); // 装备逐帧被动(日炎/DoT/光环/狂徒等)
             Stats.TickSpell(Time.deltaTime, origin);    // 被动法术(奥术弹等)：消耗法力，冷却受技能急速
             Stats.TickActive(Time.deltaTime);           // 主动装备栏：冷却倒计时/临时增益计时
+            Stats.TickSkills(Time.deltaTime, origin);   // 职业技能 Q/R：冷却倒计时/持续效果
             for (int i = 0; i < weapons.Count; i++)
             {
                 PlayerWeapon w = weapons[i];
@@ -54,7 +55,10 @@ namespace Roguelite
                 if (target == null) continue;
                 Vector2 to = (Vector2)target.transform.position - origin;
                 Vector2 dir = to.sqrMagnitude > 0.0001f ? to.normalized : Vector2.right;
-                w.Tick(Time.deltaTime, origin, dir, Stats.TotalDamage, Stats.critChance, Stats.Range, Stats.AttackIntervalEffective);
+                // 普攻伤害 = 面板攻击力 + 法强×0.6(法师)；射手Q闪避突袭 的下一次普攻附加伤害在实际开火时消费
+                float dmg = Stats.BasicDamage;
+                if (w.Ready && Stats.NextAttackBonus > 0f) dmg += Stats.ConsumeNextAttackBonus();
+                w.Tick(Time.deltaTime, origin, dir, dmg, Stats.critChance, Stats.Range, Stats.AttackIntervalEffective);
             }
         }
     }

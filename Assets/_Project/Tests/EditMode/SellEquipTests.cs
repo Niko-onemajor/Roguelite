@@ -157,7 +157,7 @@ namespace Roguelite.Tests
         {
             var owned = Item("已装剑", StatType.AttackDamage, 2f, 10);
             var other = Item("未装剑", StatType.AttackDamage, 2f, 10);
-            shop.pool = new[] { owned, other };
+            shop.pool = new[] { owned }; // 池中仅 1 件：买到的必为 owned，排除随机抽取干扰
 
             Assert.That(BuyFirst(), Is.True);
 
