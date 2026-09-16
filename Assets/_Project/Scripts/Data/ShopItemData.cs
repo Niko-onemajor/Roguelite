@@ -33,6 +33,7 @@ namespace Roguelite
     {
         None,
         Tyrant, // 霸王血铠“专横+报复”：额外生命值→攻击力 + 已损失生命值%→攻击力
+        ArcaneBolt, // 海克斯科技枪刃 被动法术：冷却受技能急速缩放，消耗法力，伤害=基础+法强×0.7(魔法穿透结算)
     }
 
     /// <summary>一组属性加成（多项组合用于 LOL 风格装备；单属性道具走 statType/addValue）。</summary>

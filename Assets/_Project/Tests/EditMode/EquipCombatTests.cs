@@ -45,23 +45,25 @@ namespace Roguelite.Tests
                     Object.DestroyImmediate(go);
         }
 
-        static EnemyData Data(float hp, float armor = 0f)
+        static EnemyData Data(float hp, float armor = 0f, float magicResist = 0f)
         {
             var d = ScriptableObject.CreateInstance<EnemyData>();
             d.maxHP = hp;
             d.armor = armor;
+            d.magicResist = magicResist;
             d.goldMin = 1;
             d.goldMax = 1;
             d.scale = 1f;
             return d;
         }
 
-        Enemy Spawn(Vector3 pos, float hp, float armor = 0f)
+        Enemy Spawn(Vector3 pos, float hp, float armor = 0f, float magicResist = 0f)
         {
             var go = new GameObject("e", typeof(BoxCollider2D));
             go.transform.position = pos;
             var e = go.AddComponent<TestEnemy>();
-            e.Init(Data(hp, armor));
+            e.Init(Data(hp, armor, magicResist));
+            EnemyRegistry.Register(e); // EditMode 不触发 OnEnable，需显式注册(供 TickSpell 索敌)
             return e;
         }
 
@@ -228,6 +230,107 @@ namespace Roguelite.Tests
             {
                 Object.DestroyImmediate(runeGo);
             }
+        }
+
+        [Test]
+        public void MagicDamage_Reduced_By_Enemy_MagicResist()
+        {
+            Enemy e = Spawn(Vector3.zero, 500f, magicResist: 100f); // 魔抗100 → 减半
+
+            DamageSystem.CastMagic(e, 100f, 0f);
+
+            Assert.That(500f - e.Health, Is.EqualTo(50f).Within(0.01f));
+        }
+
+        [Test]
+        public void MagicDamage_AbilityPower_Adds_BaseScaled()
+        {
+            stats.abilityPower = 10f;
+            Enemy e = Spawn(Vector3.zero, 500f);
+
+            DamageSystem.CastMagic(e, 15f, 0.7f); // 15 + 10×0.7 = 22
+
+            Assert.That(500f - e.Health, Is.EqualTo(22f).Within(0.01f));
+        }
+
+        [Test]
+        public void MagicDamage_MagicPen_Reduces_Enemy_Resist()
+        {
+            stats.magicPen = 50f;
+            Enemy e = Spawn(Vector3.zero, 500f, magicResist: 100f); // 有效魔抗50 → 100*100/150
+
+            DamageSystem.CastMagic(e, 100f, 0f);
+
+            Assert.That(500f - e.Health, Is.EqualTo(100f * 100f / 150f).Within(0.01f));
+        }
+
+        [Test]
+        public void Mana_Apply_Increases_Max_And_Current()
+        {
+            var item = ScriptableObject.CreateInstance<ShopItemData>();
+            item.bonuses.Add(new StatBonus(StatType.Mana, 20f));
+
+            stats.ApplyBonus(item);
+
+            Assert.That(stats.maxMana, Is.EqualTo(20f));
+            Assert.That(stats.mana, Is.EqualTo(20f));
+        }
+
+        [Test]
+        public void Mana_Spend_And_Recharge()
+        {
+            stats.mana = 10f;
+            stats.maxMana = 10f;
+
+            Assert.That(stats.TrySpendMana(6f), Is.True); // 足够
+            Assert.That(stats.mana, Is.EqualTo(4f));
+            Assert.That(stats.TrySpendMana(6f), Is.False); // 不足
+            Assert.That(stats.mana, Is.EqualTo(4f));       // 失败不扣
+
+            stats.RechargeMana();                          // 每秒回 上限×10% = 1
+            Assert.That(stats.mana, Is.EqualTo(5f).Within(0.001f));
+        }
+
+        [Test]
+        public void AbilityHaste_Shrinks_Spell_Cooldown()
+        {
+            Assert.That(stats.HasteCooldownScale, Is.EqualTo(1f)); // 0 急速 = 1
+
+            stats.abilityHaste = 100f;
+            Assert.That(stats.HasteCooldownScale, Is.EqualTo(0.5f).Within(0.0001f)); // 100急速 ≈ 半冷却
+        }
+
+        [Test]
+        public void ArcaneBolt_Spends_Mana_And_Damages_Nearest()
+        {
+            stats.abilityPower = 10f;
+            stats.mana = stats.maxMana = 20f;
+            stats.passiveType = PassiveType.ArcaneBolt; // 海克斯科技枪刃 被动
+            stats.range = 6f;
+            Enemy e = Spawn(Vector2.one * 2f, 500f);    // 范围内
+
+            stats.TickSpell(3f, Vector2.zero);          // 冷却到点 → 施放 15+10×0.7=22
+
+            Assert.That(500f - e.Health, Is.EqualTo(22f).Within(0.01f)); // 魔法伤害吃魔抗(0)=全量
+            Assert.That(stats.mana, Is.EqualTo(14f).Within(0.001f));     // 消耗6法力
+        }
+
+        [Test]
+        public void ArcaneBolt_No_Target_Or_No_Mana_Retries_Without_Cost()
+        {
+            stats.mana = stats.maxMana = 4f; // 法力 < 消耗6
+            stats.passiveType = PassiveType.ArcaneBolt;
+            stats.range = 6f;
+            Enemy e = Spawn(Vector2.one * 2f, 500f);
+
+            stats.TickSpell(3f, Vector2.zero); // 法力不足 → 不施放
+            Assert.That(e.Health, Is.EqualTo(500f));
+            Assert.That(stats.mana, Is.EqualTo(4f).Within(0.001f));
+
+            stats.mana = 20f;
+            EnemyRegistry.Clear(); // 无目标
+            stats.TickSpell(3f, Vector2.zero);
+            Assert.That(stats.mana, Is.EqualTo(20f).Within(0.001f)); // 空目标不消耗
         }
     }
 }

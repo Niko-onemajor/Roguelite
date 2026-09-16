@@ -36,7 +36,8 @@ namespace Roguelite
         public float moveSpeed = 8f;         // 移动速度(追兵3.2，差距2.5倍：能被甩开但需走位)
         public float range = 6f;             // 攻击距离
         public float size = 1f;              // 体型(当前仅存储，视觉缩放后续接入)
-        public float mana = 0f;              // 法力值(当前仅存储，消耗逻辑待技能)
+        public float mana = 0f;              // 当前法力(法术消耗；默认0需法力值装备累积)
+        public float maxMana = 0f;           // 法力上限(由 法力值 词条累积)
         public float tenacity = 0f;          // 韧性(控制减免，当前仅存储)
         public float pickupRadius = 2.5f;
 
@@ -48,6 +49,17 @@ namespace Roguelite
         public PassiveType passiveType = PassiveType.None;
         const float TyrantHpToDamage = 0.025f;         // 专横：额外生命值 2.5% → 攻击力
         const float TyrantMissingToDamage = 0.12f;     // 报复：已损失生命值% 的 12% → 攻击力
+
+        // ── 法力/法术参数（海克斯科技枪刃 等法系被动触发）──
+        /// <summary>法力自然回复：每秒回复 法力上限 × 该比例。</summary>
+        const float ManaRegenFractionPerSec = 0.1f;
+        const float ArcaneInterval = 3f;               // 奥术弹基础冷却(秒)，受技能急速缩放
+        const float ArcaneManaCost = 6f;               // 每发奥术弹消耗法力
+        const float ArcaneBaseDamage = 15f;            // 奥术弹基础伤害(法强按 AP×0.7 加成)
+        const float ArcaneApRatio = 0.7f;
+        const float AbortRetryInterval = 0.25f;        // 法力不足/无目标时提前重试冷却
+
+        float spellCooldown;
 
         const float RegenTickSeconds = 1f;
 
@@ -123,6 +135,25 @@ namespace Roguelite
             if (hpRegen > 0f) Heal(hpRegen);
         }
 
+        /// <summary>每秒法力回复：按法力上限比例回复，不超上限。</summary>
+        public void RechargeMana()
+        {
+            if (maxMana <= 0f) return;
+            mana = Mathf.Min(maxMana, mana + maxMana * ManaRegenFractionPerSec);
+        }
+
+        /// <summary>尝试消耗法力，不足返回 false(施法失败，调用方应中断本次施放)。</summary>
+        public bool TrySpendMana(float cost)
+        {
+            if (cost <= 0f) return true;
+            if (mana < cost) return false;
+            mana -= cost;
+            return true;
+        }
+
+        /// <summary>技能急速 → 冷却缩放(0 急速=1.0；急速越高系数越小，100 急速≈半冷却)。</summary>
+        public float HasteCooldownScale => 100f / (100f + abilityHaste);
+
         bool _regenRunning;
 
         /// <summary>启动每秒生命回复循环；防重复启动(回合重置/锻体加 HPRegen 后仍只跑一条)。</summary>
@@ -140,7 +171,24 @@ namespace Roguelite
             {
                 yield return wait;
                 TickRegen();
+                RechargeMana();
             }
+        }
+
+        /// <summary>被动法术驱动帧步进(CombatSystem.Update 每帧调用)：奥术弹冷却受技能急速缩放，释放消耗法力。
+        /// 法力不足或范围内无目标时提前重试，不空消耗。</summary>
+        public void TickSpell(float dt, Vector2 origin)
+        {
+            if (passiveType != PassiveType.ArcaneBolt) return;
+            spellCooldown -= dt;
+            if (spellCooldown > 0f) return;
+
+            Enemy target = EnemyRegistry.Nearest(origin, range);
+            if (target == null) { spellCooldown = AbortRetryInterval; return; }
+            if (!TrySpendMana(ArcaneManaCost)) { spellCooldown = AbortRetryInterval; return; }
+
+            DamageSystem.CastMagic(target, ArcaneBaseDamage, ArcaneApRatio);
+            spellCooldown = ArcaneInterval * HasteCooldownScale;
         }
 
         public void AddGold(int amount)
@@ -210,7 +258,10 @@ namespace Roguelite
                 case StatType.MoveSpeed: moveSpeed += value * multiplier; break;
                 case StatType.AttackRange: range += value * multiplier; break;
                 case StatType.Size: size = Mathf.Max(0.1f, size + value * multiplier); break;
-                case StatType.Mana: mana += value * multiplier; break;
+                case StatType.Mana:
+                    maxMana += value * multiplier;
+                    mana += value * multiplier; // 装备法力值同时提高上限与当前值
+                    break;
                 case StatType.Tenacity: tenacity += value * multiplier; break;
                 default: break;
             }

@@ -62,14 +62,30 @@ namespace Roguelite
             PoolManager.Return(gameObject); // 撞击即消失，不进入 Die(不掉金币/不记击杀)
         }
 
-        /// <summary>finalDamage 为最终伤害(暴击已算好)；护甲降低受到的物理伤害；吸血按实际造成伤害结算。</summary>
+        /// <summary>finalDamage 为最终物理伤害(暴击已算好)；护甲降低受到的物理伤害；吸血按实际造成伤害结算。</summary>
         public void TakeDamage(float finalDamage, bool wasCrit)
         {
             if (Data == null) return;
             // 有效护甲 = 怪物护甲 - 玩家护甲穿透(下限0)；护甲减伤：dmg*100/(100+armor)
             PlayerStats ps = PlayerStats.Instance;
             float effectiveArmor = Mathf.Max(0f, Data.armor - (ps != null ? ps.armorPen : 0f));
-            float reduced = finalDamage * (100f / (100f + effectiveArmor));
+            ApplyDamage(finalDamage * (100f / (100f + effectiveArmor)));
+        }
+
+        /// <summary>魔法伤害：按怪物魔抗与玩家法术穿透结算(技能急速/法强装备触发的法术伤害走此路径)。</summary>
+        public void TakeMagicDamage(float dmg)
+        {
+            if (Data == null) return;
+            PlayerStats ps = PlayerStats.Instance;
+            float effectiveResist = Mathf.Max(0f, Data.magicResist - (ps != null ? ps.magicPen : 0f));
+            ApplyDamage(dmg * (100f / (100f + effectiveResist)));
+        }
+
+        /// <summary>统一伤害结算：扣血/吸血/受击闪红/死亡。reduced 为已过减伤后的最终数值。</summary>
+        void ApplyDamage(float reduced)
+        {
+            if (Data == null) return;
+            PlayerStats ps = PlayerStats.Instance;
             Health -= reduced;
             if (ps != null && ps.omnivamp > 0f) ps.Heal(reduced * ps.omnivamp); // 全能吸血按实际造成伤害回血
             if (Health > 0f)

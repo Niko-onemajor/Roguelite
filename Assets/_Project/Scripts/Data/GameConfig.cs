@@ -95,8 +95,9 @@ namespace Roguelite
                 B(StatType.AbilityPower, 5f), B(StatType.MaxHP, 30f), B(StatType.AbilityHaste, 7f), B(StatType.AttackSpeed, 0.8f)));
             cfg.shopItems.Add(Equip("实现者", 38, "主动“法力具现”：消耗法力提升技能伤害、治疗护盾与冷却。",
                 B(StatType.AbilityPower, 6f), B(StatType.AbilityHaste, 3f)));
-            cfg.shopItems.Add(Equip("海克斯科技枪刃", 38, "主动“闪电弹”：震击目标造成魔法伤害并减速。",
+            cfg.shopItems.Add(Equip("海克斯科技枪刃", 38, "主动→被动“奥术弹”：每3秒(受技能急速缩减)自动对最近敌人发射魔法弹，消耗6法力，造伤15+法强×0.7。",
                 B(StatType.AbilityPower, 5f), B(StatType.AttackDamage, 5f), B(StatType.Omnivamp, 0.05f)));
+            cfg.shopItems[cfg.shopItems.Count - 1].passiveType = PassiveType.ArcaneBolt;
             cfg.shopItems.Add(Equip("暗夜收割者", 38, "被动：对敌方英雄造成伤害时附加额外魔法伤害并提供移动速度。",
                 B(StatType.AbilityPower, 6f), B(StatType.MaxHP, 30f), B(StatType.AbilityHaste, 8f)));
             cfg.shopItems.Add(Equip("影焰", 38, "被动：对低生命值敌人造成暴击伤害。",

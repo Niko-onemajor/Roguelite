@@ -42,6 +42,7 @@ namespace Roguelite
             if (pc == null || !pc.inputEnabled) return;
 
             Vector2 origin = transform.position;
+            Stats.TickSpell(Time.deltaTime, origin); // 被动法术(奥术弹等)：消耗法力，冷却受技能急速
             for (int i = 0; i < weapons.Count; i++)
             {
                 PlayerWeapon w = weapons[i];
