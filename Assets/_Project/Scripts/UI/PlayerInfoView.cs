@@ -29,9 +29,9 @@ namespace Roguelite
             var title = UIBuilder.Text("Title", panel.transform, "玩家信息", 56, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
             SetRect(title.rectTransform, 0.2f, 0.9f, 0.8f, 0.98f);
 
-            BuildSection("属性", 0.03f, 0.36f, 0.38f, new Color(1f, 0.85f, 0.3f), out statText);
-            BuildSection("装备", 0.42f, 0.36f, 0.7f, new Color(0.55f, 0.85f, 1f), out weaponText);
-            BuildSection("符文", 0.74f, 0.36f, 0.97f, new Color(1f, 0.7f, 0.9f), out runeText);
+            BuildSection("属性", 0.03f, 0.70f, 0.38f, new Color(1f, 0.85f, 0.3f), out statText);
+            BuildSection("装备", 0.42f, 0.70f, 0.7f, new Color(0.55f, 0.85f, 1f), out weaponText);
+            BuildSection("符文", 0.74f, 0.70f, 0.97f, new Color(1f, 0.7f, 0.9f), out runeText);
             BuildEquipBar();
             BuildDetailPanel();
 
@@ -39,7 +39,7 @@ namespace Roguelite
             SetRect(close.GetComponent<RectTransform>(), 0.44f, 0.04f, 0.56f, 0.12f);
         }
 
-        /// <summary>底部装备栏 8 格：暂停页查看当前 8 槽装备，点击格子查看效果描述。</summary>
+        /// <summary>装备栏 8 格(标题下方横条)：暂停页查看当前 8 槽装备，点击格子查看效果描述。</summary>
         void BuildEquipBar()
         {
             const float width = 0.112f, gap = 0.006f;
@@ -49,12 +49,12 @@ namespace Roguelite
                 int idx = i;
                 var go = UIBuilder.Button($"EquipSlot_{i}", panel.transform, "", () => OnEquipClicked(idx));
                 var rt = go.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(left + i * (width + gap), 0.205f);
-                rt.anchorMax = new Vector2(left + i * (width + gap) + width, 0.27f);
+                rt.anchorMin = new Vector2(left + i * (width + gap), 0.845f);
+                rt.anchorMax = new Vector2(left + i * (width + gap) + width, 0.9f);
                 rt.offsetMin = Vector2.zero;
                 rt.offsetMax = Vector2.zero;
                 var lbl = go.GetComponentInChildren<Text>();
-                lbl.fontSize = 16;
+                lbl.fontSize = 15;
                 equipLabels[i] = lbl;
             }
         }
@@ -124,7 +124,7 @@ namespace Roguelite
         {
             var h = UIBuilder.Text("Header_" + header, panel.transform, header, 30, headerColor, TextAnchor.MiddleLeft);
             SetRect(h.rectTransform, x0, y0 + 0.06f, x1, y0 + 0.12f);
-            var b = UIBuilder.Text("Body_" + header, panel.transform, "", 23, new Color(0.92f, 0.92f, 0.92f), TextAnchor.UpperLeft);
+            var b = UIBuilder.Text("Body_" + header, panel.transform, "", 20, new Color(0.92f, 0.92f, 0.92f), TextAnchor.UpperLeft);
             // 正文区：从标题下方一直延伸到屏幕下沿(0.24)，容纳多行文本
             b.rectTransform.anchorMin = new Vector2(x0, 0.24f);
             b.rectTransform.anchorMax = new Vector2(x1, y0 + 0.06f);

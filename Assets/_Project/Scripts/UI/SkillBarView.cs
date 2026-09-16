@@ -8,6 +8,7 @@ namespace Roguelite
     public class SkillBarView : MonoBehaviour
     {
         readonly Text[] labels = new Text[2];
+        readonly Image[] cdMasks = new Image[2];   // 冷却遮罩:fillAmount=剩余比例, 从上往下盖, 转好=0
         GameObject detailPanel;
         Text detailText;
         int detailSlot = -1; // 当前展开的技能槽(-1=无)
@@ -15,7 +16,7 @@ namespace Roguelite
 
         public void Build(Transform parent)
         {
-            const float width = 0.058f, gap = 0.012f;
+            const float width = 0.06f, gap = 0.014f;
             for (int i = 0; i < 2; i++)
             {
                 int idx = i;
@@ -27,9 +28,25 @@ namespace Roguelite
                 rt.offsetMin = Vector2.zero;
                 rt.offsetMax = Vector2.zero;
                 var lbl = go.GetComponentInChildren<Text>();
-                lbl.fontSize = 16;
+                lbl.fontSize = 15;
                 lbl.alignment = TextAnchor.MiddleCenter;
                 labels[i] = lbl;
+
+                // 冷却遮罩(帮衬格内, 常驻最底层之下? 置于 label 之下)：fillAmount 从上往下盖, 冷却比例
+                var maskGo = new GameObject("CD", typeof(Image));
+                var maskTransform = maskGo.transform as RectTransform;
+                maskTransform.SetParent(go.transform, false);
+                maskTransform.anchorMin = Vector2.zero;
+                maskTransform.anchorMax = Vector2.one;
+                maskTransform.offsetMin = Vector2.zero;
+                maskTransform.offsetMax = Vector2.zero;
+                Image mask = maskGo.GetComponent<Image>();
+                mask.color = new Color(0f, 0f, 0f, 0.55f);
+                mask.type = Image.Type.Filled;
+                mask.fillMethod = Image.FillMethod.Vertical;
+                mask.fillOrigin = (int)Image.OriginVertical.Top; // 剩余越多覆盖越满
+                maskGo.transform.SetAsFirstSibling(); // 文字标签置于遮罩之上，保持可读
+                cdMasks[i] = mask;
             }
 
             // 描述覆盖层：以 Canvas 为父(全屏)，中央弹出，点击格子切换开合
@@ -123,7 +140,7 @@ namespace Roguelite
 
         void Subscribe() => OnEnable();
 
-        /// <summary>重绘 E/R 格子：冷却中显示剩余秒并置灰，就绪显示技能名。</summary>
+        /// <summary>重绘 E/R 格子：冷却中显示剩余秒数并盖上渐变遮罩(fillAmount=剩余比例)，就绪显示技能名。</summary>
         void Refresh()
         {
             PlayerStats s = PlayerStats.Instance;
@@ -133,17 +150,22 @@ namespace Roguelite
                 if (lbl == null) continue;
                 string key = i == 0 ? "E" : "R";
                 ClassSkillData sk = i == 0 ? (s != null ? s.QSkill : null) : (s != null ? s.RSkill : null);
-                float cd = i == 0 ? (s != null ? s.QCooldown : 0f) : (s != null ? s.RCooldown : 0f);
+                float remaining = i == 0 ? (s != null ? s.QCooldown : 0f) : (s != null ? s.RCooldown : 0f);
                 string name = sk != null && !string.IsNullOrEmpty(sk.Name) ? sk.Name : "未解锁";
-                if (cd > 0f)
+                if (remaining > 0.01f && sk != null)
                 {
-                    lbl.text = key + "\n" + name + "\n" + Mathf.CeilToInt(cd) + "s";
-                    lbl.color = new Color(0.75f, 0.75f, 0.75f, 0.9f);
+                    int total = Mathf.Max(1, Mathf.RoundToInt(sk.Cooldown * s.HasteCooldownScale));
+                    if (cdMasks[i] != null) cdMasks[i].fillAmount = Mathf.Clamp01(remaining / total);
+                    lbl.text = key + "\n" + name + "\n" + Mathf.CeilToInt(remaining) + "s";
+                    lbl.color = Color.white;
+                    lbl.fontSize = 15;
                 }
                 else
                 {
+                    if (cdMasks[i] != null) cdMasks[i].fillAmount = 0f;
                     lbl.text = key + "\n" + name;
                     lbl.color = Color.white;
+                    lbl.fontSize = 15;
                 }
             }
         }

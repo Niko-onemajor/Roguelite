@@ -88,12 +88,12 @@ namespace Roguelite
         {
             var root = UIBuilder.Button("Slot_" + i, panel.transform, "", null);
             var rt = root.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.06f + 0.29f * i, 0.28f);
-            rt.anchorMax = new Vector2(0.35f + 0.29f * i, 0.86f);
+            rt.anchorMin = new Vector2(0.06f + 0.29f * i, 0.31f);
+            rt.anchorMax = new Vector2(0.35f + 0.29f * i, 0.88f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             var label = root.GetComponentInChildren<Text>(true);
-            label.fontSize = 28;
+            label.fontSize = 26;
 
             // 右上角锁定/解锁小按钮(子节点 Button 优先拦截点击，不会触发购买)
             var lockGo = UIBuilder.Button("Lock_" + i, root.transform, "锁定", null);
@@ -114,7 +114,7 @@ namespace Roguelite
         /// <summary>内嵌出售区：商店槽位下方一横条 8 格玩家装备栏，点击格子触发"误卖确认"弹窗。</summary>
         void BuildSellStrip()
         {
-            const float cellW = 0.112f, gap = 0.006f, left = 0.03f, top = 0.27f, bottom = 0.215f;
+            const float cellW = 0.112f, gap = 0.006f, left = 0.03f, top = 0.275f, bottom = 0.225f;
             for (int i = 0; i < sellCells.Length; i++)
             {
                 int idx = i;

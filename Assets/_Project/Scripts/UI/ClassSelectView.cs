@@ -31,7 +31,7 @@ namespace Roguelite
             title.rectTransform.offsetMin = Vector2.zero;
             title.rectTransform.offsetMax = Vector2.zero;
 
-            var hint = UIBuilder.Text("ClassHint", panel.transform, "决定基础属性与 Q(基础技能)/R(大招)，点击选择", 26,
+            var hint = UIBuilder.Text("ClassHint", panel.transform, "决定基础属性与 E(基础技能)/R(大招)，点击选择", 26,
                 new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleCenter);
             hint.rectTransform.anchorMin = new Vector2(0.2f, 0.85f);
             hint.rectTransform.anchorMax = new Vector2(0.8f, 0.9f);
