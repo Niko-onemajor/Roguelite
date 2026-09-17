@@ -113,19 +113,27 @@ namespace Roguelite
                 float along = Vector2.Dot(to, d);
                 if (along < -0.2f || along > length) continue;
                 float perpSq = (to - d * along).sqrMagnitude;
-                if (perpSq <= halfW * halfW) CastMagic(e, baseDamage, apRatio);
+                if (perpSq <= halfW * halfW)
+                {
+                    SimpleVfx.Burst(e.transform.position, 1.1f, new Color(0.5f, 0.7f, 1f), 0.3f); // 命中火花
+                    CastMagic(e, baseDamage, apRatio);
+                }
             }
         }
 
         /// <summary>弹射魔法伤害(法师R烈焰风暴)：从 origin 起命中最近敌人并在 radius 内依次弹射 maxBounces 次。</summary>
         public static void CastMagicBounce(Vector2 origin, float radius, int maxBounces, float baseDamage, float apRatio)
         {
+            Color purple = new Color(0.68f, 0.42f, 1f, 0.9f);
+            SimpleVfx.Ring(origin, radius * 2f, purple, 0.4f);
             Enemy current = EnemyRegistry.Nearest(origin, radius);
+            Vector2 from = origin;
             for (int i = 0; i < maxBounces && current != null; i++)
             {
                 CastMagic(current, baseDamage, apRatio);
+                SimpleVfx.Dash(from, current.transform.position, purple, 0.35f); // 弹射连线+落点爆花
                 Enemy prev = current;
-                Vector2 from = current.transform.position;
+                from = current.transform.position;
                 current = Nearest(prev, from, radius);
             }
         }

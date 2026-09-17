@@ -717,13 +717,27 @@ namespace Roguelite
 
             switch (skill.Type)
             {
-                case ClassSkillType.MageDeathRay: DamageSystem.CastMagicLine(origin, FacingDir(), MageRayLength, MageRayWidth, skill.BaseDamage, skill.ApRatio); break;
-                case ClassSkillType.MageStorm: DamageSystem.CastMagicBounce(origin, MageStormRadius, MageStormBounces, skill.BaseDamage, skill.ApRatio); break;
+                case ClassSkillType.MageDeathRay:
+                    SimpleVfx.Beam(origin, FacingDir(), MageRayLength, MageRayWidth, new Color(0.5f, 0.7f, 1f, 0.95f));
+                    DamageSystem.CastMagicLine(origin, FacingDir(), MageRayLength, MageRayWidth, skill.BaseDamage, skill.ApRatio);
+                    break;
+                case ClassSkillType.MageStorm:
+                    DamageSystem.CastMagicBounce(origin, MageStormRadius, MageStormBounces, skill.BaseDamage, skill.ApRatio);
+                    break;
                 case ClassSkillType.ArcherDash: CastArcherDash(origin, skill); break;
-                case ClassSkillType.ArcherUlt: archerRRemaining = ArcherUltDuration; break;
-                case ClassSkillType.WarriorCleave: StartCoroutine(WarriorCleaveDelayed(origin)); break;
+                case ClassSkillType.ArcherUlt:
+                    archerRRemaining = ArcherUltDuration;
+                    SimpleVfx.Burst(origin, 1.8f, new Color(1f, 0.82f, 0.4f), 0.5f); // 攻速强化金光
+                    break;
+                case ClassSkillType.WarriorCleave:
+                    SimpleVfx.Ring(origin, WarriorCleaveRadius * 2f, new Color(0.9f, 0.95f, 1f, 0.7f), 0.4f); // 蓄力提示
+                    StartCoroutine(WarriorCleaveDelayed(origin));
+                    break;
                 case ClassSkillType.WarriorReign: BeginWarriorReign(skill); break;
-                case ClassSkillType.TankShock: tankQRemaining = TankShockDuration; tankQTick = 0f; break;
+                case ClassSkillType.TankShock:
+                    tankQRemaining = TankShockDuration; tankQTick = 0f;
+                    SimpleVfx.Burst(origin, 2.2f, new Color(0.55f, 0.8f, 1f, 0.9f), 0.5f); // 电疗启动
+                    break;
                 case ClassSkillType.TankFeast: CastTankFeast(origin, skill); break;
             }
 
@@ -752,6 +766,7 @@ namespace Roguelite
                 {
                     ClassSkillData r = RSkill;
                     if (r != null) DamageSystem.CastMagicAoe(origin, WarriorReignRadius, r.BaseDamage, r.AdRatio, r.ApRatio);
+                    SimpleVfx.Ring(origin, WarriorReignRadius * 2f, new Color(1f, 0.88f, 0.35f, 0.85f), 0.4f); // 王权光环每跳
                     warriorRTick = 1f;
                 }
                 if (warriorRRemaining <= 0f)
@@ -774,6 +789,7 @@ namespace Roguelite
                     {
                         float dmg = q.BaseDamage;
                         float r2 = TankShockRadius * TankShockRadius;
+                        SimpleVfx.Ring(origin, TankShockRadius * 2f, new Color(0.55f, 0.8f, 1f, 0.85f), 0.4f); // 电疗电弧
                         for (int i = EnemyRegistry.All.Count - 1; i >= 0; i--)
                         {
                             Enemy e = EnemyRegistry.All[i];
@@ -801,7 +817,9 @@ namespace Roguelite
         void CastArcherDash(Vector2 origin, ClassSkillData skill)
         {
             Vector2 dir = FacingDir();
-            transform.position = ArenaBounds.Clamp(transform.position + (Vector3)(dir * ArcherDashDistance));
+            Vector2 to = ArenaBounds.Clamp(transform.position + (Vector3)(dir * ArcherDashDistance));
+            SimpleVfx.Dash(origin, to, new Color(0.85f, 0.95f, 1f), 0.4f); // 翻滚残影
+            transform.position = to;
             GrantNextAttackBonus(skill.BaseDamage + TotalDamage * skill.AdRatio);
         }
 
@@ -813,6 +831,7 @@ namespace Roguelite
             warriorRHpBonus = WarriorReignHp;
             maxHP += WarriorReignHp;
             CurrentHP += WarriorReignHp;
+            SimpleVfx.Burst(transform.position, 2.6f, new Color(1f, 0.88f, 0.35f), 0.6f); // 王者降临金光
             GameEvents.RaiseHP(CurrentHP, maxHP);
         }
 
@@ -831,6 +850,7 @@ namespace Roguelite
             float healCap = maxHP * 0.3f;
             float healedTotal = 0f;
             float r2 = WarriorCleaveRadius * WarriorCleaveRadius;
+            SimpleVfx.Swing(origin, FacingDir(), WarriorCleaveRadius, 110f * Mathf.Deg2Rad, new Color(1f, 0.9f, 0.55f), 0.28f); // 挥砍金光
             for (int i = EnemyRegistry.All.Count - 1; i >= 0; i--)
             {
                 Enemy e = EnemyRegistry.All[i];
@@ -855,6 +875,7 @@ namespace Roguelite
         {
             Enemy target = EnemyRegistry.Nearest(origin, float.MaxValue);
             if (target == null) return;
+            SimpleVfx.Burst(target.transform.position, 2.2f, new Color(1f, 0.7f, 0.36f), 0.45f); // 吞噬爆点
             target.TakeTrueDamage(skill.BaseDamage);
             if (target.Health <= 0f)
             {
