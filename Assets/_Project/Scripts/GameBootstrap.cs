@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -38,7 +39,7 @@ namespace Roguelite
             var forge = gameObject.AddComponent<ForgeSystem>();
             forge.Pool = cfg.forgeItems; // 锻体独立池(基础属性卡)，与商店装备池分离
             var rune = gameObject.AddComponent<RuneSystem>();
-            rune.pool = null; // 符文池待后续补充；商店/锻体共用 cfg.shopItems，符文单独建池
+            rune.pool = new List<ShopItemData>(cfg.runes); // 符文独立池(白银/龙魂/黄金/棱彩四阶)
             var wave = gameObject.AddComponent<WaveManager>();
             var classSelect = gameObject.AddComponent<ClassSelectSystem>();
             classSelect.classes = cfg.classes.ToArray();

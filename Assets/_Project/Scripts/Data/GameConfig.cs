@@ -12,6 +12,7 @@ namespace Roguelite
         public List<ShopItemData> shopItems = new List<ShopItemData>();
         /// <summary>锻体独立池(基础属性卡，锻体白/金/彩倍率强化)，与商店装备池互不共用。</summary>
         public List<ShopItemData> forgeItems = new List<ShopItemData>();
+        public List<ShopItemData> runes = new List<ShopItemData>(); // 符文三选一池(开局/7/11/15波前)
         /// <summary>职业池：开局四选一，决定基础属性/武器类型(近战砍刀或远程飞弹)/Q基础技能/R大招。</summary>
         public List<ClassData> classes = new List<ClassData>();
 
@@ -195,7 +196,92 @@ namespace Roguelite
             cfg.waves.wave18 = new List<WaveBatch> { B(cfg.enemies[0], 34, 0.25f), B(cfg.enemies[1], 22, 0.48f), B(cfg.enemies[2], 16, 1.0f) };
             cfg.waves.wave19 = new List<WaveBatch> { B(cfg.enemies[0], 36, 0.25f), B(cfg.enemies[1], 24, 0.45f), B(cfg.enemies[2], 18, 0.95f) };
             cfg.waves.wave20 = new List<WaveBatch> { B(cfg.enemies[0], 40, 0.24f), B(cfg.enemies[1], 26, 0.45f), B(cfg.enemies[2], 20, 0.9f) };
+
+            BuildRunes(cfg);
             return cfg;
+        }
+
+        /// <summary>符文池填充：机制简化为一次性基础属性增益(多属性卡)，按 白银/龙魂/黄金/棱彩 四阶定价。
+        /// 选择后由 RuneSystem 走 ApplyBonus 施加属性并记录。</summary>
+        static void BuildRunes(GameConfig cfg)
+        {
+            // ── 白银强化符文(基础属性) ──
+            cfg.runes.Add(Rune("灵巧", "获得 50% 攻击速度。", 5, B(StatType.AttackSpeed, 0.67f)));
+            cfg.runes.Add(Rune("大力", "获得 10% 攻击力。", 5, B(StatType.AttackDamage, 10f)));
+            cfg.runes.Add(Rune("巫师式思考", "获得 20% 法术强度。", 5, B(StatType.AbilityPower, 20f)));
+            cfg.runes.Add(Rune("急救用具", "获得 20% 治疗和护盾强度。", 5, B(StatType.HealShieldPower, 0.2f)));
+            cfg.runes.Add(Rune("由心及物", "最大生命值提升相当于一半法力值的数额。", 5,
+                B(StatType.MaxHP, 40f), B(StatType.Mana, 80f)));
+            cfg.runes.Add(Rune("易损", "持续伤害可暴击造成额外伤害，并获得 20% 暴击几率。", 5, B(StatType.CritChance, 0.2f)));
+            cfg.runes.Add(Rune("会心防守", "以暴击几率进行防御并减免伤害，获得 20% 暴击几率。", 5, B(StatType.CritChance, 0.2f)));
+            cfg.runes.Add(Rune("唯快不破", "移动速度高于目标时造成额外伤害。", 5, B(StatType.MoveSpeed, 0.8f)));
+            cfg.runes.Add(Rune("重量级打击手", "普通攻击附带相当于最大生命 4% 的额外物理伤害。", 5, B(StatType.MaxHP, 60f)));
+            cfg.runes.Add(Rune("侵蚀", "伤害施加 4 秒的 1.5% 护甲与魔抗击碎效果。", 5,
+                B(StatType.ArmorPen, 6f), B(StatType.MagicPen, 6f)));
+            cfg.runes.Add(Rune("点亮", "每第 4 次普通攻击发射 4 枚额外魔法飞弹。", 5, B(StatType.AbilityPower, 15f)));
+            cfg.runes.Add(Rune("裁决使", "对生命低于 50% 的敌人多造成 15% 伤害。", 5, B(StatType.AttackDamage, 8f)));
+
+            // ── 龙魂类(简化为大额增益) ──
+            cfg.runes.Add(Rune("炼狱龙魂", "造成伤害时在目标处引发爆炸(90+12%额外攻击力+6%法强)，冷却5秒。", 12,
+                B(StatType.AttackDamage, 12f), B(StatType.AbilityPower, 6f)));
+            cfg.runes.Add(Rune("山脉龙魂", "脱离战斗后获得护盾，并获得额外攻击力/法强/生命加成。", 12,
+                B(StatType.MaxHP, 60f), B(StatType.Armor, 6f), B(StatType.MagicResist, 6f)));
+            cfg.runes.Add(Rune("海洋龙魂", "造成伤害后在 4 秒内回复生命与法力。", 12,
+                B(StatType.HPRegen, 3f), B(StatType.Mana, 40f), B(StatType.MaxHP, 40f)));
+            cfg.runes.Add(Rune("海克斯科技龙魂", "周期性触发连锁闪电(25-75真实伤害，弹射3目标)，内置冷却8秒。", 12,
+                B(StatType.AbilityHaste, 20f), B(StatType.AttackSpeed, 0.9f)));
+
+            // ── 黄金强化符文(技能强化/功能) ──
+            cfg.runes.Add(Rune("循环往复", "提供 60 技能急速。", 15, B(StatType.AbilityHaste, 60f)));
+            cfg.runes.Add(Rune("术士果汁盒", "根据法术强度获得全能吸血，每 100 法强额外 3.5%。", 15,
+                B(StatType.Omnivamp, 0.1f), B(StatType.AbilityPower, 10f)));
+            cfg.runes.Add(Rune("超凡邪恶", "技能命中永久获得法术强度。", 15, B(StatType.AbilityPower, 40f)));
+            cfg.runes.Add(Rune("牙仙子", "每颗牙齿藏品给予 5 穿甲与 5 法术穿透。", 15,
+                B(StatType.ArmorPen, 5f), B(StatType.MagicPen, 5f)));
+            cfg.runes.Add(Rune("魔法飞弹", "技能命中发射真实伤害飞弹(基于目标最大生命)。", 15,
+                B(StatType.AbilityPower, 10f), B(StatType.MagicPen, 5f)));
+            cfg.runes.Add(Rune("豪猪尖刺", "受到伤害累积尖刺层数，满层爆发并减速周围敌人。", 15,
+                B(StatType.Armor, 15f), B(StatType.MagicResist, 15f)));
+            cfg.runes.Add(Rune("坦克引擎", "参与击杀后体型变大并永久提升最大生命。", 15, B(StatType.MaxHP, 80f)));
+            cfg.runes.Add(Rune("缩小引擎", "参与击杀后变小并获得技能急速与移动速度。", 15,
+                B(StatType.AbilityHaste, 8f), B(StatType.MoveSpeed, 0.3f), B(StatType.Size, 0.96f)));
+
+            // ── 棱彩强化符文(高级大额) ──
+            cfg.runes.Add(Rune("珠光护手", "技能可暴击(145%总伤害)，获得 25% 暴击几率，每 100 法强额外 4.5% 暴击。", 25,
+                B(StatType.CritChance, 0.25f), B(StatType.AbilityPower, 15f)));
+            cfg.runes.Add(Rune("双刀流", "普通攻击额外发射一枚 40% 伤害的次级箭矢，获得 20% 总攻速。", 25,
+                B(StatType.AttackSpeed, 0.8f), B(StatType.AttackDamage, 10f)));
+            cfg.runes.Add(Rune("歌利亚巨人", "获得 35% 额外最大生命、15% 适应之力与 50% 体型。", 25,
+                B(StatType.MaxHP, 150f), B(StatType.AttackDamage, 15f), B(StatType.Size, 1.15f)));
+            cfg.runes.Add(Rune("亮出你的剑", "视为近战：+30%攻击力、+25%攻速、+30%生命、+20%吸血、+25%移速。", 25,
+                B(StatType.AttackDamage, 25f), B(StatType.AttackSpeed, 0.75f),
+                B(StatType.MaxHP, 50f), B(StatType.Omnivamp, 0.2f), B(StatType.MoveSpeed, 0.6f)));
+            cfg.runes.Add(Rune("物法皆修", "攻击叠法术强度，技能叠攻击力，可无限叠加。", 25,
+                B(StatType.AttackDamage, 10f), B(StatType.AbilityPower, 15f)));
+            cfg.runes.Add(Rune("蛋白粉奶昔", "获得 25% 治疗和护盾强度。", 25, B(StatType.HealShieldPower, 0.25f)));
+            cfg.runes.Add(Rune("尤里卡", "相当于 30% 法术强度的技能急速。", 25,
+                B(StatType.AbilityHaste, 20f), B(StatType.AbilityPower, 10f)));
+            cfg.runes.Add(Rune("最万用的瞄准镜", "近战获得 250 攻击距离，远程获得 150 攻击距离。", 25, B(StatType.AttackRange, 2f)));
+            cfg.runes.Add(Rune("踢踏舞", "普攻获得移动速度，并拥有相当于总移速 10% 的额外攻速。", 25,
+                B(StatType.AttackSpeed, 0.9f), B(StatType.MoveSpeed, 0.5f)));
+            cfg.runes.Add(Rune("无限循环往复", "初始 60 技能急速，每击杀额外获得技能急速。", 25,
+                B(StatType.AbilityHaste, 60f), B(StatType.AttackDamage, 5f)));
+            cfg.runes.Add(Rune("大招工具人", "技能急速翻倍作用于终极技能，获得 100 技能急速。", 25, B(StatType.AbilityHaste, 100f)));
+
+            // 去重防呆
+            var seen = new HashSet<string>();
+            foreach (ShopItemData r in new List<ShopItemData>(cfg.runes))
+                if (string.IsNullOrEmpty(r.displayName) || !seen.Add(r.displayName))
+                    cfg.runes.Remove(r);
+        }
+
+        /// <summary>符文工厂：多组属性 + 机制文案(选择后 ApplyBonus 施加)。</summary>
+        static ShopItemData Rune(string name, string desc, int price, params StatBonus[] stats)
+        {
+            var i = ScriptableObject.CreateInstance<ShopItemData>();
+            i.displayName = name; i.basePrice = price; i.passive = desc;
+            for (int k = 0; k < stats.Length; k++) i.bonuses.Add(stats[k]);
+            return i;
         }
 
         static WeaponData Weapon(string name, WeaponType t, float dmg, float interval, float range, float speed, Color c)

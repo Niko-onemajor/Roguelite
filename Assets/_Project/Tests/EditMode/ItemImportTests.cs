@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -150,6 +151,23 @@ namespace Roguelite.Tests
             }
             Assert.That(multi, Is.EqualTo(33));
             Assert.That(withPassive, Is.EqualTo(29)); // 33 件中 4 件纯属性无文案(无尽之刃/狂战士胫甲/法师之靴/明朗之靴; 虚空之杖已有虚空穿透被动)
+        }
+
+        /// <summary>符文池：至少 30 张、名称不重复、全部带机制文案与多重属性。</summary>
+        [Test]
+        public void Default_Runepool_Valid()
+        {
+            var cfg = GameConfig.Default();
+            Assert.That(cfg.runes.Count, Is.GreaterThanOrEqualTo(30));
+
+            var names = new HashSet<string>();
+            foreach (var r in cfg.runes)
+            {
+                Assert.That(r.displayName, Is.Not.Null.Or.Empty);
+                Assert.That(names.Add(r.displayName), Is.True, "符文名称重复: " + r.displayName);
+                Assert.That(string.IsNullOrEmpty(r.passive), Is.False, "符文缺机制文案: " + r.displayName);
+                Assert.That(r.IsMulti, Is.True, "符文应为多属性卡: " + r.displayName);
+            }
         }
     }
 }
