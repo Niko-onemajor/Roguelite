@@ -111,12 +111,13 @@ namespace Roguelite
             ApplyDamage(actual);
         }
 
-        /// <summary>魔法伤害：按怪物魔抗与玩家法术穿透结算，并受深渊面具易伤倍率影响。</summary>
+        /// <summary>魔法伤害：按怪物魔抗与玩家法术穿透结算(含虚空之杖40%百分比穿透)，并受深渊面具易伤倍率影响。</summary>
         public void TakeMagicDamage(float dmg)
         {
             if (Data == null) return;
             PlayerStats ps = PlayerStats.Instance;
-            float effectiveResist = Mathf.Max(0f, Data.magicResist - (ps != null ? ps.magicPen : 0f));
+            float pctPen = ps != null && ps.HasPassive(PassiveType.VoidPen) ? 0.4f : 0f; // 虚空之杖百分比穿透
+            float effectiveResist = Mathf.Max(0f, (Data.magicResist - (ps != null ? ps.magicPen : 0f)) * (1f - pctPen));
             float actual = dmg * (100f / (100f + effectiveResist)) * magicVulnMult;
             DamagePopup.Spawn(transform.position, actual, DamageKind.Magic);
             ApplyDamage(actual);

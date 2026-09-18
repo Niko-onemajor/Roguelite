@@ -327,7 +327,7 @@ namespace Roguelite
             s.lockBtn.colors = colors;
         }
 
-        /// <summary>内嵌装备格重绘：显示 槽号+装备名+售价(八折) / 空。</summary>
+        /// <summary>内嵌装备格重绘：只显示 槽号+售价(八折) / 空，不显示装备名(名称见图标/确认弹窗)。</summary>
         void RenderSellCell(int idx)
         {
             SellCellUI c = sellCells[idx];
@@ -337,7 +337,7 @@ namespace Roguelite
             c.root.SetActive(true);
             c.button.interactable = has;
             c.label.text = has
-                ? $"{idx + 1} {item.displayName}\n售价 {ShopSystem.SellPriceOf(item)} 金"
+                ? $"{idx + 1}\n{ShopSystem.SellPriceOf(item)}金"
                 : $"{idx + 1}\n空";
             c.label.color = has ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.55f);
             c.icon.enabled = has && item.IconSprite != null;

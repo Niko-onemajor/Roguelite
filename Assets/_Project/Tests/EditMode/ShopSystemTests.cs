@@ -177,7 +177,7 @@ namespace Roguelite.Tests
             var single = new GameObject("single");
             var singleShop = single.AddComponent<ShopSystem>();
             singleShop.stats = stats;
-            singleShop.pool = new[] { pool[0], pool[1] };
+            singleShop.pool = new[] { pool[0], pool[1], pool[2], pool[3] };
             singleShop.OpenOffer();
             ShopItemData bought = singleShop.Slots[0].Item;
             Assert.That(singleShop.TryPurchase(0), Is.True);

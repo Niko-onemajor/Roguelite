@@ -44,10 +44,11 @@ namespace Roguelite
                 if (s != null && s.Locked && s.Item != null) retained.Add(s);
 
             slots.Clear();
+            var picked = new HashSet<ShopItemData>(); // 本波已选：同一次商店不出现重复装备
             for (int i = 0; i < SlotCount; i++)
             {
                 if (i < retained.Count) slots.Add(retained[i]);
-                else { var ns = new ShopSlot(); FillSlot(ns); slots.Add(ns); }
+                else { var ns = new ShopSlot(); FillSlot(ns, picked); slots.Add(ns); }
             }
             GameEvents.RaiseShop(this);
         }
@@ -100,15 +101,20 @@ namespace Roguelite
             slot.Locked = !slot.Locked;
         }
 
-        /// <summary>刷新商店：花费 10 金币，替换所有未锁定槽位(锁定槽保持原货)。</summary>
+        /// <summary>刷新商店：花费 10 金币，替换所有未锁定槽位(锁定槽保持原货)。刷新后同波不出现重复装备。</summary>
         public bool TryRefresh()
         {
             if (!IsAwaitingChoice || stats == null) return false;
             if (stats.Gold < RefreshPrice) return false;
 
             stats.AddGold(-RefreshPrice);
+            var picked = new HashSet<ShopItemData>(); // 本波已选(含保留在槽位中的锁定装备)
             for (int i = 0; i < slots.Count; i++)
-                if (!slots[i].Locked) FillSlot(slots[i]);
+            {
+                if (slots[i].Item != null) picked.Add(slots[i].Item);
+            }
+            for (int i = 0; i < slots.Count; i++)
+                if (!slots[i].Locked) FillSlot(slots[i], picked);
             return true;
         }
 
@@ -118,34 +124,36 @@ namespace Roguelite
             IsAwaitingChoice = false;
         }
 
-        void FillSlot(ShopSlot slot)
+        void FillSlot(ShopSlot slot, HashSet<ShopItemData> picked)
         {
-            slot.Item = PickItem();
+            slot.Item = PickItem(picked);
         }
 
-        /// <summary>从未拥有的装备中按价格加权抽取；全部已入手则返回 null(槽位空置)。</summary>
-        ShopItemData PickItem()
+        /// <summary>从未拥有且本波未选过的装备中按价格加权抽取；无可选则返回 null(槽位空置)。</summary>
+        ShopItemData PickItem(HashSet<ShopItemData> picked)
         {
             if (pool == null || pool.Length == 0) return null;
             var avail = new List<ShopItemData>(pool.Length);
             for (int i = 0; i < pool.Length; i++)
-                if (!owned.Contains(pool[i])) avail.Add(pool[i]);
+                if (!owned.Contains(pool[i]) && !picked.Contains(pool[i])) avail.Add(pool[i]);
             if (avail.Count == 0) return null;
 
             int total = 0;
             for (int i = 0; i < avail.Count; i++) total += WeightOf(avail[i].basePrice);
             int roll = rng.Next(total);
+            ShopItemData chosen = avail[avail.Count - 1];
             for (int i = 0; i < avail.Count; i++)
             {
                 roll -= WeightOf(avail[i].basePrice);
-                if (roll < 0) return avail[i];
+                if (roll < 0) { chosen = avail[i]; break; }
             }
-            return avail[avail.Count - 1];
+            picked.Add(chosen);
+            return chosen;
         }
 
         static int WeightOf(int price)
         {
-            if (price >= 40) return 2;  // 传说级，最稀有
+            if (price >= 40) return 4;  // 传说级(虚空之杖/无尽之刃等高价装备保底可刷出)
             if (price >= 30) return 3;  // 史诗级
             if (price >= 20) return 5;  // 精良级
             return 8;                   // 基础/廉价，最常见

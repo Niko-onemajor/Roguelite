@@ -149,7 +149,7 @@ namespace Roguelite.Tests
                 if (!string.IsNullOrEmpty(s.passive)) withPassive++;
             }
             Assert.That(multi, Is.EqualTo(33));
-            Assert.That(withPassive, Is.EqualTo(28)); // 33 件中 5 件纯属性无文案(无尽之刃/虚空之杖/狂战/法穿/明朗)
+            Assert.That(withPassive, Is.EqualTo(29)); // 33 件中 4 件纯属性无文案(无尽之刃/狂战士胫甲/法师之靴/明朗之靴; 虚空之杖已有虚空穿透被动)
         }
     }
 }

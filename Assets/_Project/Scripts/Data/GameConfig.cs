@@ -100,8 +100,9 @@ namespace Roguelite
             cfg.shopItems.Add(Equip("灭世者的死亡之帽", 45, "被动：法术强度×1.4。",
                 B(StatType.AbilityPower, 9f)));
             MarkPassive(cfg.shopItems, "灭世者的死亡之帽", PassiveType.Deathcap);
-            cfg.shopItems.Add(Equip("虚空之杖", 38, "",
+            cfg.shopItems.Add(Equip("虚空之杖", 38, "被动“虚空穿透”：法术穿透提升40%。",
                 B(StatType.AbilityPower, 5f), B(StatType.MagicPen, 8f)));
+            MarkPassive(cfg.shopItems, "虚空之杖", PassiveType.VoidPen);
             cfg.shopItems.Add(Equip("蜕生", 38, "被动“死中焕生”：参与击杀回复最大生命5%。",
                 B(StatType.AbilityPower, 5f), B(StatType.AbilityHaste, 7f), B(StatType.MagicPen, 6f)));
             MarkPassive(cfg.shopItems, "蜕生", PassiveType.ReapHeal);
