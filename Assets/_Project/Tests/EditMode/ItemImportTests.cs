@@ -119,8 +119,8 @@ namespace Roguelite.Tests
         public void GameConfig_Default_Contains_ImportedEquipment()
         {
             var cfg = GameConfig.Default();
-            // 商店池=34 件导入装备(26 件已于精简时删除)；锻体独立池=10 张基础属性卡(商店不再出现)
-            Assert.That(cfg.shopItems.Count, Is.EqualTo(34));
+            // 商店池=33 件导入装备(贪婪胫甲等 27 件已于精简时删除)；锻体独立池=10 张基础属性卡(商店不再出现)
+            Assert.That(cfg.shopItems.Count, Is.EqualTo(33));
             Assert.That(cfg.forgeItems.Count, Is.EqualTo(10));
             Assert.That(cfg.forgeItems.TrueForAll(s => !s.IsMulti)); // 锻体卡均为单属性
 
@@ -148,8 +148,8 @@ namespace Roguelite.Tests
                 if (s.IsMulti) multi++;
                 if (!string.IsNullOrEmpty(s.passive)) withPassive++;
             }
-            Assert.That(multi, Is.EqualTo(34));
-            Assert.That(withPassive, Is.EqualTo(29)); // 34 件中 5 件纯属性无文案(无尽之刃/虚空之杖/狂战/法穿/明朗)
+            Assert.That(multi, Is.EqualTo(33));
+            Assert.That(withPassive, Is.EqualTo(28)); // 33 件中 5 件纯属性无文案(无尽之刃/虚空之杖/狂战/法穿/明朗)
         }
     }
 }

@@ -110,6 +110,7 @@ namespace Roguelite
     public class ShopItemData : ScriptableObject
     {
         public string displayName = "增益";
+        public string iconKey = "";               // 图标文件名(Resources/Items 下, 无扩展名; 空/缺失则文字兜底)
         public StatType statType;
         public int basePrice = 10;   // 商店固定售价（Brotato 风格，不再随购买递增）
         public float addValue = 1f;  // 每次加成(AttackSpeed 为乘积系数 0.85)
@@ -131,6 +132,21 @@ namespace Roguelite
         public float activeCooldown = 0f;
 
         public bool IsMulti => bonuses != null && bonuses.Count > 0;
+
+        static readonly Dictionary<string, Sprite> iconCache = new Dictionary<string, Sprite>();
+
+        /// <summary>按 iconKey 从 Resources/Items 加载图标(带缓存)；无图标或缺失返回 null。</summary>
+        public Sprite IconSprite
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(iconKey)) return null;
+                if (iconCache.TryGetValue(iconKey, out Sprite s)) return s;
+                Sprite loaded = Resources.Load<Sprite>("Items/" + iconKey);
+                iconCache[iconKey] = loaded;
+                return loaded;
+            }
+        }
     }
 
     /// <summary>属性效果文案统一入口（商店/锻体/符文共用），mult 为倍率(锻体稀有度)。

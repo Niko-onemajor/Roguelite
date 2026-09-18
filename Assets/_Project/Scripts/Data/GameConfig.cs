@@ -168,9 +168,6 @@ namespace Roguelite
                 B(StatType.MoveSpeed, 1f), B(StatType.AbilityHaste, 5f)));
             cfg.shopItems.Add(Equip("轻灵之靴", 13, "被动：韧性+25%（替代减速抗性）。",
                 B(StatType.MoveSpeed, 1.3f), B(StatType.Tenacity, 0.25f)));
-            cfg.shopItems.Add(Equip("贪婪胫甲", 12, "被动“贪婪”：生命值≥50%时伤害+8%；低于50%时治疗与护盾+20%。",
-                B(StatType.MoveSpeed, 1f), B(StatType.Omnivamp, 0.02f)));
-            MarkPassive(cfg.shopItems, "贪婪胫甲", PassiveType.GreedTreads);
             #endregion
 
             // 波次 20 波(手调递增)，通关后由 WaveManager 进入无尽模式
@@ -244,9 +241,34 @@ namespace Roguelite
         {
             var i = ScriptableObject.CreateInstance<ShopItemData>();
             i.displayName = name; i.basePrice = baseP; i.passive = passive;
+            i.iconKey = IconKeyOf(name); // 对应 Resources/Items 下的图标文件(缺失则无图标,文字兜底)
             for (int k = 0; k < stats.Length; k++) i.bonuses.Add(stats[k]);
             return i;
         }
+
+        /// <summary>装备图标文件映射：中文名 → Resources/Items 下的英文小写文件名(无扩展名)。</summary>
+        static readonly System.Collections.Generic.Dictionary<string, string> ItemIcons = new()
+        {
+            { "无尽之刃", "infinity_edge" }, { "三相之力", "trinity_force" },
+            { "斯特拉克的挑战护手", "steraks_gage" }, { "黑色切割者", "black_cleaver" },
+            { "死亡之舞", "deaths_dance" }, { "破败王者之刃", "blade_of_ruined_king" },
+            { "饮血剑", "bloodthirster" }, { "海克斯镜片 C44", "hextech_lens_c44" },
+            { "霸王血铠", "tyrant_blood_armor" },
+            { "兰德里的折磨", "liandrys_torment" }, { "灭世者的死亡之帽", "rabadons_deathcap" },
+            { "虚空之杖", "void_staff" }, { "蜕生", "malignance" }, { "裂隙制造者", "riftmaker" },
+            { "暗夜收割者", "night_harvester" }, { "影焰", "shadowflame" },
+            { "卢安娜的飓风", "runaans_hurricane" }, { "猎魔人弩箭", "hunter_crossbow" },
+            { "日炎圣盾", "sunfire_aegis" }, { "荆棘之甲", "thornmail" },
+            { "自然之力", "force_of_nature" }, { "振奋盔甲", "spirit_visage" },
+            { "狂徒铠甲", "warmogs_armor" }, { "无终恨意", "unending_despair" },
+            { "原生质护带", "primordial_sash" }, { "亡者的板甲", "dead_mans_plate" },
+            { "深渊面具", "abyssal_mask" },
+            { "狂战士胫甲", "berserker_greaves" }, { "法师之靴", "sorcerers_shoes" },
+            { "铁板靴", "steelcaps" }, { "水银之靴", "mercury_treads" },
+            { "明朗之靴", "lucidity_boots" }, { "轻灵之靴", "swiftness_boots" },
+        };
+
+        static string IconKeyOf(string name) => ItemIcons.TryGetValue(name, out var v) ? v : "";
 
         /// <summary>按名称给已添加的装备绑定战斗被动(位掩码叠加，多件被动装备可共存)。</summary>
         static void MarkPassive(List<ShopItemData> items, string name, PassiveType type)

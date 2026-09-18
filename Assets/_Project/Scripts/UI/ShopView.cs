@@ -34,6 +34,7 @@ namespace Roguelite
             public GameObject root;
             public Button button;
             public Text label;
+            public Image icon;
             public Button lockBtn;
             public Text lockLabel;
         }
@@ -43,6 +44,7 @@ namespace Roguelite
             public GameObject root;
             public Button button;
             public Text label;
+            public Image icon;
         }
 
         public void Build(Transform parent)
@@ -95,6 +97,15 @@ namespace Roguelite
             var label = root.GetComponentInChildren<Text>(true);
             label.fontSize = 26;
 
+            // 左上角装备图标(Resources/Items 按 iconKey 加载, 缺失自动隐藏)
+            var iconGo = new GameObject("Icon", typeof(Image));
+            iconGo.transform.SetParent(root.transform, false);
+            var iconRt = iconGo.transform as RectTransform;
+            SetRect(iconRt, 0.02f, 0.72f, 0.26f, 0.96f);
+            var iconImg = iconGo.GetComponent<Image>();
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+
             // 右上角锁定/解锁小按钮(子节点 Button 优先拦截点击，不会触发购买)
             var lockGo = UIBuilder.Button("Lock_" + i, root.transform, "锁定", null);
             SetRect(lockGo.GetComponent<RectTransform>(), 0.55f, 0.74f, 1f, 1f);
@@ -106,6 +117,7 @@ namespace Roguelite
                 root = root,
                 button = root.GetComponent<Button>(),
                 label = label,
+                icon = iconImg,
                 lockBtn = lockGo.GetComponent<Button>(),
                 lockLabel = lockLabel,
             });
@@ -124,7 +136,17 @@ namespace Roguelite
                 label.fontSize = 15;
                 var btn = go.GetComponent<Button>();
                 btn.onClick.AddListener(() => OnSellCellClicked(idx));
-                sellCells[i] = new SellCellUI { root = go, button = btn, label = label };
+
+                // 左上角装备小图标(Resources/Items 按 iconKey 加载, 缺失自动隐藏)
+                var iconGo = new GameObject("Icon", typeof(Image));
+                iconGo.transform.SetParent(go.transform, false);
+                var iconRt = iconGo.transform as RectTransform;
+                SetRect(iconRt, 0.03f, 0.08f, 0.42f, 0.92f);
+                var iconImg = iconGo.GetComponent<Image>();
+                iconImg.preserveAspect = true;
+                iconImg.raycastTarget = false;
+
+                sellCells[i] = new SellCellUI { root = go, button = btn, label = label, icon = iconImg };
             }
         }
 
@@ -281,6 +303,9 @@ namespace Roguelite
             s.label.text = sold
                 ? "已售出"
                 : $"{slot.Item.displayName}\n{StatText.Describe(slot.Item)}\n价格 {shop.PriceOf(slot.Item)} 金币";
+            ShopItemData it = sold ? null : slot.Item;
+            s.icon.enabled = it != null && it.IconSprite != null;
+            s.icon.sprite = it != null ? it.IconSprite : null;
             s.button.interactable = !sold;
             s.button.onClick.RemoveAllListeners();
             if (!sold)
@@ -315,6 +340,8 @@ namespace Roguelite
                 ? $"{idx + 1} {item.displayName}\n售价 {ShopSystem.SellPriceOf(item)} 金"
                 : $"{idx + 1}\n空";
             c.label.color = has ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.55f);
+            c.icon.enabled = has && item.IconSprite != null;
+            c.icon.sprite = has ? item.IconSprite : null;
         }
 
         static void SetRect(RectTransform rt, float x0, float y0, float x1, float y1)

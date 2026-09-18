@@ -18,6 +18,7 @@ namespace Roguelite
 
         // 装备栏 8 格(暂停页展示)：点击格子弹出效果描述覆盖层
         readonly Text[] equipLabels = new Text[PlayerStats.EquipmentSlotCount];
+        readonly Image[] equipIcons = new Image[PlayerStats.EquipmentSlotCount];
         GameObject detailPanel;
         Text detailText;
 
@@ -56,6 +57,16 @@ namespace Roguelite
                 var lbl = go.GetComponentInChildren<Text>();
                 lbl.fontSize = 15;
                 equipLabels[i] = lbl;
+
+                // 左上角装备图标(Resources/Items 按 iconKey 加载, 缺失自动隐藏)
+                var iconGo = new GameObject("Icon", typeof(Image));
+                iconGo.transform.SetParent(go.transform, false);
+                var iconRt = iconGo.transform as RectTransform;
+                SetRect(iconRt, 0.04f, 0.06f, 0.42f, 0.94f);
+                var iconImg = iconGo.GetComponent<Image>();
+                iconImg.preserveAspect = true;
+                iconImg.raycastTarget = false;
+                equipIcons[i] = iconImg;
             }
         }
 
@@ -165,6 +176,11 @@ namespace Roguelite
                 string name = item != null ? ShortName(item.displayName) : "空";
                 lbl.text = (i + 1) + "\n" + name;
                 lbl.color = item != null ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.55f);
+                if (i < equipIcons.Length && equipIcons[i] != null)
+                {
+                    equipIcons[i].enabled = item != null && item.IconSprite != null;
+                    equipIcons[i].sprite = item != null ? item.IconSprite : null;
+                }
             }
         }
 
