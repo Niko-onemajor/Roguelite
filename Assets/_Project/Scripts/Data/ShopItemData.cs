@@ -37,6 +37,8 @@ namespace Roguelite
         Tyrant,          // 霸王血铠：额外生命→攻击力 + 已损生命%→攻击力
         ArcaneBolt,      // 海克斯科技枪刃：周期法术弹(耗法力)
         VoidPen,         // 虚空之杖：法术穿透 +40%(百分比穿透, 与固定穿透叠加)
+        InfernalConduit, // 炼狱导管(棱彩)：灼烧每秒伤害时 各基础技能冷却-0.08s
+        HextechLightning,// 海克斯科技龙魂：周期性连锁闪电(真伤弹射3目标+减速2s)，内置CD 8s
         // ── AD 装备 ──
         Spellblade,      // 三相之力：每1.5s一次普攻附 攻击力×1 额外物理伤害
         SpellbladeArcane,// 黄昏与黎明：每1.5s一次普攻附 法强×1 额外魔法伤害

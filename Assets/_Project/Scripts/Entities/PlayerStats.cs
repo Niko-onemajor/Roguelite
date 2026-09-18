@@ -111,6 +111,8 @@ namespace Roguelite
         readonly ActiveSlot[] _equipSlots = new ActiveSlot[EquipmentSlotCount];
 
         float moveBurstRemaining;                     // 舒瑞娅 移速爆发剩余秒数
+        float burnTickAcc;                            // 灼烧每秒节拍累积(炼狱导管减CD按秒结算)
+        float hexlightCd;                             // 海克斯龙魂 连锁闪电内置冷却(8s)
 
         public IReadOnlyList<ActiveSlot> EquipSlots => _equipSlots;
 
@@ -282,6 +284,7 @@ namespace Roguelite
             NextAttackBonus = 0f;
             archerRRemaining = warriorRRemaining = tankQRemaining = 0f;
             warriorRHpBonus = 0f;
+            hexlightCd = 0f; burnTickAcc = 0f;
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseGold(Gold);
             GameEvents.RaiseGoldBanked(0);
@@ -437,6 +440,7 @@ namespace Roguelite
             if (enemy == null) return;
             timeSinceAttack = 0f;
             if (cleaveHit) return;
+            CheckChainLightning(pos); // 海克斯龙魂：普攻命中触发连锁闪电
 
             // 射手R 定圣诀：普攻附加魔法伤害并对主目标附近敌人溅射 30% 物理伤害(直接结算，不递归触发 on-hit)
             ClassSkillData rSkill = Class != null ? Class.RSkill : null;
@@ -633,16 +637,27 @@ namespace Roguelite
                 }
             }
 
-            // 兰德里的折磨 灼烧DoT
+            // 灼烧DoT：每秒一跳(兰德里的折磨/炼狱导管)；炼狱导管: 灼烧每造成一次伤害 各基础技能冷却-0.08s
             if (burns.Count > 0)
             {
-                for (int i = burns.Count - 1; i >= 0; i--)
+                burnTickAcc += dt;
+                if (burnTickAcc >= 1f)
                 {
-                    BurnDot dot = burns[i];
-                    if (dot == null || dot.Enemy == null || dot.Enemy.Health <= 0f) { burns.RemoveAt(i); continue; }
-                    dot.Remaining -= dt;
-                    if (dot.Remaining <= 0f) { burns.RemoveAt(i); continue; }
-                    dot.Enemy.TakeMagicDamage(dot.Dps * dt);
+                    burnTickAcc = 0f;
+                    for (int i = burns.Count - 1; i >= 0; i--)
+                    {
+                        BurnDot dot = burns[i];
+                        if (dot == null || dot.Enemy == null || dot.Enemy.Health <= 0f) { burns.RemoveAt(i); continue; }
+                        dot.Remaining -= 1f;
+                        if (dot.Remaining <= 0f) { burns.RemoveAt(i); continue; }
+                        dot.Enemy.TakeMagicDamage(dot.Dps);
+                        if (HasPassive(PassiveType.InfernalConduit))
+                        {
+                            QCooldown = Mathf.Max(0f, QCooldown - 0.08f);
+                            RCooldown = Mathf.Max(0f, RCooldown - 0.08f);
+                        }
+                    }
+                    if (HasPassive(PassiveType.InfernalConduit)) GameEvents.RaiseSkillCooldownChanged();
                 }
             }
 
@@ -744,7 +759,19 @@ namespace Roguelite
             if (ultimate) RCooldown = skill.Cooldown * HasteCooldownScale;
             else QCooldown = skill.Cooldown * HasteCooldownScale;
             GameEvents.RaiseSkillCooldownChanged();
+            CheckChainLightning(origin); // 海克斯龙魂：技能命中触发连锁闪电
             return true;
+        }
+
+        /// <summary>海克斯科技龙魂：冷却就绪时由 普攻命中/技能施放 触发连锁闪电。
+        /// 50真实伤害 弹射至多 3 个额外目标，命中者减速 45%(近战)/35%(远程) 持续 2 秒，内置冷却 8 秒。</summary>
+        void CheckChainLightning(Vector2 origin)
+        {
+            if (!HasPassive(PassiveType.HextechLightning) || hexlightCd > 0f) return;
+            hexlightCd = 8f;
+            float slowMult = Class != null && Class.Weapon == WeaponType.Melee ? 0.55f : 0.65f;
+            SimpleVfx.Burst(origin, 1.2f, new Color(0.4f, 0.85f, 1f, 0.95f), 0.35f); // 电弧起点蓝光
+            DamageSystem.ChainLightning(origin, 50f, slowMult, 2f);
         }
 
         /// <summary>职业技能驱动(CombatSystem.Update 每帧调用)：Q/R 冷却倒计时 + 持续技能(射手R/战士R/坦克Q)计时。
@@ -755,6 +782,7 @@ namespace Roguelite
             int beforeR = Mathf.CeilToInt(RCooldown);
             QCooldown = Mathf.Max(0f, QCooldown - dt);
             RCooldown = Mathf.Max(0f, RCooldown - dt);
+            if (hexlightCd > 0f) hexlightCd = Mathf.Max(0f, hexlightCd - dt);
 
             if (archerRRemaining > 0f) archerRRemaining = Mathf.Max(0f, archerRRemaining - dt);
 

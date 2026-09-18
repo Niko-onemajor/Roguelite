@@ -221,15 +221,15 @@ namespace Roguelite
             cfg.runes.Add(Rune("点亮", "每第 4 次普通攻击发射 4 枚额外魔法飞弹。", 5, B(StatType.AbilityPower, 15f)));
             cfg.runes.Add(Rune("裁决使", "对生命低于 50% 的敌人多造成 15% 伤害。", 5, B(StatType.AttackDamage, 8f)));
 
-            // ── 龙魂类(简化为大额增益) ──
-            cfg.runes.Add(Rune("炼狱龙魂", "造成伤害时在目标处引发爆炸(90+12%额外攻击力+6%法强)，冷却5秒。", 12,
+            // ── 龙魂类(归入白银阶) ──
+            cfg.runes.Add(Rune("炼狱龙魂", "造成伤害时在目标处引发爆炸(90+12%额外攻击力+6%法强)，冷却5秒。", 5,
                 B(StatType.AttackDamage, 12f), B(StatType.AbilityPower, 6f)));
-            cfg.runes.Add(Rune("山脉龙魂", "脱离战斗后获得护盾，并获得额外攻击力/法强/生命加成。", 12,
+            cfg.runes.Add(Rune("山脉龙魂", "脱离战斗后获得护盾，并获得额外攻击力/法强/生命加成。", 5,
                 B(StatType.MaxHP, 60f), B(StatType.Armor, 6f), B(StatType.MagicResist, 6f)));
-            cfg.runes.Add(Rune("海洋龙魂", "造成伤害后在 4 秒内回复生命与法力。", 12,
+            cfg.runes.Add(Rune("海洋龙魂", "造成伤害后在 4 秒内回复生命与法力。", 5,
                 B(StatType.HPRegen, 3f), B(StatType.Mana, 40f), B(StatType.MaxHP, 40f)));
-            cfg.runes.Add(Rune("海克斯科技龙魂", "周期性触发连锁闪电(25-75真实伤害，弹射3目标)，内置冷却8秒。", 12,
-                B(StatType.AbilityHaste, 20f), B(StatType.AttackSpeed, 0.9f)));
+            cfg.runes.Add(Rune("海克斯科技龙魂", "周期性使下一次伤害型技能或攻击触发连锁闪电(50真实伤害，弹射至多3个额外目标，减速)，内置冷却8秒。", 5,
+                PassiveType.HextechLightning, B(StatType.AttackSpeed, 0.95f)));
 
             // ── 黄金强化符文(技能强化/功能) ──
             cfg.runes.Add(Rune("循环往复", "提供 60 技能急速。", 15, B(StatType.AbilityHaste, 60f)));
@@ -247,6 +247,8 @@ namespace Roguelite
                 B(StatType.AbilityHaste, 8f), B(StatType.MoveSpeed, 0.3f), B(StatType.Size, 0.96f)));
 
             // ── 棱彩强化符文(高级大额) ──
+            cfg.runes.Add(Rune("炼狱导管", "技能命中施加持续5秒灼烧(6+14%额外攻击力+6%法强)，灼烧每造成一次伤害使各基础技能冷却-0.08秒。", 25,
+                PassiveType.InfernalConduit, B(StatType.AbilityPower, 10f)));
             cfg.runes.Add(Rune("珠光护手", "技能可暴击(145%总伤害)，获得 25% 暴击几率，每 100 法强额外 4.5% 暴击。", 25,
                 B(StatType.CritChance, 0.25f), B(StatType.AbilityPower, 15f)));
             cfg.runes.Add(Rune("双刀流", "普通攻击额外发射一枚 40% 伤害的次级箭矢，获得 20% 总攻速。", 25,
@@ -276,10 +278,14 @@ namespace Roguelite
         }
 
         /// <summary>符文工厂：多组属性 + 机制文案(选择后 ApplyBonus 施加)。</summary>
-        static ShopItemData Rune(string name, string desc, int price, params StatBonus[] stats)
+        static ShopItemData Rune(string name, string desc, int price, params StatBonus[] stats) =>
+            Rune(name, desc, price, PassiveType.None, stats);
+
+        /// <summary>符文工厂(机制版)：额外绑定战斗被动(灼烧减CD/连锁闪电等)，经 ApplyBonus 写入掩码生效。</summary>
+        static ShopItemData Rune(string name, string desc, int price, PassiveType type, params StatBonus[] stats)
         {
             var i = ScriptableObject.CreateInstance<ShopItemData>();
-            i.displayName = name; i.basePrice = price; i.passive = desc;
+            i.displayName = name; i.basePrice = price; i.passive = desc; i.passiveType = type;
             for (int k = 0; k < stats.Length; k++) i.bonuses.Add(stats[k]);
             return i;
         }

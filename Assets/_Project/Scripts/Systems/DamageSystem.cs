@@ -100,6 +100,39 @@ namespace Roguelite
             CastMagicAoe(origin, radius, baseDamage + ad * adRatio, apRatio);
         }
 
+        /// <summary>海克斯科技龙魂 连锁闪电：从最近敌人起造成真实伤害并施加减速，弹射至多 3 个额外目标(不重复)。
+        /// slowMult 为命中者移速倍率(近战减速45%→0.55 / 远程35%→0.65)。</summary>
+        public static void ChainLightning(Vector2 origin, float damage, float slowMult, float slowDuration)
+        {
+            Enemy current = Nearest(null, origin, float.MaxValue);
+            if (current == null) return;
+            current.TakeTrueDamage(damage);
+            current.Slow(slowMult, slowDuration);
+            Enemy prev = current;
+            for (int b = 0; b < 3; b++)
+            {
+                Enemy next = NextNearest(prev.transform.position, prev);
+                if (next == null) break;
+                next.TakeTrueDamage(damage);
+                next.Slow(slowMult, slowDuration);
+                prev = next;
+            }
+        }
+
+        static Enemy NextNearest(Vector2 pos, Enemy exclude)
+        {
+            Enemy best = null;
+            float bestSq = float.PositiveInfinity;
+            for (int i = 0; i < EnemyRegistry.All.Count; i++)
+            {
+                Enemy e = EnemyRegistry.All[i];
+                if (e == null || e == exclude) continue;
+                float sq = ((Vector2)e.transform.position - pos).sqrMagnitude;
+                if (sq <= bestSq) { bestSq = sq; best = e; }
+            }
+            return best;
+        }
+
         /// <summary>直线魔法伤害(法师Q死亡射线)：从 origin 沿 dir 方向 length 长度、width 宽度内的敌人。</summary>
         public static void CastMagicLine(Vector2 origin, Vector2 dir, float length, float width, float baseDamage, float apRatio)
         {
