@@ -212,62 +212,62 @@ namespace Roguelite
             cfg.runes.Add(Rune("急救用具", "获得 20% 治疗和护盾强度。", 5, B(StatType.HealShieldPower, 0.2f)));
             cfg.runes.Add(Rune("由心及物", "最大生命值提升相当于一半法力值的数额。", 5,
                 B(StatType.MaxHP, 40f), B(StatType.Mana, 80f)));
-            cfg.runes.Add(Rune("易损", "持续伤害可暴击造成额外伤害，并获得 20% 暴击几率。", 5, B(StatType.CritChance, 0.2f)));
-            cfg.runes.Add(Rune("会心防守", "以暴击几率进行防御并减免伤害，获得 20% 暴击几率。", 5, B(StatType.CritChance, 0.2f)));
-            cfg.runes.Add(Rune("唯快不破", "移动速度高于目标时造成额外伤害。", 5, B(StatType.MoveSpeed, 0.8f)));
-            cfg.runes.Add(Rune("重量级打击手", "普通攻击附带相当于最大生命 4% 的额外物理伤害。", 5, B(StatType.MaxHP, 60f)));
-            cfg.runes.Add(Rune("侵蚀", "伤害施加 4 秒的 1.5% 护甲与魔抗击碎效果。", 5,
+            cfg.runes.Add(Rune("易损", "持续伤害可暴击造成额外伤害，并获得 20% 暴击几率。", 5, PassiveType.Perishable, B(StatType.CritChance, 0.2f)));
+            cfg.runes.Add(Rune("会心防守", "以暴击几率进行防御并减免伤害，获得 20% 暴击几率。", 5, PassiveType.ParryDefense, B(StatType.CritChance, 0.2f)));
+            cfg.runes.Add(Rune("唯快不破", "移动速度高于目标时造成额外伤害。", 5, PassiveType.Swiftness, B(StatType.MoveSpeed, 0.8f)));
+            cfg.runes.Add(Rune("重量级打击手", "普通攻击附带相当于最大生命 4% 的额外物理伤害。", 5, PassiveType.HeavyHitter, B(StatType.MaxHP, 60f)));
+            cfg.runes.Add(Rune("侵蚀", "伤害施加 4 秒的 1.5% 护甲与魔抗击碎效果。", 5, PassiveType.Eroding,
                 B(StatType.ArmorPen, 6f), B(StatType.MagicPen, 6f)));
-            cfg.runes.Add(Rune("点亮", "每第 4 次普通攻击发射 4 枚额外魔法飞弹。", 5, B(StatType.AbilityPower, 15f)));
-            cfg.runes.Add(Rune("裁决使", "对生命低于 50% 的敌人多造成 15% 伤害。", 5, B(StatType.AttackDamage, 8f)));
+            cfg.runes.Add(Rune("点亮", "每第 4 次普通攻击发射 4 枚额外魔法飞弹。", 5, PassiveType.LightStrike, B(StatType.AbilityPower, 15f)));
+            cfg.runes.Add(Rune("裁决使", "对生命低于 50% 的敌人多造成 15% 伤害。", 5, PassiveType.Executioner, B(StatType.AttackDamage, 8f)));
 
             // ── 龙魂类(归入白银阶) ──
-            cfg.runes.Add(Rune("炼狱龙魂", "造成伤害时在目标处引发爆炸(90+12%额外攻击力+6%法强)，冷却5秒。", 5,
-                B(StatType.AttackDamage, 12f), B(StatType.AbilityPower, 6f)));
-            cfg.runes.Add(Rune("山脉龙魂", "脱离战斗后获得护盾，并获得额外攻击力/法强/生命加成。", 5,
-                B(StatType.MaxHP, 60f), B(StatType.Armor, 6f), B(StatType.MagicResist, 6f)));
-            cfg.runes.Add(Rune("海洋龙魂", "造成伤害后在 4 秒内回复生命与法力。", 5,
-                B(StatType.HPRegen, 3f), B(StatType.Mana, 40f), B(StatType.MaxHP, 40f)));
+            cfg.runes.Add(Rune("炼狱龙魂", "每5秒在自身周围引发爆炸(90+12%攻击力+6%法强)。", 5,
+                PassiveType.InfernoSoul, B(StatType.AttackDamage, 12f), B(StatType.AbilityPower, 6f)));
+            cfg.runes.Add(Rune("山脉龙魂", "脱离战斗5秒后获得护盾(上限最大生命10%)，并获得生命/双抗加成。", 5,
+                PassiveType.MountainSoul, B(StatType.MaxHP, 60f), B(StatType.Armor, 6f), B(StatType.MagicResist, 6f)));
+            cfg.runes.Add(Rune("海洋龙魂", "普通攻击命中回复生命与法力。", 5,
+                PassiveType.OceanSoul, B(StatType.HPRegen, 3f), B(StatType.Mana, 40f), B(StatType.MaxHP, 40f)));
             cfg.runes.Add(Rune("海克斯科技龙魂", "周期性使下一次伤害型技能或攻击触发连锁闪电(50真实伤害，弹射至多3个额外目标，减速)，内置冷却8秒。", 5,
                 PassiveType.HextechLightning, B(StatType.AttackSpeed, 0.95f)));
 
             // ── 黄金强化符文(技能强化/功能) ──
             cfg.runes.Add(Rune("循环往复", "提供 60 技能急速。", 15, B(StatType.AbilityHaste, 60f)));
             cfg.runes.Add(Rune("术士果汁盒", "根据法术强度获得全能吸血，每 100 法强额外 3.5%。", 15,
-                B(StatType.Omnivamp, 0.1f), B(StatType.AbilityPower, 10f)));
-            cfg.runes.Add(Rune("超凡邪恶", "技能命中永久获得法术强度。", 15, B(StatType.AbilityPower, 40f)));
+                PassiveType.ArcaneVamp, B(StatType.Omnivamp, 0.1f), B(StatType.AbilityPower, 10f)));
+            cfg.runes.Add(Rune("超凡邪恶", "技能命中永久获得法术强度。", 15, PassiveType.UnholyMastery, B(StatType.AbilityPower, 40f)));
             cfg.runes.Add(Rune("牙仙子", "每颗牙齿藏品给予 5 穿甲与 5 法术穿透。", 15,
-                B(StatType.ArmorPen, 5f), B(StatType.MagicPen, 5f)));
+                PassiveType.ToothTally, B(StatType.ArmorPen, 5f), B(StatType.MagicPen, 5f)));
             cfg.runes.Add(Rune("魔法飞弹", "技能命中发射真实伤害飞弹(基于目标最大生命)。", 15,
-                B(StatType.AbilityPower, 10f), B(StatType.MagicPen, 5f)));
+                PassiveType.MagicMissile, B(StatType.AbilityPower, 10f), B(StatType.MagicPen, 5f)));
             cfg.runes.Add(Rune("豪猪尖刺", "受到伤害累积尖刺层数，满层爆发并减速周围敌人。", 15,
-                B(StatType.Armor, 15f), B(StatType.MagicResist, 15f)));
-            cfg.runes.Add(Rune("坦克引擎", "参与击杀后体型变大并永久提升最大生命。", 15, B(StatType.MaxHP, 80f)));
+                PassiveType.Porcupine, B(StatType.Armor, 15f), B(StatType.MagicResist, 15f)));
+            cfg.runes.Add(Rune("坦克引擎", "参与击杀后体型变大并永久提升最大生命。", 15, PassiveType.TankGrowth, B(StatType.MaxHP, 80f)));
             cfg.runes.Add(Rune("缩小引擎", "参与击杀后变小并获得技能急速与移动速度。", 15,
-                B(StatType.AbilityHaste, 8f), B(StatType.MoveSpeed, 0.3f), B(StatType.Size, 0.96f)));
+                PassiveType.ShrinkBoost, B(StatType.AbilityHaste, 8f), B(StatType.MoveSpeed, 0.3f), B(StatType.Size, 0.96f)));
 
             // ── 棱彩强化符文(高级大额) ──
             cfg.runes.Add(Rune("炼狱导管", "技能命中施加持续5秒灼烧(6+14%额外攻击力+6%法强)，灼烧每造成一次伤害使各基础技能冷却-0.08秒。", 25,
                 PassiveType.InfernalConduit, B(StatType.AbilityPower, 10f)));
             cfg.runes.Add(Rune("珠光护手", "技能可暴击(145%总伤害)，获得 25% 暴击几率，每 100 法强额外 4.5% 暴击。", 25,
-                B(StatType.CritChance, 0.25f), B(StatType.AbilityPower, 15f)));
+                PassiveType.PearledFist, B(StatType.CritChance, 0.25f), B(StatType.AbilityPower, 15f)));
             cfg.runes.Add(Rune("双刀流", "普通攻击额外发射一枚 40% 伤害的次级箭矢，获得 20% 总攻速。", 25,
-                B(StatType.AttackSpeed, 0.8f), B(StatType.AttackDamage, 10f)));
+                PassiveType.TwinBlade, B(StatType.AttackSpeed, 0.8f), B(StatType.AttackDamage, 10f)));
             cfg.runes.Add(Rune("歌利亚巨人", "获得 35% 额外最大生命、15% 适应之力与 50% 体型。", 25,
                 B(StatType.MaxHP, 150f), B(StatType.AttackDamage, 15f), B(StatType.Size, 1.15f)));
             cfg.runes.Add(Rune("亮出你的剑", "视为近战：+30%攻击力、+25%攻速、+30%生命、+20%吸血、+25%移速。", 25,
                 B(StatType.AttackDamage, 25f), B(StatType.AttackSpeed, 0.75f),
                 B(StatType.MaxHP, 50f), B(StatType.Omnivamp, 0.2f), B(StatType.MoveSpeed, 0.6f)));
             cfg.runes.Add(Rune("物法皆修", "攻击叠法术强度，技能叠攻击力，可无限叠加。", 25,
-                B(StatType.AttackDamage, 10f), B(StatType.AbilityPower, 15f)));
+                PassiveType.BinaryAmp, B(StatType.AttackDamage, 10f), B(StatType.AbilityPower, 15f)));
             cfg.runes.Add(Rune("蛋白粉奶昔", "获得 25% 治疗和护盾强度。", 25, B(StatType.HealShieldPower, 0.25f)));
             cfg.runes.Add(Rune("尤里卡", "相当于 30% 法术强度的技能急速。", 25,
                 B(StatType.AbilityHaste, 20f), B(StatType.AbilityPower, 10f)));
             cfg.runes.Add(Rune("最万用的瞄准镜", "近战获得 250 攻击距离，远程获得 150 攻击距离。", 25, B(StatType.AttackRange, 2f)));
             cfg.runes.Add(Rune("踢踏舞", "普攻获得移动速度，并拥有相当于总移速 10% 的额外攻速。", 25,
-                B(StatType.AttackSpeed, 0.9f), B(StatType.MoveSpeed, 0.5f)));
+                PassiveType.Tiptoe, B(StatType.AttackSpeed, 0.9f), B(StatType.MoveSpeed, 0.5f)));
             cfg.runes.Add(Rune("无限循环往复", "初始 60 技能急速，每击杀额外获得技能急速。", 25,
-                B(StatType.AbilityHaste, 60f), B(StatType.AttackDamage, 5f)));
+                PassiveType.InfCycle, B(StatType.AbilityHaste, 60f), B(StatType.AttackDamage, 5f)));
             cfg.runes.Add(Rune("大招工具人", "技能急速翻倍作用于终极技能，获得 100 技能急速。", 25, B(StatType.AbilityHaste, 100f)));
 
             // 去重防呆

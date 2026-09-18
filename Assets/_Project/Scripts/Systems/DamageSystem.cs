@@ -67,6 +67,15 @@ namespace Roguelite
                     ps.ApplyBurn(enemy, enemy.Data.maxHP * 0.01f + ap * 0.05f, 3f);
                 // 暗夜收割者：魔法伤害后 移速×1.3 持续2s
                 if (ps.HasPassive(PassiveType.NightHarvest)) ps.PushMoveAmp(1.3f, 2f);
+                // 符文·魔法飞弹：技能命中附 目标最大生命5% 真实伤害
+                if (ps.HasPassive(PassiveType.MagicMissile))
+                    enemy.TakeTrueDamage(enemy.Data.maxHP * 0.05f);
+                // 符文·珠光护手：技能伤害可暴击(145%总伤害)
+                if (ps.HasPassive(PassiveType.PearledFist) && UnityEngine.Random.value < ps.critChance)
+                    dmg *= 1.45f;
+                // 符文·超凡邪恶(+法强) / 物法皆修(技能侧+攻击)：技能命中叠加
+                if (ps.HasPassive(PassiveType.UnholyMastery) || ps.HasPassive(PassiveType.BinaryAmp))
+                    ps.RuneSkillHit();
             }
 
             enemy.TakeMagicDamage(dmg);

@@ -32,8 +32,8 @@ namespace Roguelite
         public const float ScriptedHPMultPerWave = 0.04f;
         public const float ScriptedDefenseGainPerWave = 0.5f;
 
-        /// <summary>开局及第7/11/15波开始时弹出符文选择的 1-based 波号。</summary>
-        public static readonly int[] RuneWaves = { 1, 7, 11, 15 };
+        /// <summary>开局(第1波前)选择的 1-based 波号；第4/9/14/19...波则在进入商店前选择(每5回合一次)。</summary>
+        public static readonly int[] RuneWaves = { 1 };
 
         public void BeginRun(WaveConfig cfg, EnemySpawner spawn, ShopSystem shopSystem, RuneSystem runeSystem, PlayerStats playerStats)
         {
@@ -109,6 +109,17 @@ namespace Roguelite
                 // 商店：未通关时每波后开放；进入无尽后每波都开放
                 if (endless || waveIndex < waves.Count)
                 {
+                    // 符文：第4/9/14/19...波(waveNo%5==4)在进入商店之前选择(每5回合一次)
+                    if (waveNo >= 4 && waveNo % 5 == 4)
+                    {
+                        State = WaveState.Rune;
+                        SetInput(false);
+                        rune.OpenOffer();
+                        yield return new WaitUntil(() => !rune.IsAwaitingChoice);
+                        SetInput(true);
+                        if (stats.CurrentHP <= 0f) { EndGame(false, waveIndex); yield break; }
+                    }
+
                     State = WaveState.Shop;
                     SetInput(false);
                     shop.OpenOffer();

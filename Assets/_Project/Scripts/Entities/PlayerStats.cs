@@ -113,6 +113,13 @@ namespace Roguelite
         float moveBurstRemaining;                     // 舒瑞娅 移速爆发剩余秒数
         float burnTickAcc;                            // 灼烧每秒节拍累积(炼狱导管减CD按秒结算)
         float hexlightCd;                             // 海克斯龙魂 连锁闪电内置冷却(8s)
+        int lightStrikeCount;                         // 点亮：普攻计数(每4次发射飞弹)
+        float blastTimer = 5f;                        // 炼狱龙魂：爆炸倒计时
+        int porcupineStacks;                          // 豪猪尖刺：受击层数
+        float unholyStack;                            // 超凡邪恶：技能叠法强层
+        float runeApStack, runeAdStack;               // 物法皆修：攻击叠法强/技能叠攻击层
+        float toothStack;                             // 牙仙子：击杀叠双穿层
+        float infCycleStack;                          // 无限循环往复：击杀叠急速层
 
         public IReadOnlyList<ActiveSlot> EquipSlots => _equipSlots;
 
@@ -285,6 +292,8 @@ namespace Roguelite
             archerRRemaining = warriorRRemaining = tankQRemaining = 0f;
             warriorRHpBonus = 0f;
             hexlightCd = 0f; burnTickAcc = 0f;
+            lightStrikeCount = 0; porcupineStacks = 0; blastTimer = 5f;
+            unholyStack = 0f; runeApStack = 0f; runeAdStack = 0f; toothStack = 0f; infCycleStack = 0f;
             GameEvents.RaiseHP(CurrentHP, maxHP);
             GameEvents.RaiseGold(Gold);
             GameEvents.RaiseGoldBanked(0);
@@ -305,6 +314,26 @@ namespace Roguelite
             if (tankQRemaining > 0f) reduced *= (1f - TankShockDamageReduction);
             // 铁板靴：受到的物理(普攻类)伤害 ×0.88
             if (!magicDamage && HasPassive(PassiveType.Steelcaps)) reduced *= 0.88f;
+            // 会心防守：以暴击几率减免伤害(减伤 = 暴击×20%)
+            if (HasPassive(PassiveType.ParryDefense)) reduced *= (1f - critChance * 0.2f);
+            // 豪猪尖刺：受击累积尖刺层数, 8层爆发伤害并减速周围
+            if (HasPassive(PassiveType.Porcupine) && reduced > 0f)
+            {
+                porcupineStacks++;
+                if (porcupineStacks >= 8)
+                {
+                    porcupineStacks = 0;
+                    SimpleVfx.Burst(transform.position, 3f, new Color(0.75f, 0.95f, 0.4f, 0.9f), 0.4f);
+                    for (int i = EnemyRegistry.All.Count - 1; i >= 0; i--)
+                    {
+                        Enemy e = EnemyRegistry.All[i];
+                        if (e == null || e.Data == null) continue;
+                        if (((Vector2)e.transform.position - (Vector2)transform.position).sqrMagnitude > 9f) continue;
+                        e.TakeMagicDamage(40f);
+                        e.Slow(0.5f, 2f);
+                    }
+                }
+            }
 
             // 荆棘之甲：受物理伤害 反弹 30% 魔法伤害给最近敌人
             if (!magicDamage && HasPassive(PassiveType.Thornmail) && reduced > 0f)
@@ -441,6 +470,7 @@ namespace Roguelite
             timeSinceAttack = 0f;
             if (cleaveHit) return;
             CheckChainLightning(pos); // 海克斯龙魂：普攻命中触发连锁闪电
+            RuneOnHit(enemy, dealt, pos); // 符文机制(普攻命中/击杀类)
 
             // 射手R 定圣诀：普攻附加魔法伤害并对主目标附近敌人溅射 30% 物理伤害(直接结算，不递归触发 on-hit)
             ClassSkillData rSkill = Class != null ? Class.RSkill : null;
@@ -650,7 +680,9 @@ namespace Roguelite
                         if (dot == null || dot.Enemy == null || dot.Enemy.Health <= 0f) { burns.RemoveAt(i); continue; }
                         dot.Remaining -= 1f;
                         if (dot.Remaining <= 0f) { burns.RemoveAt(i); continue; }
-                        dot.Enemy.TakeMagicDamage(dot.Dps);
+                        // 易损：灼烧可暴击(暴击时伤害×2)
+                        bool burnCrit = HasPassive(PassiveType.Perishable) && UnityEngine.Random.value < critChance;
+                        dot.Enemy.TakeMagicDamage(dot.Dps * (burnCrit ? 2f : 1f));
                         if (HasPassive(PassiveType.InfernalConduit))
                         {
                             QCooldown = Mathf.Max(0f, QCooldown - 0.08f);
@@ -660,6 +692,21 @@ namespace Roguelite
                     if (HasPassive(PassiveType.InfernalConduit)) GameEvents.RaiseSkillCooldownChanged();
                 }
             }
+
+            // 炼狱龙魂：每5秒一次范围爆炸(90+12%攻击力+6%法强)
+            if (HasPassive(PassiveType.InfernoSoul))
+            {
+                blastTimer -= dt;
+                if (blastTimer <= 0f)
+                {
+                    blastTimer = 5f;
+                    SimpleVfx.Burst(origin, 2.5f, new Color(1f, 0.45f, 0.2f, 0.9f), 0.5f);
+                    DamageSystem.CastMagicAoe(origin, 2.5f, 90f + TotalDamage * 0.12f, 0.06f);
+                }
+            }
+            // 山脉龙魂：脱离战斗5秒后获得护盾(上限最大生命10%)
+            if (HasPassive(PassiveType.MountainSoul) && timeSinceDamaged > 5f && Shield < maxHP * 0.1f)
+                Shield = maxHP * 0.1f;
 
             // 冰霜之心/深渊面具 光环：范围内敌人 攻速×1.5 / 承魔伤×1.15，范围外复位
             if (HasPassive(PassiveType.FrozenHeart) || HasPassive(PassiveType.AbyssalMask))
@@ -772,6 +819,89 @@ namespace Roguelite
             float slowMult = Class != null && Class.Weapon == WeaponType.Melee ? 0.55f : 0.65f;
             SimpleVfx.Burst(origin, 1.2f, new Color(0.4f, 0.85f, 1f, 0.95f), 0.35f); // 电弧起点蓝光
             DamageSystem.ChainLightning(origin, 50f, slowMult, 2f);
+        }
+
+        /// <summary>符文机制(普攻命中/击杀类)：白银/龙魂/黄金/棱彩大块集中挂钩。
+        /// 附加伤害直接结算物理(不吃抗性外修正)，击杀判定以 enemy.Health<=0 为准。</summary>
+        void RuneOnHit(Enemy enemy, float dealt, Vector2 pos)
+        {
+            // ── 普攻附加伤害类 ──
+            if (HasPassive(PassiveType.HeavyHitter)) enemy.TakeDamage(maxHP * 0.04f, true);
+            if (HasPassive(PassiveType.Eroding)) enemy.Shred(5f, 4f);
+            if (HasPassive(PassiveType.Executioner) && enemy.Data.maxHP > 0f && enemy.Health < enemy.Data.maxHP * 0.5f)
+                enemy.TakeDamage(dealt * 0.15f, true);
+            if (HasPassive(PassiveType.Swiftness) && EffectiveMoveSpeed > enemy.Data.moveSpeed)
+                enemy.TakeDamage(dealt * 0.15f, true);
+            if (HasPassive(PassiveType.TwinBlade))
+            {
+                Enemy other = NearestExcept(enemy);
+                if (other != null) other.TakeDamage(dealt * 0.4f, true); // 40%次级箭矢
+            }
+            if (HasPassive(PassiveType.LightStrike))
+            {
+                lightStrikeCount++;
+                if (lightStrikeCount % 4 == 0)
+                {
+                    int hits = 0;
+                    for (int i = EnemyRegistry.All.Count - 1; i >= 0 && hits < 4; i--)
+                    {
+                        Enemy e = EnemyRegistry.All[i];
+                        if (e == null || e.Data == null) continue;
+                        e.TakeMagicDamage(TotalAbilityPower * 0.6f); // 4枚魔法飞弹
+                        hits++;
+                    }
+                }
+            }
+            // ── 回复/成长类 ──
+            if (HasPassive(PassiveType.OceanSoul))
+            {
+                Heal(2f + maxHP * 0.004f);
+                mana = Mathf.Min(maxMana, mana + 4f);
+                GameEvents.RaiseMana(mana, maxMana);
+            }
+            if (HasPassive(PassiveType.ArcaneVamp))
+                Heal(dealt * Mathf.Min(0.15f, TotalAbilityPower / 100f * 0.035f));
+            if (HasPassive(PassiveType.Tiptoe)) PushMoveAmp(1.15f, 1.5f);
+            if (HasPassive(PassiveType.BinaryAmp) && runeApStack < 30f) { ApplyStat(StatType.AbilityPower, 1f, 1f); runeApStack++; }
+
+            // ── 击杀成长类 ──
+            if (enemy.Health <= 0f)
+            {
+                if (HasPassive(PassiveType.TankGrowth)) { maxHP += 20f; CurrentHP += 20f; GameEvents.RaiseHP(CurrentHP, maxHP); }
+                if (HasPassive(PassiveType.ToothTally) && toothStack < 15f)
+                {
+                    ApplyStat(StatType.ArmorPen, 0.5f, 1f);
+                    ApplyStat(StatType.MagicPen, 0.5f, 1f);
+                    toothStack += 0.5f;
+                }
+                if (HasPassive(PassiveType.ShrinkBoost)) PushMoveAmp(1.3f, 2f);
+                if (HasPassive(PassiveType.InfCycle) && infCycleStack < 20f && !float.IsNaN(infCycleStack))
+                {
+                    ApplyStat(StatType.AbilityHaste, 2f, 1f);
+                    infCycleStack += 2f;
+                }
+            }
+        }
+
+        /// <summary>符文机制(技能命中类)：超凡邪恶 永久+法强 / 物法皆修 技能侧+攻击力(各上限30)，DamageSystem.CastMagic 调用。</summary>
+        public void RuneSkillHit()
+        {
+            if (HasPassive(PassiveType.UnholyMastery) && unholyStack < 30f) { ApplyStat(StatType.AbilityPower, 1f, 1f); unholyStack++; }
+            if (HasPassive(PassiveType.BinaryAmp) && runeAdStack < 30f) { ApplyStat(StatType.AttackDamage, 1f, 1f); runeAdStack++; }
+        }
+
+        static Enemy NearestExcept(Enemy exclude)
+        {
+            Enemy best = null;
+            float bestSq = float.PositiveInfinity;
+            for (int i = 0; i < EnemyRegistry.All.Count; i++)
+            {
+                Enemy e = EnemyRegistry.All[i];
+                if (e == null || e == exclude || e.Data == null) continue;
+                float sq = ((Vector2)e.transform.position - (Vector2)exclude.transform.position).sqrMagnitude;
+                if (sq <= bestSq) { bestSq = sq; best = e; }
+            }
+            return best;
         }
 
         /// <summary>职业技能驱动(CombatSystem.Update 每帧调用)：Q/R 冷却倒计时 + 持续技能(射手R/战士R/坦克Q)计时。
