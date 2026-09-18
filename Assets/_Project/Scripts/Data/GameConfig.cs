@@ -245,6 +245,8 @@ namespace Roguelite
             cfg.runes.Add(Rune("坦克引擎", "参与击杀后体型变大并永久提升最大生命。", 15, PassiveType.TankGrowth, B(StatType.MaxHP, 80f)));
             cfg.runes.Add(Rune("缩小引擎", "参与击杀后变小并获得技能急速与移动速度。", 15,
                 PassiveType.ShrinkBoost, B(StatType.AbilityHaste, 8f), B(StatType.MoveSpeed, 0.3f), B(StatType.Size, 0.96f)));
+            cfg.runes.Add(Rune("暴击飞弹", "获得 25% 暴击几率；造成暴击时向目标发射飞弹，数量随暴击几率提升(1/2/3 枚)。每枚飞弹造成 11(+7% 攻击力)(+10% 法强) 魔法伤害。", 15,
+                PassiveType.CritMissile, B(StatType.CritChance, 0.25f)));
 
             // ── 棱彩强化符文(高级大额) ──
             cfg.runes.Add(Rune("炼狱导管", "技能命中施加持续5秒灼烧(6+14%额外攻击力+6%法强)，灼烧每造成一次伤害使各基础技能冷却-0.08秒。", 25,

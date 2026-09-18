@@ -62,7 +62,31 @@ namespace Roguelite
         float spellCooldown;
 
         // ── 被动装备位掩码(多件被动可共存；passiveType 保留“最后绑定”兼容展示与旧测试) ──
-        ulong passiveMask;
+        // 被动枚举已超 64 项，单 ulong 位移 `1UL<<n` 会按 n%64 回归造成位冲突(如 GreedTreads=65 撞 Tyrant=1)，
+        // 故拆为 低64位/高64位 两个桶；枚举值 0..63 存 Lo，64..127 存 Hi。
+        ulong passiveMaskLo;
+        ulong passiveMaskHi;
+
+        void SetPassiveBit(PassiveType p)
+        {
+            int b = (int)p;
+            ulong m = 1UL << (b & 63);
+            if (b < 64) passiveMaskLo |= m; else passiveMaskHi |= m;
+        }
+
+        void ClearPassiveBit(PassiveType p)
+        {
+            int b = (int)p;
+            ulong m = 1UL << (b & 63);
+            if (b < 64) passiveMaskLo &= ~m; else passiveMaskHi &= ~m;
+        }
+
+        bool PassiveBitSet(PassiveType p)
+        {
+            int b = (int)p;
+            ulong m = 1UL << (b & 63);
+            return ((b < 64 ? passiveMaskLo : passiveMaskHi) & m) != 0;
+        }
 
         /// <summary>当前总护盾值(救主灵刃/猩红护盾等)，受击先扣盾再扣生命。</summary>
         public float Shield;
@@ -211,7 +235,7 @@ namespace Roguelite
         /// <summary>被动是否生效：被动掩码命中 或 最后绑定被动(兼容直接赋值/旧测试)。
         /// 多件被动装备同时持有时可共存叠加(位掩码)。</summary>
         public bool HasPassive(PassiveType p) =>
-            p != PassiveType.None && ((passiveMask & (1UL << (int)p)) != 0 || passiveType == p);
+            p != PassiveType.None && (PassiveBitSet(p) || passiveType == p);
 
         /// <summary>猎魔人弩箭：剩余必定暴击的普攻次数(HitEnemy 每次命中消耗)。</summary>
         public int BarrageCount { get => barrageCount; set => barrageCount = Mathf.Max(0, value); }
@@ -594,7 +618,7 @@ namespace Roguelite
         /// 猎魔人弹幕刷新/死亡之舞流血/灼烧DoT/冰霜之心与深渊面具光环。EditMode 测试可显式调用。</summary>
         public void TickPassives(float dt, Vector2 origin)
         {
-            if (passiveMask == 0 && passiveType == PassiveType.None) return;
+            if (passiveMaskLo == 0 && passiveMaskHi == 0 && passiveType == PassiveType.None) return;
             timeSinceDamaged += dt;
             timeSinceAttack += dt;
 
@@ -1225,7 +1249,7 @@ namespace Roguelite
             if (item.passiveType != PassiveType.None)
             {
                 passiveType = item.passiveType;              // 最后绑定(兼容展示/旧测试)
-                passiveMask |= 1UL << (int)item.passiveType; // 位掩码：多件被动装备可共存
+                SetPassiveBit(item.passiveType);             // 位掩码：多件被动装备可共存
             }
             GameEvents.RaiseHP(CurrentHP, maxHP);
         }
@@ -1280,7 +1304,7 @@ namespace Roguelite
             }
             if (item.passiveType != PassiveType.None)
             {
-                passiveMask &= ~(1UL << (int)item.passiveType);
+                ClearPassiveBit(item.passiveType);
                 if (passiveType == item.passiveType) passiveType = PassiveType.None;
             }
             GameEvents.RaiseHP(CurrentHP, maxHP);

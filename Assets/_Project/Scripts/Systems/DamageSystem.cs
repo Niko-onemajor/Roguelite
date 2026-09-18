@@ -19,6 +19,21 @@ namespace Roguelite
             Vector2 hitPos = enemy.transform.position;
             float before = enemy.Health;
             enemy.TakeDamage(DamageUtilities.ComputeCrit(damage, crit, critMult), crit);
+
+            // 符文·暴击飞弹：暴击时向目标发射 1/2/3 枚魔法飞弹(数量随暴击几率提升，目标已倒下则落空)
+            if (crit && ps != null && ps.HasPassive(PassiveType.CritMissile)
+                && enemy != null && enemy.Data != null && enemy.Health > 0f)
+            {
+                int shots = ps.critChance <= 0.333f ? 1 : (ps.critChance <= 0.666f ? 2 : 3);
+                float missileDmg = 11f + ps.TotalDamage * 0.07f + ps.TotalAbilityPower * 0.1f;
+                Color cyan = new Color(0.3f, 0.95f, 1f, 0.9f);
+                for (int j = 0; j < shots && enemy != null && enemy.Data != null; j++)
+                {
+                    SimpleVfx.Burst(hitPos, 0.6f, cyan, 0.3f); // 飞弹命中火花
+                    enemy.TakeMagicDamage(missileDmg); // 最后一下若击杀目标，循环条件下一轮判负不再触发
+                }
+            }
+
             if (ps != null && enemy != null && enemy.Health > 0f && before - enemy.Health > 0f)
                 ps.OnAttackHit(enemy, before - enemy.Health, hitPos); // 装备普攻 on-hit 被动(破败/咒刃/黑切/分裂箭等)
         }

@@ -62,6 +62,7 @@ namespace Roguelite
         BinaryAmp,       // 物法皆修：攻击叠法术强度/技能叠攻击力(上限30)
         Tiptoe,          // 踢踏舞：普攻后短暂提升移速
         InfCycle,        // 无限循环往复：击杀永久+2技能急速(上限20)
+        CritMissile,     // 暴击飞弹(黄金)：+25%暴击，暴击时向目标发射 1/2/3 枚魔法飞弹
         // ── AD 装备 ──
         Spellblade,      // 三相之力：每1.5s一次普攻附 攻击力×1 额外物理伤害
         SpellbladeArcane,// 黄昏与黎明：每1.5s一次普攻附 法强×1 额外魔法伤害

@@ -325,5 +325,38 @@ namespace Roguelite.Tests
 
             Assert.That(e.speedMult, Is.EqualTo(0.65f)); // 减速35%
         }
+
+        [Test]
+        public void CritMissile_Rune_Launches_Magic_Missiles_On_Crit()
+        {
+            Apply(PassiveType.CritMissile);
+            stats.damage = 100f;
+            stats.abilityPower = 50f;
+            Enemy e = Spawn(Vector3.zero, 1000f);
+
+            DamageSystem.HitEnemy(e, 100f, 1f); // 必定暴击
+
+            // 暴击 200 + 飞弹1枚(11 + 100×0.07 + 50×0.1 = 23) = 223
+            Assert.That(1000f - e.Health, Is.EqualTo(223f).Within(0.05f));
+        }
+
+        [Test]
+        public void CritMissile_Higher_Crit_Chance_Fires_More_Missiles()
+        {
+            Apply(PassiveType.CritMissile);
+            stats.damage = 100f;
+            stats.abilityPower = 50f;
+            const float oneMissile = 11f + 100f * 0.07f + 50f * 0.1f; // 23
+
+            stats.critChance = 0.5f; // ≤66.6% → 2 枚
+            Enemy e2 = Spawn(new Vector3(0f, -3f, 0f), 1000f);
+            DamageSystem.HitEnemy(e2, 100f, 1f);
+            Assert.That(1000f - e2.Health, Is.EqualTo(200f + 2f * oneMissile).Within(0.05f));
+
+            stats.critChance = 0.8f; // >66.6% → 3 枚
+            Enemy e3 = Spawn(new Vector3(0f, -6f, 0f), 1000f);
+            DamageSystem.HitEnemy(e3, 100f, 1f);
+            Assert.That(1000f - e3.Health, Is.EqualTo(200f + 3f * oneMissile).Within(0.05f));
+        }
     }
 }
