@@ -178,7 +178,7 @@ namespace Roguelite
             }
         }
 
-        /// <summary>弹射魔法伤害(法师R烈焰风暴)：从 origin 起命中最近敌人并在 radius 内依次弹射 maxBounces 次。</summary>
+        /// <summary>弹射魔法伤害(旧法师R烈焰风暴，技能已替换为火焰之种，保留通用工具)：从 origin 起命中最近敌人并在 radius 内依次弹射 maxBounces 次。</summary>
         public static void CastMagicBounce(Vector2 origin, float radius, int maxBounces, float baseDamage, float apRatio)
         {
             Color purple = new Color(0.68f, 0.42f, 1f, 0.9f);

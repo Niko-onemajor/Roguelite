@@ -50,8 +50,11 @@ namespace Roguelite.Tests
             Assert.That(canvas.transform.Find("Shop").gameObject.activeSelf, Is.True);
             var label = canvas.transform.Find("Shop/Slot_0/Text").GetComponent<Text>();
             Assert.That(label, Is.Not.Null);
-            Assert.That(label.text, Does.Contain("金币"));
-            Assert.That(label.text, Does.Contain("攻击力")); // 池中道具均为攻击力词条
+            Assert.That(label.text, Is.EqualTo(sv.shop.Slots[0].Item.displayName)); // 名称独立顶部展示
+            var desc = canvas.transform.Find("Shop/Slot_0/Desc_0").GetComponent<Text>();
+            Assert.That(desc.text, Does.Contain("攻击力")); // 池中道具均为攻击力词条
+            var price = canvas.transform.Find("Shop/Slot_0/Price_0").GetComponent<Text>();
+            Assert.That(price.text, Does.Contain("金币"));  // 价格独立底部展示
         }
 
         [Test]

@@ -176,8 +176,6 @@ namespace Roguelite
         const float ArcherSplashRadius = 2.2f;       // 定圣诀 溅射半径
         const float MageRayLength = 7f;              // 死亡射线 最大射程
         const float MageRayWidth = 0.8f;             // 死亡射线 判定宽度
-        const float MageStormRadius = 6f;            // 烈焰风暴 弹射半径
-        const int MageStormBounces = 5;              // 烈焰风暴 最大弹射次数
         const float ArcherDashDistance = 3f;         // 闪避突袭 翻滚距离
         const float WarriorCleaveRadius = 2.5f;      // 大杀四方 挥击半径
         const float WarriorCleaveDelay = 0.75f;      // 大杀四方 施法延迟
@@ -217,8 +215,8 @@ namespace Roguelite
             GameEvents.RaiseSkillCooldownChanged(); // 技能栏初始渲染(E/R)
         }
 
-        /// <summary>普攻实际伤害 = 面板攻击力 + 法术强度×0.6(法师 攻击力0 亦能靠法强打普攻)。</summary>
-        public float BasicDamage => TotalDamage + TotalAbilityPower * 0.6f;
+        /// <summary>普攻实际伤害 = 面板攻击力 + 法术强度×0.3(法师攻速慢、普攻低，以技能为主要输出)。</summary>
+        public float BasicDamage => TotalDamage + TotalAbilityPower * 0.3f;
 
         /// <summary>为下一次普攻附加伤害(射手Q 闪避突袭)。</summary>
         public void GrantNextAttackBonus(float v) => NextAttackBonus = Mathf.Max(NextAttackBonus, v);
@@ -807,8 +805,8 @@ namespace Roguelite
                     SimpleVfx.Beam(origin, FacingDir(), MageRayLength, MageRayWidth, new Color(0.5f, 0.7f, 1f, 0.95f));
                     DamageSystem.CastMagicLine(origin, FacingDir(), MageRayLength, MageRayWidth, skill.BaseDamage, skill.ApRatio);
                     break;
-                case ClassSkillType.MageStorm:
-                    DamageSystem.CastMagicBounce(origin, MageStormRadius, MageStormBounces, skill.BaseDamage, skill.ApRatio);
+                case ClassSkillType.MageFlameSeed:
+                    SpawnFlameSeed(origin, skill); // 火焰之种：敌方间延迟弹射
                     break;
                 case ClassSkillType.ArcherDash: CastArcherDash(origin, skill); break;
                 case ClassSkillType.ArcherUlt:
@@ -1065,6 +1063,13 @@ namespace Roguelite
                 CurrentHP += TankFeastGrowth;
                 GameEvents.RaiseHP(CurrentHP, maxHP);
             }
+        }
+
+        /// <summary>法师R 火焰之种：释放一颗火种，朝最近敌人飞行(延迟传递)，命中后继续向下一敌人弹射。</summary>
+        void SpawnFlameSeed(Vector2 origin, ClassSkillData skill)
+        {
+            var go = new GameObject("FlameSeed", typeof(FlameSeed));
+            go.GetComponent<FlameSeed>().Launch(origin, skill.BaseDamage, skill.ApRatio);
         }
 
         #endregion

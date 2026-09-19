@@ -114,17 +114,18 @@ namespace Roguelite.Tests
         [Test]
         public void ApplyClass_Mage_Zero_Ad_Has_Full_Mana_And_BasicDamage_Uses_AbilityPower()
         {
-            var cls = MakeClass(damage: 0f, ap: 20f, hp: 85f, mana: 120f, haste: 35f);
+            var cls = MakeClass(damage: 0f, ap: 20f, hp: 85f, mana: 120f, haste: 35f, interval: 1.2f);
             stats.ApplyClass(cls);
 
             Assert.That(stats.damage, Is.EqualTo(0f));          // 法师基础攻击力为 0
             Assert.That(stats.abilityPower, Is.EqualTo(20f));
             Assert.That(stats.maxMana, Is.EqualTo(120f));
             Assert.That(stats.mana, Is.EqualTo(120f));
-            Assert.That(stats.BasicDamage, Is.EqualTo(12f).Within(1e-4f)); // 0 + 20×0.6
+            Assert.That(stats.attackInterval, Is.EqualTo(1.2f));// 法师攻速更慢(削弱平A)
+            Assert.That(stats.BasicDamage, Is.EqualTo(6f).Within(1e-4f)); // 0 + 20×0.3
 
             stats.ApplyBonus(Item(StatType.AbilityPower, 10f));
-            Assert.That(stats.BasicDamage, Is.EqualTo(18f).Within(1e-4f)); // 30×0.6
+            Assert.That(stats.BasicDamage, Is.EqualTo(9f).Within(1e-4f)); // 30×0.3
         }
 
         [Test]
@@ -162,21 +163,21 @@ namespace Roguelite.Tests
         public void MageDeathRay_Hits_Enemies_Along_Line()
         {
             var cls = MakeClass(ap: 20f, mana: 120f,
-                q: Skill(ClassSkillType.MageDeathRay, baseDmg: 25f, apRatio: 0.8f, cd: 6f, mana: 25f));
+                q: Skill(ClassSkillType.MageDeathRay, baseDmg: 20f, apRatio: 0.8f, cd: 3f, mana: 25f));
             stats.ApplyClass(cls);
             Enemy inLine = Spawn(new Vector3(3f, 0f, 0f), 100f);
             Spawn(new Vector3(0f, 4f, 0f), 100f); // 垂直线外，不应命中
 
             Assert.That(stats.TryCastSkill(false, Vector2.zero), Is.True); // 玩家无 Facing，默认朝右
 
-            Assert.That(inLine.Health, Is.EqualTo(59f).Within(1e-4f)); // 25 + 20×0.8 = 41
+            Assert.That(inLine.Health, Is.EqualTo(64f).Within(1e-4f)); // 20 + 20×0.8 = 36
         }
 
         [Test]
-        public void MageStorm_Bounces_Across_Enemies()
+        public void MageFlameSeed_Bounces_With_Delay_Damage_And_Slow()
         {
-            var cls = MakeClass(ap: 20f, mana: 120f,
-                r: Skill(ClassSkillType.MageStorm, baseDmg: 20f, apRatio: 0.5f, cd: 25f, mana: 60f));
+            var cls = MakeClass(mana: 100f,
+                r: Skill(ClassSkillType.MageFlameSeed, baseDmg: 20f, apRatio: 0.5f, cd: 30f, mana: 60f));
             stats.ApplyClass(cls);
             Enemy a = Spawn(new Vector3(2f, 0f, 0f), 100f);
             Enemy b = Spawn(new Vector3(4f, 0f, 0f), 100f);
@@ -184,10 +185,22 @@ namespace Roguelite.Tests
 
             Assert.That(stats.TryCastSkill(true, Vector2.zero), Is.True);
 
-            // 弹射链 起点→2→4→6… 每个目标至少中一发(每发 20+20×0.5=30)
-            Assert.That(a.Health, Is.LessThan(100f));
-            Assert.That(b.Health, Is.LessThan(100f));
-            Assert.That(c.Health, Is.LessThan(100f));
+            var seeds = Object.FindObjectsByType<FlameSeed>(FindObjectsSortMode.None);
+            Assert.That(seeds.Length, Is.EqualTo(1));
+            var seed = seeds[0];
+            seed.gameObject.AddComponent<Poolable>().Key = 7777; // 归池而非 Destroy，EditMode 兼容
+
+            // 火焰之种延迟飞行：逐段前进，命中 A→B→C，共3段(每段移动速度7/秒)
+            for (int i = 0; i < 8; i++) seed.Advance(0.5f);
+
+            Assert.That(stats.mana, Is.EqualTo(40f));                  // 耗蓝 60
+            Assert.That(stats.RCooldown, Is.EqualTo(30f).Within(1e-4f)); // 冷却30(无急速)
+            Assert.That(a.Health, Is.EqualTo(80f).Within(1e-4f));      // 20 + 0×0.5 = 20
+            Assert.That(b.Health, Is.EqualTo(80f).Within(1e-4f));
+            Assert.That(c.Health, Is.EqualTo(80f).Within(1e-4f));
+            Assert.That(a.speedMult, Is.EqualTo(FlameSeed.SlowMult));  // 命中减速(35%)
+            Assert.That(b.speedMult, Is.EqualTo(FlameSeed.SlowMult));
+            Assert.That(c.speedMult, Is.EqualTo(FlameSeed.SlowMult));
         }
 
         [Test]

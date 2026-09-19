@@ -33,7 +33,9 @@ namespace Roguelite
         {
             public GameObject root;
             public Button button;
-            public Text label;
+            public Text label;    // 名称(图标右侧)
+            public Text desc;     // 属性/被动描述(中部独立区块)
+            public Text price;    // 价格(底部横条)
             public Image icon;
             public Button lockBtn;
             public Text lockLabel;
@@ -95,7 +97,24 @@ namespace Roguelite
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             var label = root.GetComponentInChildren<Text>(true);
-            label.fontSize = 26;
+            // 名称：图标右侧顶部(名称/描述/价格分区排版，避免文字挤成一团)
+            var lRt = label.rectTransform;
+            lRt.anchorMin = new Vector2(0.3f, 0.84f);
+            lRt.anchorMax = new Vector2(0.98f, 0.97f);
+            lRt.offsetMin = Vector2.zero;
+            lRt.offsetMax = Vector2.zero;
+            label.fontSize = 34;
+            label.alignment = TextAnchor.UpperLeft;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow; // 名称单行显示不换行
+            label.color = new Color(1f, 0.87f, 0.45f);
+
+            // 描述：卡片中部属性/被动区(raycastTarget=false 不拦截购买点击)
+            var desc = UIBuilder.Text("Desc_" + i, root.transform, "", 22, new Color(0.9f, 0.9f, 0.92f), TextAnchor.UpperLeft);
+            SetRect(desc.rectTransform, 0.05f, 0.18f, 0.95f, 0.82f);
+
+            // 价格：底部横条
+            var price = UIBuilder.Text("Price_" + i, root.transform, "", 26, new Color(1f, 0.87f, 0.4f), TextAnchor.MiddleCenter);
+            SetRect(price.rectTransform, 0.05f, 0.03f, 0.95f, 0.15f);
 
             // 左上角装备图标(Resources/Items 按 iconKey 加载, 缺失自动隐藏)
             var iconGo = new GameObject("Icon", typeof(Image));
@@ -117,6 +136,8 @@ namespace Roguelite
                 root = root,
                 button = root.GetComponent<Button>(),
                 label = label,
+                desc = desc,
+                price = price,
                 icon = iconImg,
                 lockBtn = lockGo.GetComponent<Button>(),
                 lockLabel = lockLabel,
@@ -300,9 +321,20 @@ namespace Roguelite
             ShopSlot slot = shop.Slots[idx];
             bool sold = slot.Item == null;
 
-            s.label.text = sold
-                ? "已售出"
-                : $"{slot.Item.displayName}\n{StatText.Describe(slot.Item)}\n价格 {shop.PriceOf(slot.Item)} 金币";
+            if (sold)
+            {
+                s.label.text = "已售出";
+                s.desc.text = "";
+                s.price.text = "";
+                s.label.color = new Color(0.85f, 0.85f, 0.85f, 0.7f);
+            }
+            else
+            {
+                s.label.text = slot.Item.displayName;
+                s.label.color = new Color(1f, 0.87f, 0.45f);
+                s.desc.text = StatText.Describe(slot.Item);
+                s.price.text = $"价格 {shop.PriceOf(slot.Item)} 金币";
+            }
             ShopItemData it = sold ? null : slot.Item;
             s.icon.enabled = it != null && it.IconSprite != null;
             s.icon.sprite = it != null ? it.IconSprite : null;

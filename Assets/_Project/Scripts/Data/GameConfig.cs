@@ -22,21 +22,21 @@ namespace Roguelite
 
             // ── 职业 4 种（战士/坦克=近战挥砍；法师/射手=远程飞弹，不再区分手枪/冲锋枪）──
             cfg.classes.Add(Class("战士", "近战 · 高攻击高抗性", WeaponType.Melee,
-                damage: 15f, ap: 0f, hp: 150f, interval: 0.8f, ms: 8f, armor: 5f, mr: 5f, mana: 40f, haste: 10f,
+                damage: 15f, ap: 0f, hp: 115f, interval: 0.8f, ms: 8f, armor: 5f, mr: 5f, mana: 40f, haste: 10f,
                 new ClassSkillData { Name = "大杀四方", Desc = "短延迟后挥击身周敌人（物理），外圈命中回复已损生命", Type = ClassSkillType.WarriorCleave, BaseDamage = 20f, AdRatio = 1f, Cooldown = 8f, ManaCost = 20f },
-                new ClassSkillData { Name = "终极统治", Desc = "15秒内+100最大生命，每秒对身周敌人造成魔法伤害", Type = ClassSkillType.WarriorReign, BaseDamage = 8f, AdRatio = 0.2f, ApRatio = 0.1f, Cooldown = 45f, ManaCost = 30f }));
-            cfg.classes.Add(Class("法师", "远程 · 蓝量多技能急速高，普攻附加法强", WeaponType.Ranged,
-                damage: 0f, ap: 20f, hp: 85f, interval: 0.8f, ms: 7.5f, armor: 0f, mr: 0f, mana: 120f, haste: 35f,
-                new ClassSkillData { Name = "死亡射线", Desc = "向面朝方向发射混乱光线，沿途敌人受魔法伤害", Type = ClassSkillType.MageDeathRay, BaseDamage = 25f, ApRatio = 0.8f, Cooldown = 6f, ManaCost = 25f },
-                new ClassSkillData { Name = "烈焰风暴", Desc = "烈焰在敌方单位间弹射，每次弹射造成魔法伤害", Type = ClassSkillType.MageStorm, BaseDamage = 30f, ApRatio = 0.6f, Cooldown = 25f, ManaCost = 60f }));
+                new ClassSkillData { Name = "终极统治", Desc = "15秒内+100最大生命，每秒对身周敌人造成魔法伤害", Type = ClassSkillType.WarriorReign, BaseDamage = 8f, AdRatio = 0.2f, ApRatio = 0.1f, Cooldown = 60f, ManaCost = 30f }));
+            cfg.classes.Add(Class("法师", "远程 · 法强技能特化，蓝量多技能急速高", WeaponType.Ranged,
+                damage: 0f, ap: 20f, hp: 65f, interval: 1.2f, ms: 7.5f, armor: 0f, mr: 0f, mana: 120f, haste: 35f,
+                new ClassSkillData { Name = "死亡射线", Desc = "向面朝方向发射混乱光线，沿途敌人受魔法伤害", Type = ClassSkillType.MageDeathRay, BaseDamage = 20f, ApRatio = 0.8f, Cooldown = 3f, ManaCost = 25f },
+                new ClassSkillData { Name = "火焰之种", Desc = "从体内释放一颗火焰之种，在敌方单位间延迟弹射，每次命中造成魔法伤害并短暂减速", Type = ClassSkillType.MageFlameSeed, BaseDamage = 30f, ApRatio = 0.6f, Cooldown = 30f, ManaCost = 60f }));
             cfg.classes.Add(Class("射手", "远程 · 攻速更快技能冷却更短", WeaponType.Ranged,
-                damage: 11f, ap: 0f, hp: 85f, interval: 0.55f, ms: 8f, armor: 0f, mr: 0f, mana: 60f, haste: 0f,
-                new ClassSkillData { Name = "闪避突袭", Desc = "向前翻滚一小段距离，下一次普攻附加物理伤害", Type = ClassSkillType.ArcherDash, BaseDamage = 15f, AdRatio = 0.5f, Cooldown = 4f, ManaCost = 20f },
+                damage: 11f, ap: 0f, hp: 65f, interval: 0.55f, ms: 8f, armor: 0f, mr: 0f, mana: 60f, haste: 0f,
+                new ClassSkillData { Name = "闪避突袭", Desc = "向前翻滚一小段距离，下一次普攻附加物理伤害", Type = ClassSkillType.ArcherDash, BaseDamage = 15f, AdRatio = 0.5f, Cooldown = 10f, ManaCost = 20f },
                 new ClassSkillData { Name = "定圣诀", Desc = "15秒内攻速提升22%，普攻附加魔法伤害并对附近敌人溅射", Type = ClassSkillType.ArcherUlt, BaseDamage = 10f, ApRatio = 0.4f, Cooldown = 45f, ManaCost = 40f }));
             cfg.classes.Add(Class("坦克", "近战 · 血量最高双抗最高", WeaponType.Melee,
-                damage: 10f, ap: 0f, hp: 210f, interval: 0.8f, ms: 7.5f, armor: 18f, mr: 15f, mana: 40f, haste: 0f,
+                damage: 10f, ap: 0f, hp: 160f, interval: 0.8f, ms: 7.5f, armor: 18f, mr: 15f, mana: 40f, haste: 0f,
                 new ClassSkillData { Name = "电击疗法", Desc = "电击自身：4秒内每秒对身周敌人造成魔法伤害并减伤", Type = ClassSkillType.TankShock, BaseDamage = 12f, Cooldown = 10f, ManaCost = 15f },
-                new ClassSkillData { Name = "盛宴", Desc = "吞食最近敌人造成真实伤害，击杀后最大生命永久+40", Type = ClassSkillType.TankFeast, BaseDamage = 60f, Cooldown = 30f, ManaCost = 40f }));
+                new ClassSkillData { Name = "盛宴", Desc = "吞食最近敌人造成真实伤害，击杀后最大生命永久+40", Type = ClassSkillType.TankFeast, BaseDamage = 60f, Cooldown = 50f, ManaCost = 40f }));
 
             // 武器 4 把(damage 字段为基准伤害；实际伤害=PlayerStats.damage)
             cfg.weapons.Add(Weapon("手枪", WeaponType.Ranged, 10f, 0.6f, 8.5f, 7f, Color.yellow));

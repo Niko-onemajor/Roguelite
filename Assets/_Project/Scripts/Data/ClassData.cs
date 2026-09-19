@@ -5,7 +5,7 @@ namespace Roguelite
     {
         None,
         MageDeathRay,   // 法师Q 死亡射线：直线沿途魔法伤害
-        MageStorm,      // 法师R 烈焰风暴：敌人间弹射
+        MageFlameSeed,  // 法师R 火焰之种：敌方间延迟弹射，命中魔法伤害+减速
         ArcherDash,     // 射手Q 闪避突袭：冲刺+下一次普攻附加伤害
         ArcherUlt,      // 射手R 定圣诀：攻速提升+普攻附加魔法伤害与溅射
         WarriorCleave,  // 战士Q 大杀四方：延迟后身周物理伤害+外圈回血
