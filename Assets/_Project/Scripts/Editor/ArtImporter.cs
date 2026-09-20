@@ -5,22 +5,29 @@ using UnityEngine;
 namespace Roguelite.EditorTools
 {
     /// <summary>
-    /// Resources/Sprites 贴图导入管家：
-    /// 1) AssetPostprocessor 在任意导入(含批处理)时自动把该目录 PNG 配成 Sprite(2D)，
-    ///    保证 Resources.Load&lt;Sprite&gt; 直接可用，无需手动设 Inspector。
+    /// 贴图导入管家：
+    /// 1) AssetPostprocessor 在任意导入(含批处理)时自动把 Resources/Sprites 与
+    ///    Resources/Items 下的 PNG 配成 Sprite(2D)，保证 Resources.Load&lt;Sprite&gt;
+    ///    直接可用，无需手动设 Inspector。
     /// 2) 菜单 "Roguelite → 重新配置 Sprites 贴图" 一键重刷整个目录。
     /// 规范：PPU=32、Point 过滤(像素风锐利)、禁 mipmap、无压缩；bg_floor 例外用
-    ///     Bilinear+Repeat(背景铺贴)。
+    ///    Bilinear+Repeat(背景铺贴)。
     /// </summary>
     public static class ArtImporter
     {
         public const string SpritesFolder = "Assets/_Project/Resources/Sprites";
+        public const string ItemsFolder = "Assets/_Project/Resources/Items";
         public const int PixelsPerUnit = 32;
+
+        static readonly string[] ManagedFolders = { SpritesFolder, ItemsFolder };
 
         static bool IsSpritePath(string assetPath)
         {
-            return assetPath.StartsWith(SpritesFolder, System.StringComparison.OrdinalIgnoreCase)
-                && assetPath.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
+            if (!assetPath.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase)) return false;
+            for (int i = 0; i < ManagedFolders.Length; i++)
+                if (assetPath.StartsWith(ManagedFolders[i], System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
         }
 
         static bool IsBackground(string assetPath)
@@ -31,14 +38,17 @@ namespace Roguelite.EditorTools
         [MenuItem("Roguelite/重新配置 Sprites 贴图")]
         public static void ReconfigureAll()
         {
-            string[] guids = AssetDatabase.FindAssets("t:Texture", new[] { SpritesFolder });
             int changed = 0;
-            foreach (string guid in guids)
+            for (int f = 0; f < ManagedFolders.Length; f++)
             {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!IsSpritePath(path)) continue;
-                var ti = AssetImporter.GetAtPath(path) as TextureImporter;
-                if (ti != null && Apply(ti)) changed++;
+                string[] guids = AssetDatabase.FindAssets("t:Texture", new[] { ManagedFolders[f] });
+                foreach (string guid in guids)
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (!IsSpritePath(path)) continue;
+                    var ti = AssetImporter.GetAtPath(path) as TextureImporter;
+                    if (ti != null && Apply(ti)) changed++;
+                }
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

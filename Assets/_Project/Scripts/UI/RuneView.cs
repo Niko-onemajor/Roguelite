@@ -19,7 +19,8 @@ namespace Roguelite
         {
             public GameObject root;
             public Button button;
-            public Text label;    // 名称(顶部大标题)
+            public Image icon;    // 图标(置顶居中)
+            public Text label;    // 名称(图标下方)
             public Text desc;     // 属性/被动描述(独立区块)
             public Button refreshBtn;
             public Text refreshLabel;
@@ -66,21 +67,33 @@ namespace Roguelite
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 
-            // 名称：卡片顶部大标题(名称与描述分离，避免挤成一团)
+            // 图标：置顶居中(视觉焦点)
+            var iconGo = new GameObject("Icon", typeof(Image));
+            iconGo.transform.SetParent(root.transform, false);
+            var iRt = iconGo.transform as RectTransform;
+            iRt.anchorMin = new Vector2(0.3f, 0.58f);
+            iRt.anchorMax = new Vector2(0.7f, 0.88f);
+            iRt.offsetMin = Vector2.zero;
+            iRt.offsetMax = Vector2.zero;
+            var iconImg = iconGo.GetComponent<Image>();
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+
+            // 名称：图标下方大标题
             var label = root.GetComponentInChildren<Text>(true);
             var lRt = label.rectTransform;
-            lRt.anchorMin = new Vector2(0.04f, 0.78f);
-            lRt.anchorMax = new Vector2(0.96f, 0.97f);
+            lRt.anchorMin = new Vector2(0.04f, 0.46f);
+            lRt.anchorMax = new Vector2(0.96f, 0.58f);
             lRt.offsetMin = Vector2.zero;
             lRt.offsetMax = Vector2.zero;
-            label.fontSize = 40;
-            label.alignment = TextAnchor.UpperCenter;
+            label.fontSize = 32;
+            label.alignment = TextAnchor.MiddleCenter;
 
-            // 描述：卡片中部独立文本区(raycastTarget=false 不拦截卡片点击)
-            var desc = UIBuilder.Text("RuneDesc_" + i, root.transform, "", 24, Color.white, TextAnchor.UpperLeft);
+            // 描述：卡片底部独立文本区(raycastTarget=false 不拦截卡片点击)
+            var desc = UIBuilder.Text("RuneDesc_" + i, root.transform, "", 20, Color.white, TextAnchor.UpperLeft);
             var dRt = desc.rectTransform;
-            dRt.anchorMin = new Vector2(0.08f, 0.1f);
-            dRt.anchorMax = new Vector2(0.92f, 0.74f);
+            dRt.anchorMin = new Vector2(0.08f, 0.08f);
+            dRt.anchorMax = new Vector2(0.92f, 0.42f);
             dRt.offsetMin = Vector2.zero;
             dRt.offsetMax = Vector2.zero;
 
@@ -99,6 +112,7 @@ namespace Roguelite
             {
                 root = root,
                 button = root.GetComponent<Button>(),
+                icon = iconImg,
                 label = label,
                 desc = desc,
                 refreshBtn = refreshGo.GetComponent<Button>(),
@@ -136,8 +150,10 @@ namespace Roguelite
             RuneCard card = rune.Cards[idx];
 
             c.label.text = card.Item.displayName;
-            c.desc.text = StatText.Describe(card.Item);
             c.label.color = RarityLabelColor(card.Rarity);
+            c.icon.enabled = card.Item.IconSprite != null;
+            c.icon.sprite = card.Item.IconSprite;
+            c.desc.text = StatText.Describe(card.Item);
             c.desc.color = RarityLabelColor(card.Rarity);
 
             Color bg = RarityBg(card.Rarity);

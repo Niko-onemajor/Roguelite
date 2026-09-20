@@ -219,7 +219,6 @@ namespace Roguelite
             cfg.runes.Add(Rune("侵蚀", "伤害施加 4 秒的 1.5% 护甲与魔抗击碎效果。", 5, PassiveType.Eroding,
                 B(StatType.ArmorPen, 6f), B(StatType.MagicPen, 6f)));
             cfg.runes.Add(Rune("点亮", "每第 4 次普通攻击发射 4 枚额外魔法飞弹。", 5, PassiveType.LightStrike, B(StatType.AbilityPower, 15f)));
-            cfg.runes.Add(Rune("裁决使", "对生命低于 50% 的敌人多造成 15% 伤害。", 5, PassiveType.Executioner, B(StatType.AttackDamage, 8f)));
 
             // ── 龙魂类(归入白银阶) ──
             cfg.runes.Add(Rune("炼狱龙魂", "每5秒在自身周围引发爆炸(90+12%攻击力+6%法强)。", 5,
@@ -288,6 +287,7 @@ namespace Roguelite
         {
             var i = ScriptableObject.CreateInstance<ShopItemData>();
             i.displayName = name; i.basePrice = price; i.passive = desc; i.passiveType = type;
+            i.iconKey = IconKeyOf(name); // 对应 Resources/Items 下的图标文件(缺失则无图标,文字兜底)
             for (int k = 0; k < stats.Length; k++) i.bonuses.Add(stats[k]);
             return i;
         }
@@ -361,6 +361,44 @@ namespace Roguelite
             { "狂战士胫甲", "berserker_greaves" }, { "法师之靴", "sorcerers_shoes" },
             { "铁板靴", "steelcaps" }, { "水银之靴", "mercury_treads" },
             { "明朗之靴", "lucidity_boots" }, { "轻灵之靴", "swiftness_boots" },
+
+            // ── 符文图标(TFT augment 风格，文件名全小写下划线) ──
+            { "灵巧", "deft_mayhem_augment" },
+            { "大力", "heavy_hitter_mayhem_augment" },
+            { "巫师式思考", "witchful_thinking_mayhem_augment" },
+            { "急救用具", "first_aid_kit_mayhem_augment" },
+            { "由心及物", "mind_to_matter_mayhem_augment" },
+            { "易损", "vulnerability_mayhem_augment" },
+            { "会心防守", "critical_healing_mayhem_augment" },
+            { "唯快不破", "dont_blink_mayhem_augment" },
+            { "重量级打击手", "heavy_hitter_mayhem_augment" },
+            { "侵蚀", "erosion_mayhem_augment" },
+            { "点亮", "light_em_up_mayhem_augment" },
+            { "炼狱龙魂", "infernal_soul_mayhem_augment" },
+            { "山脉龙魂", "mountain_soul_mayhem_augment" },
+            { "海洋龙魂", "ocean_soul_mayhem_augment" },
+            { "海克斯科技龙魂", "hextech_soul_mayhem_augment" },
+            { "循环往复", "recursion_mayhem_augment" },
+            { "术士果汁盒", "warlock_juicebox_mayhem_augment" },
+            { "超凡邪恶", "phenomenal_evil_mayhem_augment" },
+            { "牙仙子", "tooth_fairy_mayhem_augment" },
+            { "魔法飞弹", "magic_missile_mayhem_augment" },
+            { "豪猪尖刺", "porcupine_mayhem_augment" },
+            { "坦克引擎", "tank_engine_mayhem_augment" },
+            { "缩小引擎", "shrink_engine_mayhem_augment" },
+            { "暴击飞弹", "critical_missile_mayhem_augment" },
+            { "炼狱导管", "infernal_conduit_mayhem_augment" },
+            { "珠光护手", "jeweled_gauntlet_mayhem_augment" },
+            { "双刀流", "dual_wield_mayhem_augment" },
+            { "歌利亚巨人", "goliath_mayhem_augment" },
+            { "亮出你的剑", "draw_your_sword_mayhem_augment" },
+            { "物法皆修", "master_of_duality_mayhem_augment" },
+            { "蛋白粉奶昔", "protein_shake_mayhem_augment" },
+            { "尤里卡", "eureka_mayhem_augment" },
+            { "最万用的瞄准镜", "scopiest_weapons_mayhem_augment" },
+            { "踢踏舞", "tap_dancer_mayhem_augment" },
+            { "无限循环往复", "infinite_recursion_mayhem_augment" },
+            { "大招工具人", "ult_bot_mayhem_augment" },
         };
 
         static string IconKeyOf(string name) => ItemIcons.TryGetValue(name, out var v) ? v : "";
