@@ -707,7 +707,9 @@ namespace Roguelite
                     for (int i = burns.Count - 1; i >= 0; i--)
                     {
                         BurnDot dot = burns[i];
-                        if (dot == null || dot.Enemy == null || dot.Enemy.Health <= 0f) { burns.RemoveAt(i); continue; }
+                        // 失活的敌人(接触消失/已回池未死亡)与已死亡一样不可再结算，及时清理，避免对 inactive 对象调用协程
+                        if (dot == null || dot.Enemy == null || dot.Enemy.Health <= 0f
+                            || !dot.Enemy.gameObject.activeInHierarchy) { burns.RemoveAt(i); continue; }
                         dot.Remaining -= 1f;
                         if (dot.Remaining <= 0f) { burns.RemoveAt(i); continue; }
                         // 易损：灼烧可暴击(暴击时伤害×2)

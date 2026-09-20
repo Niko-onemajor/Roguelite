@@ -16,10 +16,11 @@ namespace Roguelite
             sr = GetComponent<SpriteRenderer>();
         }
 
-        /// <summary>闪色：临时变色 duration 秒后恢复。以调用时刻颜色为恢复目标，兼容实体初始化染色。</summary>
+        /// <summary>闪色：临时变色 duration 秒后恢复。以调用时刻颜色为恢复目标，兼容实体初始化染色。
+        /// inactive 对象无法 StartCoroutine(回池/接触消失的敌人仍可能被残余的持续性伤害触发)，直接忽略。</summary>
         public void Flash(Color flashColor, float duration = 0.12f)
         {
-            if (sr == null) return;
+            if (sr == null || !gameObject.activeInHierarchy) return;
             if (flashRoutine != null) StopCoroutine(flashRoutine);
             flashRoutine = StartCoroutine(FlashRoutine(flashColor, duration));
         }
