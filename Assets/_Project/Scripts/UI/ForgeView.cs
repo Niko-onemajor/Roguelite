@@ -35,6 +35,7 @@ namespace Roguelite
                 GameEvents.ForgeOffer += OnForgeOffered;
             }
             for (int i = 0; i < 3; i++) BuildCard(i);
+            AddCardChamfers(); // 卡牌斜切边，摆脱"太方正"观感
 
             var hint = UIBuilder.Text("ForgeHint", panel.transform,
                 "锻体：花费 10 金币开启 · 选择 1 张卡强化本回合 · 点击卡牌生效 · 可跳过",
@@ -196,6 +197,35 @@ namespace Roguelite
             exit.callback.AddListener(_ => go.transform.localScale = Vector3.one);
             et.triggers.Add(enter);
             et.triggers.Add(exit);
+        }
+
+        /// <summary>卡牌四角斜切：以与 Forge 面板底色相近的半透明方块旋转 45° 盖住卡牌尖角，
+        /// 呈现"切角卡片"观感，摆脱"太方正"的样式。</summary>
+        void AddCardChamfers()
+        {
+            const float side = 0.06f; // 方块边长(锚点单位)：半对角线≈0.042，决定切角深度
+            for (int i = 0; i < 3; i++)
+            {
+                float x0 = 0.12f + 0.26f * i, x1 = 0.38f + 0.26f * i;
+                const float y0 = 0.6f, y1 = 0.96f;
+                AddChamferCorner(x0, y1, side); // 左上
+                AddChamferCorner(x1, y1, side); // 右上
+                AddChamferCorner(x0, y0, side); // 左下
+                AddChamferCorner(x1, y0, side); // 右下
+            }
+        }
+
+        void AddChamferCorner(float cx, float cy, float side)
+        {
+            var go = new GameObject("Chamfer", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(panel.transform, false);
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0f, 0f, 0f, 0.5f); // 与 Forge 面板底色(黑/45%)接近，形成切角暗区
+            img.raycastTarget = false;               // 不拦截卡片点击
+            var rt = go.transform as RectTransform;
+            // 方块以角点为圆心，旋转后四角成 45° 切刀，把卡牌尖角"切"掉
+            SetRect(rt, cx - side * 0.5f, cy - side * 0.5f, cx + side * 0.5f, cy + side * 0.5f);
+            rt.rotation = Quaternion.Euler(0f, 0f, 45f);
         }
         #endregion
     }

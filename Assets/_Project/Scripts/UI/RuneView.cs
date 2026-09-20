@@ -162,6 +162,8 @@ namespace Roguelite
             colors.highlightedColor = Color.Lerp(bg, Color.white, 0.35f);
             colors.pressedColor = Color.Lerp(bg, Color.black, 0.25f);
             c.button.colors = colors;
+            // 同步 targetGraphic：colors 运行期修改不立即刷新，避免首次显示残留默认蓝(金黄色阶错看成偏紫)
+            if (c.button.targetGraphic != null) c.button.targetGraphic.color = bg;
 
             // 卡片主点击 = 选择
             c.button.onClick.RemoveAllListeners();

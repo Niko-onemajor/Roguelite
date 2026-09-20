@@ -129,9 +129,9 @@ namespace Roguelite
 
             // 锁定/解锁：右上角小按钮(子节点 Button 优先拦截点击，不会触发购买)
             var lockGo = UIBuilder.Button("Lock_" + i, root.transform, "锁定", null);
-            SetRect(lockGo.GetComponent<RectTransform>(), 0.68f, 0.88f, 0.97f, 0.97f);
+            SetRect(lockGo.GetComponent<RectTransform>(), 0.73f, 0.885f, 0.97f, 0.955f);
             var lockLabel = lockGo.GetComponentInChildren<Text>(true);
-            lockLabel.fontSize = 12;
+            lockLabel.fontSize = 10;
 
             slots.Add(new SlotUI
             {
@@ -146,8 +146,8 @@ namespace Roguelite
             });
         }
 
-        /// <summary>内嵌出售区：商店槽位下方一横条 8 格正方形玩家装备栏(图标填满+金边)，
-        /// 点击格子展开装备详情(右上角出售)。</summary>
+        /// <summary>内嵌出售区：商店槽位下方一横条 8 格正方形玩家装备栏。
+        /// 图标占满整格 + 深色玻璃底衬 + 金色全包边框，点击格子展开装备详情(右上角出售)。</summary>
         void BuildSellStrip()
         {
             const float cellW = 0.056f, gap = 0.006f, left = 0.03f, top = 0.30f, bottom = 0.244f;
@@ -156,23 +156,34 @@ namespace Roguelite
                 int idx = i;
                 var go = UIBuilder.Button("SellCell_" + i, panel.transform, "", null);
                 SetRect(go.GetComponent<RectTransform>(), left + i * (cellW + gap), bottom, left + i * (cellW + gap) + cellW, top);
-                var label = go.GetComponentInChildren<Text>(true);
-                SetRect(label.rectTransform, 0.02f, 0.82f, 0.98f, 0.98f); // 槽号：格内左上角小字
-                label.fontSize = 12;
-                label.alignment = TextAnchor.UpperLeft;
+
                 var btn = go.GetComponent<Button>();
                 btn.onClick.AddListener(() => OnSellCellClicked(idx));
 
-                // 装备小图标：占满格子(正方形)，外围金边描边
+                // 全包边框与底衬：深色玻璃格 + 金色描边，形成装备槽的"质感"框
+                var fc = btn.colors;
+                fc.normalColor = new Color(0.1f, 0.1f, 0.14f, 0.95f);
+                fc.highlightedColor = new Color(0.22f, 0.22f, 0.3f, 0.95f);
+                fc.pressedColor = new Color(0.06f, 0.06f, 0.09f, 0.95f);
+                btn.colors = fc;
+                if (btn.targetGraphic != null) btn.targetGraphic.color = fc.normalColor;
+                var frame = go.AddComponent<Outline>();
+                frame.effectColor = new Color(1f, 0.82f, 0.3f, 0.9f);
+                frame.effectDistance = new Vector2(2.5f, -2.5f);
+
+                // 装备小图标：占满格子(正方形)，图标内容紧贴边框内侧
                 var iconGo = new GameObject("Icon", typeof(Image));
                 iconGo.transform.SetParent(go.transform, false);
-                SetRect(iconGo.transform as RectTransform, 0.04f, 0.04f, 0.96f, 0.96f);
+                SetRect(iconGo.transform as RectTransform, 0f, 0f, 1f, 1f);
                 var iconImg = iconGo.GetComponent<Image>();
-                iconImg.preserveAspect = true;
                 iconImg.raycastTarget = false;
-                var outline = iconGo.AddComponent<Outline>();
-                outline.effectColor = new Color(1f, 0.85f, 0.3f, 0.85f);
-                outline.effectDistance = new Vector2(2f, -2f);
+
+                // 槽号：格内左上角小字(置于图标之上)
+                var label = go.GetComponentInChildren<Text>(true);
+                SetRect(label.rectTransform, 0.02f, 0.82f, 0.98f, 0.98f);
+                label.fontSize = 12;
+                label.alignment = TextAnchor.UpperLeft;
+                label.transform.SetAsLastSibling();
 
                 sellCells[i] = new SellCellUI { root = go, button = btn, label = label, icon = iconImg };
             }
