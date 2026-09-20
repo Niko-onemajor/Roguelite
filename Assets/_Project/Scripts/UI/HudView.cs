@@ -175,7 +175,9 @@ namespace Roguelite
             {
                 EquipCellUI c = equipCells[i];
                 if (c == null || c.root == null) continue;
-                ShopItemData item = stats != null && i < stats.EquipSlots.Count ? stats.EquipSlots[i].Item : null;
+                // 空槽位元素为 null：先判槽位再取 Item，避免开局(未购买装备)即崩溃
+                ShopItemData item = stats != null && i < stats.EquipSlots.Count && stats.EquipSlots[i] != null
+                    ? stats.EquipSlots[i].Item : null;
                 bool has = item != null;
                 c.root.SetActive(true);
                 c.button.interactable = has;
@@ -190,7 +192,9 @@ namespace Roguelite
         {
             PlayerStats stats = PlayerStats.Instance;
             if (stats == null || idx < 0 || idx >= stats.EquipSlots.Count || equipPopup == null) return;
-            ShopItemData item = stats.EquipSlots[idx].Item;
+            ActiveSlot slot = stats.EquipSlots[idx];
+            if (slot == null) return;
+            ShopItemData item = slot.Item;
             if (item == null) return;
             equipPopupBody.text = BuildEquipDesc(item);
             equipPopup.SetActive(true);
