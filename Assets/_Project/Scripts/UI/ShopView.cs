@@ -1,20 +1,20 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Roguelite
 {
-    /// <summary>商店视图(Brotato 风格)：同时展示 3 个装备槽，每槽右上角锁定/解锁按钮，
-    /// 锁定槽位在刷新时不换货；底部 刷新商店10金币 / 锻体10金币 / 结束商店 按钮，顶部金币显示。
-    /// 出售内嵌在商店面板内：下方"装备栏"8 格展示已装备道具，点击弹"误卖确认"弹窗，确认后八折售出。
-    /// 购买固定价不涨价，商店保持打开直到点击"结束商店"。</summary>
+    /// <summary>商店视图(Brotato 风格)：同时展示 3 个装备槽(图标置顶→名称→效果→底部售价, 右上角小锁定钮)，
+    /// 锁定槽位在刷新时不换货；底部 刷新商店/锻体/结束商店 按钮，顶部金币显示。
+    /// 出售：商店内下方 8 格装备栏，点击格子展开"装备详情"覆盖层，右上角出售按钮 → 二次确认弹窗(八折返金)。</summary>
     public class ShopView : MonoBehaviour
     {
         /// <summary>由 GameBootstrap 注入。</summary>
         public ShopSystem shop;
         /// <summary>由 GameBootstrap 注入：商店内的"锻体"按钮触发锻体覆盖层(ForgeView)。</summary>
         public ForgeSystem forge;
-        /// <summary>由 GameBootstrap 注入：玩家详情面板(属性/装备/符文)，供查看已获增益后搭配购买。</summary>
+        /// <summary>由 GameBootstrap 注入：玩家详情面板(属性/符文)，供查看已获增益后搭配购买。</summary>
         public PlayerInfoView info;
 
         GameObject panel;
@@ -22,8 +22,10 @@ namespace Roguelite
         bool _subscribed;
         readonly List<SlotUI> slots = new List<SlotUI>();
 
-        // ── 内嵌出售区：玩家装备栏 8 格 + 误卖确认弹窗 ──
+        // ── 内嵌出售区：玩家装备栏 8 格 + 装备详情覆盖层 + 误卖二次确认弹窗 ──
         readonly SellCellUI[] sellCells = new SellCellUI[PlayerStats.EquipmentSlotCount];
+        GameObject sellDetailPanel;
+        Text sellDetailText;
         GameObject confirmPanel;
         Text confirmText;
         Button confirmBtn;
@@ -33,10 +35,10 @@ namespace Roguelite
         {
             public GameObject root;
             public Button button;
-            public Text label;    // 名称(图标右侧)
+            public Text label;    // 名称(图标下方)
             public Text desc;     // 属性/被动描述(中部独立区块)
             public Text price;    // 价格(底部横条)
-            public Image icon;
+            public Image icon;    // 图标(置顶居中)
             public Button lockBtn;
             public Text lockLabel;
         }
@@ -45,7 +47,7 @@ namespace Roguelite
         {
             public GameObject root;
             public Button button;
-            public Text label;
+            public Text label;    // 槽号
             public Image icon;
         }
 
@@ -75,15 +77,16 @@ namespace Roguelite
             var end = UIBuilder.Button("EndShop", panel.transform, "结束商店", EndShop);
             SetRect(end.GetComponent<RectTransform>(), 0.72f, 0.13f, 0.92f, 0.21f);
 
-            // 内嵌出售区：商店面板内直接列出已装备道具(八折售出)，点击弹确认弹窗
+            // 内嵌出售区：商店面板内直接列出已装备道具，点击展开详情(右上角出售)
             BuildSellStrip();
+            BuildSellDetail();
             BuildConfirmDialog();
 
-            var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 装备 / 符文", OpenInfo);
+            var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 符文", OpenInfo);
             SetRect(viewBtn.GetComponent<RectTransform>(), 0.06f, 0.05f, 0.26f, 0.11f);
 
             var hint = UIBuilder.Text("ShopHint", panel.transform,
-                "购买固定价 · 锁定装备保留至下一次商店 · 满 8 件需先出售 · 点击下方装备格可八折出售", 20,
+                "购买固定价 · 锁定装备保留至下一次商店 · 满 8 件需先出售 · 点击下方装备格可查看效果并出售", 20,
                 new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleLeft);
             SetRect(hint.rectTransform, 0.3f, 0.05f, 0.94f, 0.11f);
         }
@@ -97,39 +100,38 @@ namespace Roguelite
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             var label = root.GetComponentInChildren<Text>(true);
-            // 名称：图标右侧顶部(名称/描述/价格分区排版，避免文字挤成一团)
+            // 名称：图标下方居中
             var lRt = label.rectTransform;
-            lRt.anchorMin = new Vector2(0.3f, 0.84f);
-            lRt.anchorMax = new Vector2(0.98f, 0.97f);
+            lRt.anchorMin = new Vector2(0.03f, 0.58f);
+            lRt.anchorMax = new Vector2(0.97f, 0.7f);
             lRt.offsetMin = Vector2.zero;
             lRt.offsetMax = Vector2.zero;
-            label.fontSize = 34;
-            label.alignment = TextAnchor.UpperLeft;
+            label.fontSize = 30;
+            label.alignment = TextAnchor.MiddleCenter;
             label.horizontalOverflow = HorizontalWrapMode.Overflow; // 名称单行显示不换行
             label.color = new Color(1f, 0.87f, 0.45f);
 
-            // 描述：卡片中部属性/被动区(raycastTarget=false 不拦截购买点击)
-            var desc = UIBuilder.Text("Desc_" + i, root.transform, "", 22, new Color(0.9f, 0.9f, 0.92f), TextAnchor.UpperLeft);
-            SetRect(desc.rectTransform, 0.05f, 0.18f, 0.95f, 0.82f);
-
-            // 价格：底部横条
-            var price = UIBuilder.Text("Price_" + i, root.transform, "", 26, new Color(1f, 0.87f, 0.4f), TextAnchor.MiddleCenter);
-            SetRect(price.rectTransform, 0.05f, 0.03f, 0.95f, 0.15f);
-
-            // 左上角装备图标(Resources/Items 按 iconKey 加载, 缺失自动隐藏)
+            // 图标：置顶居中(视觉焦点)
             var iconGo = new GameObject("Icon", typeof(Image));
             iconGo.transform.SetParent(root.transform, false);
-            var iconRt = iconGo.transform as RectTransform;
-            SetRect(iconRt, 0.02f, 0.72f, 0.26f, 0.96f);
+            SetRect(iconGo.transform as RectTransform, 0.26f, 0.72f, 0.74f, 0.98f);
             var iconImg = iconGo.GetComponent<Image>();
             iconImg.preserveAspect = true;
             iconImg.raycastTarget = false;
 
-            // 右上角锁定/解锁小按钮(子节点 Button 优先拦截点击，不会触发购买)
+            // 描述：中部属性/被动效果区(raycastTarget=false 不拦截购买点击)
+            var desc = UIBuilder.Text("Desc_" + i, root.transform, "", 20, new Color(0.9f, 0.9f, 0.92f), TextAnchor.UpperLeft);
+            SetRect(desc.rectTransform, 0.06f, 0.15f, 0.94f, 0.56f);
+
+            // 价格：底部横条
+            var price = UIBuilder.Text("Price_" + i, root.transform, "", 24, new Color(1f, 0.87f, 0.4f), TextAnchor.MiddleCenter);
+            SetRect(price.rectTransform, 0.04f, 0.03f, 0.96f, 0.13f);
+
+            // 锁定/解锁：右上角小按钮(子节点 Button 优先拦截点击，不会触发购买)
             var lockGo = UIBuilder.Button("Lock_" + i, root.transform, "锁定", null);
-            SetRect(lockGo.GetComponent<RectTransform>(), 0.55f, 0.74f, 1f, 1f);
+            SetRect(lockGo.GetComponent<RectTransform>(), 0.6f, 0.85f, 0.97f, 0.97f);
             var lockLabel = lockGo.GetComponentInChildren<Text>(true);
-            lockLabel.fontSize = 18;
+            lockLabel.fontSize = 14;
 
             slots.Add(new SlotUI
             {
@@ -144,7 +146,7 @@ namespace Roguelite
             });
         }
 
-        /// <summary>内嵌出售区：商店槽位下方一横条 8 格玩家装备栏，点击格子触发"误卖确认"弹窗。</summary>
+        /// <summary>内嵌出售区：商店槽位下方一横条 8 格玩家装备栏，点击格子展开装备详情(右上角出售)。</summary>
         void BuildSellStrip()
         {
             const float cellW = 0.112f, gap = 0.006f, left = 0.03f, top = 0.275f, bottom = 0.225f;
@@ -154,15 +156,15 @@ namespace Roguelite
                 var go = UIBuilder.Button("SellCell_" + i, panel.transform, "", null);
                 SetRect(go.GetComponent<RectTransform>(), left + i * (cellW + gap), bottom, left + i * (cellW + gap) + cellW, top);
                 var label = go.GetComponentInChildren<Text>(true);
-                label.fontSize = 15;
+                label.fontSize = 12;
+                label.alignment = TextAnchor.MiddleCenter;
                 var btn = go.GetComponent<Button>();
                 btn.onClick.AddListener(() => OnSellCellClicked(idx));
 
-                // 左上角装备小图标(Resources/Items 按 iconKey 加载, 缺失自动隐藏)
+                // 装备小图标：格内顶部居中(名称在底部显示槽号)
                 var iconGo = new GameObject("Icon", typeof(Image));
                 iconGo.transform.SetParent(go.transform, false);
-                var iconRt = iconGo.transform as RectTransform;
-                SetRect(iconRt, 0.03f, 0.08f, 0.42f, 0.92f);
+                SetRect(iconGo.transform as RectTransform, 0.12f, 0.42f, 0.88f, 0.95f);
                 var iconImg = iconGo.GetComponent<Image>();
                 iconImg.preserveAspect = true;
                 iconImg.raycastTarget = false;
@@ -171,10 +173,38 @@ namespace Roguelite
             }
         }
 
-        /// <summary>误卖确认弹窗：展示待售装备与售价，确认后售出(八折)，取消则关闭。</summary>
+        /// <summary>装备详情覆盖层：展示 名称/属性/被动/主动/售价，右上角"出售"按钮进入二次确认。</summary>
+        void BuildSellDetail()
+        {
+            sellDetailPanel = UIBuilder.Panel("SellDetail", panel.transform, new Color(0f, 0f, 0f, 0.85f));
+            sellDetailPanel.SetActive(false);
+            SetRect(sellDetailPanel.GetComponent<RectTransform>(), 0.3f, 0.3f, 0.7f, 0.7f);
+
+            var title = UIBuilder.Text("SellDetailTitle", sellDetailPanel.transform, "装备详情", 38, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
+            SetRect(title.rectTransform, 0.15f, 0.86f, 0.55f, 0.97f);
+
+            sellDetailText = UIBuilder.Text("SellDetailBody", sellDetailPanel.transform, "", 22, new Color(0.95f, 0.95f, 0.92f), TextAnchor.UpperLeft);
+            SetRect(sellDetailText.rectTransform, 0.05f, 0.14f, 0.95f, 0.84f);
+
+            // 右上角出售按钮(红色系醒目)
+            var sellBtn = UIBuilder.Button("SellBtn", sellDetailPanel.transform, "出售", BeginSellConfirm);
+            SetRect(sellBtn.GetComponent<RectTransform>(), 0.66f, 0.86f, 0.96f, 0.97f);
+            var sellColors = sellBtn.GetComponent<Button>().colors;
+            sellColors.normalColor = new Color(0.75f, 0.25f, 0.2f, 1f);
+            sellColors.highlightedColor = new Color(0.95f, 0.35f, 0.3f, 1f);
+            sellColors.pressedColor = new Color(0.5f, 0.15f, 0.12f, 1f);
+            sellBtn.GetComponent<Button>().colors = sellColors;
+            sellBtn.GetComponentInChildren<Text>(true).fontSize = 20;
+
+            var close = UIBuilder.Button("Close", sellDetailPanel.transform, "关闭", () => sellDetailPanel.SetActive(false));
+            SetRect(close.GetComponent<RectTransform>(), 0.32f, 0.03f, 0.68f, 0.11f);
+            close.GetComponentInChildren<Text>(true).fontSize = 24;
+        }
+
+        /// <summary>误卖二次确认弹窗：展示待售装备与售价，确认后售出(八折)，取消则关闭。</summary>
         void BuildConfirmDialog()
         {
-            confirmPanel = UIBuilder.Panel("SellConfirm", panel.transform, new Color(0f, 0f, 0f, 0.75f));
+            confirmPanel = UIBuilder.Panel("SellConfirm", panel.transform, new Color(0f, 0f, 0f, 0.78f));
             confirmPanel.SetActive(false);
 
             var box = UIBuilder.Panel("SellConfirmBox", confirmPanel.transform, new Color(0.1f, 0.1f, 0.12f, 0.98f));
@@ -184,14 +214,16 @@ namespace Roguelite
             SetRect(title.rectTransform, 0.1f, 0.72f, 0.9f, 0.9f);
 
             confirmText = UIBuilder.Text("SellConfirmBody", box.transform, "", 28, Color.white, TextAnchor.MiddleCenter);
-            SetRect(confirmText.rectTransform, 0.08f, 0.3f, 0.92f, 0.7f);
+            SetRect(confirmText.rectTransform, 0.08f, 0.34f, 0.92f, 0.68f);
 
             var ok = UIBuilder.Button("SellConfirmOk", box.transform, "确认出售", ConfirmSell);
             SetRect(ok.GetComponent<RectTransform>(), 0.07f, 0.07f, 0.47f, 0.24f);
+            ok.GetComponentInChildren<Text>(true).fontSize = 24;
             confirmBtn = ok.GetComponent<Button>();
 
             var cancel = UIBuilder.Button("SellConfirmCancel", box.transform, "取消", CancelSell);
             SetRect(cancel.GetComponent<RectTransform>(), 0.53f, 0.07f, 0.93f, 0.24f);
+            cancel.GetComponentInChildren<Text>(true).fontSize = 24;
         }
 
         #region Unity Lifecycle
@@ -233,7 +265,7 @@ namespace Roguelite
             if (forge != null) forge.TryOpenForge(); // ForgeView 覆盖层响应 ForgeOffer
         }
 
-        /// <summary>查看玩家已获 属性/装备/符文，便于搭配购买(详情覆盖层，关闭后回到商店)。</summary>
+        /// <summary>查看玩家已获 属性/符文，便于搭配购买(详情覆盖层，关闭后回到商店)。</summary>
         void OpenInfo()
         {
             if (info != null) info.Open();
@@ -245,6 +277,8 @@ namespace Roguelite
             shop.End();
             panel.SetActive(false);
             pendingSell = null;
+            if (sellDetailPanel != null) sellDetailPanel.SetActive(false);
+            if (confirmPanel != null) confirmPanel.SetActive(false);
         }
 
         void Buy(int idx)
@@ -260,15 +294,14 @@ namespace Roguelite
             Render();
         }
 
-        /// <summary>点击内嵌装备格：空格忽略，有装备则弹"误卖确认"弹窗。</summary>
+        /// <summary>点击内嵌装备格：空格忽略，有装备则展开"装备详情"覆盖层。</summary>
         void OnSellCellClicked(int idx)
         {
             ShopItemData item = SellItemAt(idx);
-            if (item == null || confirmPanel == null) return;
+            if (item == null || sellDetailPanel == null) return;
             pendingSell = item;
-            confirmText.text = $"出售《{item.displayName}》？\n卖出价 {ShopSystem.SellPriceOf(item)} 金币\n确认后装备将被移除";
-            confirmPanel.SetActive(true);
-            if (confirmBtn != null) confirmBtn.interactable = true;
+            sellDetailText.text = BuildItemDesc(item);
+            sellDetailPanel.SetActive(true);
         }
 
         ShopItemData SellItemAt(int idx)
@@ -276,6 +309,16 @@ namespace Roguelite
             if (shop == null || shop.stats == null) return null;
             var slot = idx >= 0 && idx < shop.stats.EquipSlots.Count ? shop.stats.EquipSlots[idx] : null;
             return slot != null ? slot.Item : null;
+        }
+
+        /// <summary>装备详情 → 右上角"出售"：关闭详情，弹二次确认。</summary>
+        void BeginSellConfirm()
+        {
+            if (pendingSell == null) return;
+            if (sellDetailPanel != null) sellDetailPanel.SetActive(false);
+            confirmText.text = $"出售《{pendingSell.displayName}》？\n卖出价 {ShopSystem.SellPriceOf(pendingSell)} 金币\n确认后装备将被移除";
+            confirmPanel.SetActive(true);
+            if (confirmBtn != null) confirmBtn.interactable = true;
         }
 
         void ConfirmSell()
@@ -359,7 +402,7 @@ namespace Roguelite
             s.lockBtn.colors = colors;
         }
 
-        /// <summary>内嵌装备格重绘：只显示 槽号+售价(八折) / 空，不显示装备名(名称见图标/确认弹窗)。</summary>
+        /// <summary>内嵌装备格重绘：只显示 槽号 与装备图标(效果与售价在详情覆盖层中查看)。</summary>
         void RenderSellCell(int idx)
         {
             SellCellUI c = sellCells[idx];
@@ -368,13 +411,40 @@ namespace Roguelite
             bool has = item != null;
             c.root.SetActive(true);
             c.button.interactable = has;
-            c.label.text = has
-                ? $"{idx + 1}\n{ShopSystem.SellPriceOf(item)}金"
-                : $"{idx + 1}\n空";
+            c.label.text = (idx + 1).ToString();
             c.label.color = has ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.55f);
             c.icon.enabled = has && item.IconSprite != null;
             c.icon.sprite = has ? item.IconSprite : null;
         }
+
+        /// <summary>装备详情文本：名称/售价/属性加成/被动效果/主动效果。</summary>
+        static string BuildItemDesc(ShopItemData item)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("<color=#ffe08a>" + item.displayName + "</color>");
+            sb.AppendLine("售价 " + item.basePrice + " 金 · 出售价 " + ShopSystem.SellPriceOf(item) + " 金");
+            sb.AppendLine();
+            sb.AppendLine(StatText.Describe(item, 1f));
+            if (item.activeType != ActiveType.None)
+            {
+                sb.AppendLine();
+                sb.AppendLine("<color=#8fd0ff>主动效果(数字键触发)：</color>");
+                sb.AppendLine(ActiveName(item.activeType));
+                if (item.activeCooldown > 0f)
+                    sb.AppendLine("冷却 " + item.activeCooldown.ToString("0.#") + " 秒(受技能急速缩放)");
+            }
+            return sb.ToString();
+        }
+
+        static string ActiveName(ActiveType t) => t switch
+        {
+            ActiveType.Redemption => "救赎：治疗自身并对半径内敌人造成魔法伤害",
+            ActiveType.ManaMeld => "法力具现：消耗法力转化为治疗效果与护盾",
+            ActiveType.MoveBurst => "舒瑞娅的狂想曲：短暂提升移动速度",
+            ActiveType.AoeBlast => "兰顿之兆：对周围敌人造成魔法伤害",
+            ActiveType.Cleanse => "米凯尔的祝福：净化并治疗最大生命30%",
+            _ => ""
+        };
 
         static void SetRect(RectTransform rt, float x0, float y0, float x1, float y1)
         {

@@ -163,7 +163,6 @@ namespace Roguelite
             over.Build(canvas.transform);
             // 详情面板最后构建，保证渲染层级在暂停/商店之上
             var info = canvas.AddComponent<PlayerInfoView>();
-            info.combat = combat;
             info.Build(canvas.transform);
             pause.info = info;
             shopView.info = info;

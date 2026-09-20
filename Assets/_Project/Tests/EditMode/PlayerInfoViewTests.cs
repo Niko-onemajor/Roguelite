@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 namespace Roguelite.Tests
 {
-    /// <summary>玩家详情面板(暂停/商店共用)：打开展示 属性/装备/符文，关闭隐藏。</summary>
+    /// <summary>玩家详情面板(暂停/商店共用)：打开展示 属性/符文，关闭隐藏。
+    /// 装备已不在此面板展示(改为商店内装备栏点击查看详情)。</summary>
     public class PlayerInfoViewTests
     {
         [TearDown]
@@ -18,23 +19,16 @@ namespace Roguelite.Tests
         }
 
         [Test]
-        public void Open_Shows_Stats_Weapons_Runes()
+        public void Open_Shows_Stats_And_Runes()
         {
             var canvas = UIBuilder.Canvas();
-            var player = new GameObject("Player", typeof(PlayerStats), typeof(CombatSystem));
+            var player = new GameObject("Player", typeof(PlayerStats));
             var stats = player.GetComponent<PlayerStats>();
             stats.ResetForRun();
             PlayerStats.Instance = stats;
             stats.RecordRune("测试符文", "效果描述", Color.white);
 
-            var combat = player.GetComponent<CombatSystem>();
-            var wd = ScriptableObject.CreateInstance<WeaponData>();
-            wd.displayName = "测试武器";
-            wd.type = WeaponType.Ranged;
-            combat.Equip(wd);
-
             var info = canvas.AddComponent<PlayerInfoView>();
-            info.combat = combat;
             info.Build(canvas.transform);
 
             info.Open();
@@ -42,7 +36,6 @@ namespace Roguelite.Tests
             var panel = canvas.transform.Find("PlayerInfo");
             Assert.That(panel.gameObject.activeSelf, Is.True);
             Assert.That(panel.Find("Body_属性").GetComponent<Text>().text, Does.Contain("攻击力"));
-            Assert.That(panel.Find("Body_装备").GetComponent<Text>().text, Does.Contain("测试武器"));
             Assert.That(panel.Find("Body_符文").GetComponent<Text>().text, Does.Contain("测试符文"));
         }
 

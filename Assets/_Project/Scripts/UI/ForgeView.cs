@@ -20,7 +20,9 @@ namespace Roguelite
         {
             public GameObject root;
             public Button button;
-            public Text label;
+            public Text label;    // 名称(图标下)与稀有度
+            public Text desc;     // 效果描述
+            public Image icon;    // 图标(置顶居中)
         }
 
         public void Build(Transform parent)
@@ -62,17 +64,38 @@ namespace Roguelite
         {
             var root = UIBuilder.Button("ForgeCard_" + i, panel.transform, "", null);
             var rt = root.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.12f + 0.26f * i, 0.58f);
-            rt.anchorMax = new Vector2(0.38f + 0.26f * i, 0.94f);
+            rt.anchorMin = new Vector2(0.12f + 0.26f * i, 0.6f);
+            rt.anchorMax = new Vector2(0.38f + 0.26f * i, 0.96f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             AddHoverScale(root, 1.08f);
+
+            var label = root.GetComponentInChildren<Text>(true);
+            // 名称(含稀有度)：图标下方居中
+            SetRect(label.rectTransform, 0.04f, 0.62f, 0.96f, 0.72f);
+            label.fontSize = 28;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            // 图标：置顶居中(视觉焦点)
+            var iconGo = new GameObject("Icon", typeof(Image));
+            iconGo.transform.SetParent(root.transform, false);
+            SetRect(iconGo.transform as RectTransform, 0.27f, 0.74f, 0.73f, 0.98f);
+            var iconImg = iconGo.GetComponent<Image>();
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+
+            // 效果描述：卡片主体(raycastTarget=false 不拦截选择点击)
+            var desc = UIBuilder.Text("ForgeDesc_" + i, root.transform, "", 20, Color.white, TextAnchor.UpperLeft);
+            SetRect(desc.rectTransform, 0.1f, 0.12f, 0.9f, 0.6f);
 
             cards.Add(new CardUI
             {
                 root = root,
                 button = root.GetComponent<Button>(),
-                label = root.GetComponentInChildren<Text>(true),
+                label = label,
+                desc = desc,
+                icon = iconImg,
             });
         }
 
@@ -104,9 +127,12 @@ namespace Roguelite
             var c = cards[idx];
             var card = forge.CurrentCards[idx];
 
-            c.label.text = CardText(card);
-            c.label.fontSize = 30;
+            c.label.text = $"{RarityName(card.Rarity)} · {card.Item.displayName}";
             c.label.color = LabelColor(card.Rarity);
+            c.desc.text = StatText.Describe(card.Item, card.Multiplier());
+            c.desc.color = LabelColor(card.Rarity);
+            c.icon.enabled = card.Item.IconSprite != null;
+            c.icon.sprite = card.Item.IconSprite;
             c.button.onClick.RemoveAllListeners();
             int i = idx;
             c.button.onClick.AddListener(() => Choose(i));
@@ -129,8 +155,13 @@ namespace Roguelite
         #endregion
 
         #region Static Visual Helpers
-        static string CardText(ForgeCard card) =>
-            $"{RarityName(card.Rarity)} · {card.Item.displayName}\n{StatText.Describe(card.Item, card.Multiplier())}";
+        static void SetRect(RectTransform rt, float x0, float y0, float x1, float y1)
+        {
+            rt.anchorMin = new Vector2(x0, y0);
+            rt.anchorMax = new Vector2(x1, y1);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
 
         static string RarityName(ForgeRarity r)
         {

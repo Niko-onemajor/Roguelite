@@ -37,7 +37,7 @@ namespace Roguelite
             var title = UIBuilder.Text("Title", panel.transform, "游戏菜单", 56, Color.white, TextAnchor.MiddleCenter);
             SetRect(title.rectTransform, 0.2f, 0.8f, 0.8f, 0.92f);
 
-            var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 装备 / 符文", OpenInfo);
+            var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 符文", OpenInfo);
             SetRect(viewBtn.GetComponent<RectTransform>(), 0.2f, 0.5f, 0.8f, 0.62f);
 
             var settle = UIBuilder.Button("Settle", panel.transform, "结算游戏", Settle);

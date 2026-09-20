@@ -66,8 +66,8 @@ namespace Roguelite
             Transform root = parent.parent ?? parent;
             detailPanel = UIBuilder.Panel("SkillDetail", root, new Color(0f, 0f, 0f, 0.82f));
             var dp = detailPanel.GetComponent<RectTransform>();
-            dp.anchorMin = new Vector2(0.29f, 0.36f);
-            dp.anchorMax = new Vector2(0.71f, 0.62f);
+            dp.anchorMin = new Vector2(0.29f, 0.34f);
+            dp.anchorMax = new Vector2(0.71f, 0.64f);
             dp.offsetMin = Vector2.zero;
             dp.offsetMax = Vector2.zero;
             detailPanel.SetActive(false);
@@ -81,17 +81,14 @@ namespace Roguelite
 
             detailText = UIBuilder.Text("Desc", detailPanel.transform, "", 22, new Color(0.95f, 0.95f, 0.92f), TextAnchor.UpperLeft);
             var dt = detailText.rectTransform;
-            dt.anchorMin = new Vector2(0.03f, 0.08f);
-            dt.anchorMax = new Vector2(0.97f, 0.8f);
+            dt.anchorMin = new Vector2(0.04f, 0.1f);
+            dt.anchorMax = new Vector2(0.96f, 0.8f);
             dt.offsetMin = Vector2.zero;
             dt.offsetMax = Vector2.zero;
 
             var close = UIBuilder.Button("Close", detailPanel.transform, "关闭", () => detailPanel.SetActive(false));
-            var cr = close.GetComponent<RectTransform>();
-            cr.anchorMin = new Vector2(0.42f, 0.02f);
-            cr.anchorMax = new Vector2(0.58f, 0.08f);
-            cr.offsetMin = Vector2.zero;
-            cr.offsetMax = Vector2.zero;
+            SetRect(close.GetComponent<RectTransform>(), 0.3f, 0.02f, 0.7f, 0.09f);
+            close.GetComponentInChildren<Text>(true).fontSize = 24;
 
             Refresh();
             Subscribe();
@@ -186,6 +183,14 @@ namespace Roguelite
                     if (cdTexts[i] != null) cdTexts[i].gameObject.SetActive(false);
                 }
             }
+        }
+
+        static void SetRect(RectTransform rt, float x0, float y0, float x1, float y1)
+        {
+            rt.anchorMin = new Vector2(x0, y0);
+            rt.anchorMax = new Vector2(x1, y1);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
     }
 }

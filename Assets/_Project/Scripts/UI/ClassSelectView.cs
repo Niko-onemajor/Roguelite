@@ -40,13 +40,13 @@ namespace Roguelite
             hint.rectTransform.offsetMin = Vector2.zero;
             hint.rectTransform.offsetMax = Vector2.zero;
 
-            // 2×2 卡片：左上/右上/左下/右下
+            // 4 列并排卡片：横向一行展示全部职业便于对比
             for (int i = 0; i < cards.Length; i++)
             {
-                float x0 = 0.07f + (i % 2) * 0.45f;
-                float x1 = x0 + 0.41f;
-                float y0 = i < 2 ? 0.44f : 0.14f;
-                float y1 = i < 2 ? 0.84f : 0.42f;
+                float x0 = 0.02f + i * 0.247f;
+                float x1 = x0 + 0.225f;
+                float y0 = 0.12f;
+                float y1 = 0.84f;
 
                 var card = UIBuilder.Button("ClassCard_" + i, panel.transform, "", null);
                 var rt = card.GetComponent<RectTransform>();
@@ -57,21 +57,21 @@ namespace Roguelite
                 var label = card.GetComponentInChildren<Text>(true);
                 // 职业名称：卡片顶部居中大标题
                 var lRt = label.rectTransform;
-                lRt.anchorMin = new Vector2(0.05f, 0.86f);
-                lRt.anchorMax = new Vector2(0.95f, 0.99f);
+                lRt.anchorMin = new Vector2(0.03f, 0.84f);
+                lRt.anchorMax = new Vector2(0.97f, 0.98f);
                 lRt.offsetMin = Vector2.zero;
                 lRt.offsetMax = Vector2.zero;
-                label.fontSize = 44;
+                label.fontSize = 40;
                 label.alignment = TextAnchor.MiddleCenter;
                 label.color = new Color(1f, 0.87f, 0.45f);
 
                 // 定位简介：名称下方短句
-                var descText = UIBuilder.Text("ClassDesc_" + i, card.transform, "", 24, new Color(0.8f, 0.84f, 0.92f), TextAnchor.MiddleCenter);
-                SetRect(descText.rectTransform, 0.06f, 0.76f, 0.94f, 0.86f);
+                var descText = UIBuilder.Text("ClassDesc_" + i, card.transform, "", 20, new Color(0.8f, 0.84f, 0.92f), TextAnchor.MiddleCenter);
+                SetRect(descText.rectTransform, 0.05f, 0.76f, 0.95f, 0.84f);
 
                 // 属性+技能：卡片主体(名称/简介/主体分区排版，避免文字挤成一团)
-                var body = UIBuilder.Text("ClassBody_" + i, card.transform, "", 21, new Color(0.93f, 0.93f, 0.95f), TextAnchor.UpperLeft);
-                SetRect(body.rectTransform, 0.06f, 0.06f, 0.94f, 0.75f);
+                var body = UIBuilder.Text("ClassBody_" + i, card.transform, "", 18, new Color(0.93f, 0.93f, 0.95f), TextAnchor.UpperLeft);
+                SetRect(body.rectTransform, 0.05f, 0.05f, 0.95f, 0.75f);
 
                 int idx = i;
                 card.GetComponent<Button>().onClick.AddListener(() => Choose(idx));
@@ -127,9 +127,12 @@ namespace Roguelite
 
         static string CardText(ClassData c)
         {
-            return $"攻击 {c.damage:0.#} · 法强 {c.abilityPower:0.#} · 生命 {c.maxHP:0.#}\n" +
-                   $"攻速 {c.attackInterval:0.##}秒/发 · 移速 {c.moveSpeed:0.#} · 护甲/魔抗 {c.armor:0.#}/{c.magicResist:0.#}\n" +
-                   $"法力 {c.maxMana:0.#} · 技能急速 {c.abilityHaste:0.#} · 武器 {(c.Weapon == WeaponType.Melee ? "近战挥砍" : "远程飞弹")}\n\n" +
+            return $"攻击 {c.damage:0.#} · 法强 {c.abilityPower:0.#}\n" +
+                   $"生命 {c.maxHP:0.#}\n" +
+                   $"攻速 {c.attackInterval:0.##}秒/发 · 移速 {c.moveSpeed:0.#}\n" +
+                   $"护甲/魔抗 {c.armor:0.#}/{c.magicResist:0.#}\n" +
+                   $"法力 {c.maxMana:0.#} · 急速 {c.abilityHaste:0.#}\n" +
+                   $"武器 {(c.Weapon == WeaponType.Melee ? "近战挥砍" : "远程飞弹")}\n\n" +
                    SkillText(c.QSkill, "E") + "\n" + SkillText(c.RSkill, "R");
         }
 
