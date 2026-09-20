@@ -81,7 +81,8 @@ namespace Roguelite
             PlayerStats.Instance.RecordRune(
                 $"符文 · {card.Item.displayName}",
                 StatText.Describe(card.Item),
-                RarityColor(card.Rarity));
+                RarityColor(card.Rarity),
+                RuneSource.Rune);
             Vector3 fxPos = PlayerController.Instance != null
                 ? PlayerController.Instance.transform.position
                 : transform.position;

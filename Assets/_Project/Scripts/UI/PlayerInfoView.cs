@@ -12,6 +12,7 @@ namespace Roguelite
         GameObject panel;
         Text statText;
         Text runeText;
+        Text forgeText;
 
         public void Build(Transform parent)
         {
@@ -21,8 +22,9 @@ namespace Roguelite
             var title = UIBuilder.Text("Title", panel.transform, "玩家信息", 56, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
             SetRect(title.rectTransform, 0.2f, 0.9f, 0.8f, 0.98f);
 
-            BuildSection("属性", 0.03f, 0.70f, 0.48f, new Color(1f, 0.85f, 0.3f), out statText);
-            BuildSection("符文", 0.52f, 0.70f, 0.97f, new Color(1f, 0.7f, 0.9f), out runeText);
+            BuildSection("属性", 0.02f, 0.70f, 0.33f, new Color(1f, 0.85f, 0.3f), out statText);
+            BuildSection("符文", 0.35f, 0.70f, 0.65f, new Color(1f, 0.7f, 0.9f), out runeText);
+            BuildSection("锻体", 0.67f, 0.70f, 0.98f, new Color(0.6f, 0.9f, 1f), out forgeText);
 
             var close = UIBuilder.Button("Close", panel.transform, "返回", Close);
             SetRect(close.GetComponent<RectTransform>(), 0.4f, 0.04f, 0.6f, 0.13f);
@@ -57,7 +59,8 @@ namespace Roguelite
         {
             PlayerStats stats = PlayerStats.Instance;
             if (statText != null) statText.text = stats != null ? BuildStatsText(stats) : "暂无数据";
-            if (runeText != null) runeText.text = BuildRuneText(stats);
+            if (runeText != null) runeText.text = BuildSourceText(stats, RuneSource.Rune, "暂无符文");
+            if (forgeText != null) forgeText.text = BuildSourceText(stats, RuneSource.Forge, "暂无锻体");
         }
 
         static string BuildStatsText(PlayerStats s)
@@ -90,18 +93,21 @@ namespace Roguelite
             sb.Append(label).Append('\t').Append(value).AppendLine();
         }
 
-        static string BuildRuneText(PlayerStats stats)
+        /// <summary>按来源过滤展示增益记录：符文列 / 锻体列；空时显示占位文案。</summary>
+        static string BuildSourceText(PlayerStats stats, RuneSource source, string emptyText)
         {
-            if (stats == null || stats.Runes.Count == 0) return "暂无符文";
+            if (stats == null) return emptyText;
             var sb = new StringBuilder();
+            int count = 0;
             for (int i = 0; i < stats.Runes.Count; i++)
             {
                 var r = stats.Runes[i];
-                if (i > 0) sb.AppendLine();
-                sb.Append(i + 1).Append(". ").Append(r.Name).AppendLine().Append(r.Desc);
+                if (r.Source != source) continue;
+                if (count++ > 0) sb.AppendLine();
+                sb.Append(count).Append(". ").Append(r.Name).AppendLine().Append(r.Desc);
                 sb.AppendLine();
             }
-            return sb.ToString();
+            return count == 0 ? emptyText : sb.ToString();
         }
 
         static void SetRect(RectTransform rt, float x0, float y0, float x1, float y1)

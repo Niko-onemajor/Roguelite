@@ -4,12 +4,20 @@ using UnityEngine;
 
 namespace Roguelite
 {
+    /// <summary>增益记录来源：符文选择 或 锻体卡牌，用于详情面板分列展示。</summary>
+    public enum RuneSource
+    {
+        Rune,
+        Forge
+    }
+
     /// <summary>已获取符文(每回合锻体选择的卡牌效果)，用于暂停面板回看。</summary>
     public sealed class RuneInfo
     {
         public string Name;   // 卡牌名：如 伤害+6
         public string Desc;   // 生效后效果描述：如 金卡 ×1.5
         public Color Color;   // 稀有度对应颜色
+        public RuneSource Source = RuneSource.Rune; // 来源：符文/锻体
     }
 
     /// <summary>玩家属性与资源(HP/金币/击杀/符文)，供商店/锻体/符文增益与系统读取。
@@ -1228,10 +1236,10 @@ namespace Roguelite
             GameEvents.RaiseGoldBanked(BankedGold);
         }
 
-        /// <summary>记录一枚符文(锻体选定卡牌的效果)，供暂停面板查看。</summary>
-        public void RecordRune(string name, string desc, Color color)
+        /// <summary>记录一枚增益卡(符文选择或锻体选定卡牌的效果)，供详情面板分列查看。</summary>
+        public void RecordRune(string name, string desc, Color color, RuneSource source = RuneSource.Rune)
         {
-            Runes.Add(new RuneInfo { Name = name, Desc = desc, Color = color });
+            Runes.Add(new RuneInfo { Name = name, Desc = desc, Color = color, Source = source });
         }
 
         public void NotifyKill() => Kills++;

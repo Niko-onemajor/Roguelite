@@ -127,10 +127,11 @@ namespace Roguelite
             var c = cards[idx];
             var card = forge.CurrentCards[idx];
 
-            c.label.text = $"{RarityName(card.Rarity)} · {card.Item.displayName}";
-            c.label.color = LabelColor(card.Rarity);
+            // 稀有度不再写进标题/颜色(看卡牌底色即可)：标题直接显示放大后的数值行，与描述首行一致。
+            c.label.text = FirstStatLine(card.Item, card.Multiplier());
+            c.label.color = ContentColor;
             c.desc.text = StatText.Describe(card.Item, card.Multiplier());
-            c.desc.color = LabelColor(card.Rarity);
+            c.desc.color = ContentColor;
             c.icon.enabled = card.Item.IconSprite != null;
             c.icon.sprite = card.Item.IconSprite;
             c.button.onClick.RemoveAllListeners();
@@ -144,6 +145,7 @@ namespace Roguelite
             colors.highlightedColor = Color.Lerp(bg, Color.white, 0.35f);
             colors.pressedColor = Color.Lerp(bg, Color.black, 0.25f);
             c.button.colors = colors;
+            if (c.button.targetGraphic != null) c.button.targetGraphic.color = bg;
         }
 
         void Choose(int idx)
@@ -163,15 +165,17 @@ namespace Roguelite
             rt.offsetMax = Vector2.zero;
         }
 
-        static string RarityName(ForgeRarity r)
+        /// <summary>标题：属性描述放大后的首行(如 "攻击力 +9")，与描述正文首行数值一致。</summary>
+        static string FirstStatLine(ShopItemData item, float mult)
         {
-            switch (r)
-            {
-                case ForgeRarity.Gold: return "金卡";
-                case ForgeRarity.Rainbow: return "传说";
-                default: return "白卡";
-            }
+            string full = StatText.Describe(item, mult);
+            if (string.IsNullOrEmpty(full)) return item != null ? item.displayName : "";
+            int nl = full.IndexOf('\n');
+            return nl > 0 ? full.Substring(0, nl) : full;
         }
+
+        /// <summary>卡面文字统一深色：三种稀有度底色(浅灰/亮黄/中紫)上均清晰可读。</summary>
+        static readonly Color ContentColor = new Color(0.12f, 0.12f, 0.14f);
 
         static Color RarityColor(ForgeRarity r)
         {
@@ -180,16 +184,6 @@ namespace Roguelite
                 case ForgeRarity.Gold: return new Color(1f, 0.85f, 0.2f, 0.95f);
                 case ForgeRarity.Rainbow: return new Color(0.55f, 0.2f, 0.9f, 0.95f);
                 default: return new Color(0.88f, 0.88f, 0.9f, 0.95f);
-            }
-        }
-
-        static Color LabelColor(ForgeRarity r)
-        {
-            switch (r)
-            {
-                case ForgeRarity.Gold: return new Color(0.35f, 0.25f, 0.05f);
-                case ForgeRarity.Rainbow: return new Color(0.95f, 0.85f, 1f);
-                default: return new Color(0.16f, 0.16f, 0.18f);
             }
         }
 

@@ -120,18 +120,18 @@ namespace Roguelite
             iconImg.raycastTarget = false;
 
             // 描述：中部属性/被动效果区(raycastTarget=false 不拦截购买点击)
-            var desc = UIBuilder.Text("Desc_" + i, root.transform, "", 20, new Color(0.9f, 0.9f, 0.92f), TextAnchor.UpperLeft);
-            SetRect(desc.rectTransform, 0.06f, 0.15f, 0.94f, 0.56f);
+            var desc = UIBuilder.Text("Desc_" + i, root.transform, "", 26, new Color(0.9f, 0.9f, 0.92f), TextAnchor.UpperLeft);
+            SetRect(desc.rectTransform, 0.06f, 0.13f, 0.94f, 0.56f);
 
             // 价格：底部横条
             var price = UIBuilder.Text("Price_" + i, root.transform, "", 24, new Color(1f, 0.87f, 0.4f), TextAnchor.MiddleCenter);
-            SetRect(price.rectTransform, 0.04f, 0.03f, 0.96f, 0.13f);
+            SetRect(price.rectTransform, 0.04f, 0.02f, 0.96f, 0.12f);
 
             // 锁定/解锁：右上角小按钮(子节点 Button 优先拦截点击，不会触发购买)
             var lockGo = UIBuilder.Button("Lock_" + i, root.transform, "锁定", null);
-            SetRect(lockGo.GetComponent<RectTransform>(), 0.6f, 0.85f, 0.97f, 0.97f);
+            SetRect(lockGo.GetComponent<RectTransform>(), 0.68f, 0.88f, 0.97f, 0.97f);
             var lockLabel = lockGo.GetComponentInChildren<Text>(true);
-            lockLabel.fontSize = 14;
+            lockLabel.fontSize = 12;
 
             slots.Add(new SlotUI
             {
@@ -146,28 +146,33 @@ namespace Roguelite
             });
         }
 
-        /// <summary>内嵌出售区：商店槽位下方一横条 8 格玩家装备栏，点击格子展开装备详情(右上角出售)。</summary>
+        /// <summary>内嵌出售区：商店槽位下方一横条 8 格正方形玩家装备栏(图标填满+金边)，
+        /// 点击格子展开装备详情(右上角出售)。</summary>
         void BuildSellStrip()
         {
-            const float cellW = 0.112f, gap = 0.006f, left = 0.03f, top = 0.275f, bottom = 0.225f;
+            const float cellW = 0.056f, gap = 0.006f, left = 0.03f, top = 0.30f, bottom = 0.244f;
             for (int i = 0; i < sellCells.Length; i++)
             {
                 int idx = i;
                 var go = UIBuilder.Button("SellCell_" + i, panel.transform, "", null);
                 SetRect(go.GetComponent<RectTransform>(), left + i * (cellW + gap), bottom, left + i * (cellW + gap) + cellW, top);
                 var label = go.GetComponentInChildren<Text>(true);
+                SetRect(label.rectTransform, 0.02f, 0.82f, 0.98f, 0.98f); // 槽号：格内左上角小字
                 label.fontSize = 12;
-                label.alignment = TextAnchor.MiddleCenter;
+                label.alignment = TextAnchor.UpperLeft;
                 var btn = go.GetComponent<Button>();
                 btn.onClick.AddListener(() => OnSellCellClicked(idx));
 
-                // 装备小图标：格内顶部居中(名称在底部显示槽号)
+                // 装备小图标：占满格子(正方形)，外围金边描边
                 var iconGo = new GameObject("Icon", typeof(Image));
                 iconGo.transform.SetParent(go.transform, false);
-                SetRect(iconGo.transform as RectTransform, 0.12f, 0.42f, 0.88f, 0.95f);
+                SetRect(iconGo.transform as RectTransform, 0.04f, 0.04f, 0.96f, 0.96f);
                 var iconImg = iconGo.GetComponent<Image>();
                 iconImg.preserveAspect = true;
                 iconImg.raycastTarget = false;
+                var outline = iconGo.AddComponent<Outline>();
+                outline.effectColor = new Color(1f, 0.85f, 0.3f, 0.85f);
+                outline.effectDistance = new Vector2(2f, -2f);
 
                 sellCells[i] = new SellCellUI { root = go, button = btn, label = label, icon = iconImg };
             }
@@ -400,6 +405,9 @@ namespace Roguelite
             colors.highlightedColor = Color.Lerp(colors.normalColor, Color.white, 0.3f);
             colors.pressedColor = Color.Lerp(colors.normalColor, Color.black, 0.25f);
             s.lockBtn.colors = colors;
+            // Button.colors 运行期修改后 targetGraphic 不立即刷新（首次显示会残留旧色），手动同步。
+            if (s.lockBtn.targetGraphic != null)
+                s.lockBtn.targetGraphic.color = colors.normalColor;
         }
 
         /// <summary>内嵌装备格重绘：只显示 槽号 与装备图标(效果与售价在详情覆盖层中查看)。</summary>

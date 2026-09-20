@@ -124,7 +124,8 @@ namespace Roguelite
             PlayerStats.Instance.RecordRune(
                 $"{RarityName(card.Rarity)} · {card.Item.displayName}",
                 BonusText(card),
-                RarityColor(card.Rarity));
+                RarityColor(card.Rarity),
+                RuneSource.Forge);
         }
 
         static string BonusText(ForgeCard card) => StatText.Describe(card.Item, card.Multiplier());
