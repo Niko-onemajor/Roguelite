@@ -1,6 +1,8 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Roguelite
@@ -31,6 +33,13 @@ namespace Roguelite
         Button confirmBtn;
         ShopItemData pendingSell;
 
+        // ── 出售格拖拽换格：拖动图标到其他槽位实现换位(SwapActiveSlots)，与游戏画面装备格一致 ──
+        RectTransform canvasRt;     // 画布根：用于屏幕坐标→画布坐标换算
+        GameObject dragGhost;       // 拖拽时跟手图标
+        Image dragGhostImg;
+        int _dragSource = -1;       // 正在拖拽的源槽(无则 -1)
+        bool _suppressClick;        // 拖拽结束后抑制本次点击(防止误开装备详情)
+
         sealed class SlotUI
         {
             public GameObject root;
@@ -53,6 +62,7 @@ namespace Roguelite
 
         public void Build(Transform parent)
         {
+            canvasRt = parent as RectTransform; // 拖拽幽灵图标的坐标换算基准
             panel = UIBuilder.Panel("Shop", parent);
             panel.SetActive(false);
             if (!_subscribed)
@@ -166,6 +176,18 @@ namespace Roguelite
 
                 var btn = go.GetComponent<Button>();
                 btn.onClick.AddListener(() => OnSellCellClicked(idx));
+
+                // 拖拽换格事件(BeginDrag/Drag/EndDrag)：与游戏画面装备格一致,拖动图标到目标格触发换位
+                var et = go.AddComponent<EventTrigger>();
+                var beginEntry = new EventTrigger.Entry { eventID = EventTriggerType.BeginDrag };
+                beginEntry.callback.AddListener(e => OnSellBeginDrag(idx, e));
+                var dragEntry = new EventTrigger.Entry { eventID = EventTriggerType.Drag };
+                dragEntry.callback.AddListener(e => OnSellDrag(idx, e));
+                var endEntry = new EventTrigger.Entry { eventID = EventTriggerType.EndDrag };
+                endEntry.callback.AddListener(e => OnSellEndDrag(idx, e));
+                et.triggers.Add(beginEntry);
+                et.triggers.Add(dragEntry);
+                et.triggers.Add(endEntry);
 
                 // 深色玻璃底衬 + 金色全包边框(保留质感边框,边框在格子边缘=图标大小处)
                 var fc = btn.colors;
@@ -321,11 +343,84 @@ namespace Roguelite
         /// <summary>点击内嵌装备格：空格忽略，有装备则展开"装备详情"覆盖层。</summary>
         void OnSellCellClicked(int idx)
         {
+            if (_suppressClick) { _suppressClick = false; return; } // 本次按压力是拖拽,不弹装备详情
             ShopItemData item = SellItemAt(idx);
             if (item == null || sellDetailPanel == null) return;
             pendingSell = item;
             sellDetailText.text = BuildItemDesc(item);
             sellDetailPanel.SetActive(true);
+        }
+
+        // ── 出售格拖拽换格：源槽→跟手幽灵图标→落点目标格→SwapActiveSlots ──
+        void OnSellBeginDrag(int idx, BaseEventData data)
+        {
+            if (sellDetailPanel != null && sellDetailPanel.activeSelf) return; // 详情覆盖层打开时不响应拖拽
+            if (confirmPanel != null && confirmPanel.activeSelf) return;
+            ShopItemData item = SellItemAt(idx);
+            if (item == null || item.IconSprite == null) return; // 空格不可拖
+            _dragSource = idx;
+            _suppressClick = true; // 拖拽结束后抑制本次点击(不弹详情)
+            if (dragGhost == null)
+            {
+                dragGhost = new GameObject("SellDragGhost", typeof(RectTransform), typeof(Image));
+                dragGhost.transform.SetParent(canvasRt ?? transform, false);
+                dragGhostImg = dragGhost.GetComponent<Image>();
+                dragGhostImg.preserveAspect = true;
+                dragGhostImg.raycastTarget = false;
+            }
+            dragGhost.transform.SetAsLastSibling(); // 置于最上层
+            dragGhost.transform.localScale = Vector3.one;
+            (dragGhost.transform as RectTransform).sizeDelta = sellCells[idx].root.GetComponent<RectTransform>().sizeDelta;
+            dragGhostImg.sprite = item.IconSprite;
+            dragGhostImg.enabled = true;
+            dragGhost.SetActive(true);
+            SyncSellGhost(data);
+        }
+
+        void OnSellDrag(int idx, BaseEventData data) => SyncSellGhost(data);
+
+        void OnSellEndDrag(int idx, BaseEventData data)
+        {
+            if (_dragSource < 0) return;
+            int src = _dragSource;
+            _dragSource = -1;
+            if (dragGhost != null) dragGhost.SetActive(false);
+            int dst = FindSellCellAt(data);
+            if (dst >= 0 && dst != src && shop != null && shop.stats != null)
+                shop.stats.SwapActiveSlots(src, dst); // 拖到目标格(含空格)交换槽位
+            Render(); // 刷新商店槽与出售格(图标/数字键对应关系同步)
+            StartCoroutine(ClearSellSuppressNextFrame());
+        }
+
+        /// <summary>指针落点命中检测：屏幕坐标落在哪个出售格区域内(含空格,可拖入)。</summary>
+        int FindSellCellAt(BaseEventData data)
+        {
+            if (!(data is PointerEventData ped)) return -1;
+            for (int i = 0; i < sellCells.Length; i++)
+            {
+                SellCellUI c = sellCells[i];
+                if (c == null || c.root == null) continue;
+                var rt = c.root.GetComponent<RectTransform>();
+                if (RectTransformUtility.RectangleContainsScreenPoint(rt, ped.position, ped.pressEventCamera))
+                    return i;
+            }
+            return -1;
+        }
+
+        /// <summary>幽灵图标跟随指针移动(屏幕坐标→画布坐标)。</summary>
+        void SyncSellGhost(BaseEventData data)
+        {
+            if (dragGhost == null || canvasRt == null || !(data is PointerEventData ped)) return;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, ped.position, ped.pressEventCamera, out Vector2 local)) return;
+            (dragGhost.transform as RectTransform).anchoredPosition = local;
+        }
+
+        /// <summary>下一帧清除拖拽抑制标志(拖拽落点点击与后续正常点击都不受影响)。</summary>
+        IEnumerator ClearSellSuppressNextFrame()
+        {
+            yield return null;
+            _suppressClick = false;
+            if (dragGhost != null) dragGhost.SetActive(false); // 兜底清理
         }
 
         ShopItemData SellItemAt(int idx)
