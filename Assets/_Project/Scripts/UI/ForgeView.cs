@@ -23,6 +23,7 @@ namespace Roguelite
             public Text label;    // 名称(图标下)与稀有度
             public Text desc;     // 效果描述
             public Image icon;    // 图标(置顶居中)
+            public Image glow;    // 顶部能量光条(颜色=稀有度)
         }
 
         public void Build(Transform parent)
@@ -71,32 +72,55 @@ namespace Roguelite
             rt.offsetMax = Vector2.zero;
             AddHoverScale(root, 1.08f);
 
-            var label = root.GetComponentInChildren<Text>(true);
-            // 名称(含稀有度)：图标下方居中
-            SetRect(label.rectTransform, 0.04f, 0.62f, 0.96f, 0.72f);
-            label.fontSize = 28;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            // 参考图风格：稀有度不再作为整卡填充底色，统一近黑深色卡面 + 银灰金属细边框，
+            // 稀有度(白/金/彩)由顶部能量光条颜色表达。
+            var btn = root.GetComponent<Button>();
+            var fc = btn.colors;
+            fc.normalColor = new Color(0.04f, 0.04f, 0.06f, 0.96f);
+            fc.highlightedColor = new Color(0.11f, 0.12f, 0.16f, 0.96f);
+            fc.pressedColor = new Color(0.02f, 0.02f, 0.03f, 0.96f);
+            btn.colors = fc;
+            if (btn.targetGraphic != null) btn.targetGraphic.color = fc.normalColor;
 
-            // 图标：置顶居中(视觉焦点)
+            // 银灰金属描边(全包细边框)
+            var frame = root.AddComponent<Outline>();
+            frame.effectColor = new Color(0.75f, 0.77f, 0.81f, 0.9f);
+            frame.effectDistance = new Vector2(2f, -2f);
+
+            // 顶部能量光条：置顶横条，颜色在 RefreshCard 按稀有度填充
+            var glowGo = new GameObject("Glow", typeof(Image));
+            glowGo.transform.SetParent(root.transform, false);
+            var glowImg = glowGo.GetComponent<Image>();
+            glowImg.raycastTarget = false;
+            SetRect(glowGo.transform as RectTransform, 0f, 0.965f, 1f, 1f);
+
+            // 图标：居中偏上，保持原比例显示(letterbox 适配，不拉伸)
             var iconGo = new GameObject("Icon", typeof(Image));
             iconGo.transform.SetParent(root.transform, false);
-            SetRect(iconGo.transform as RectTransform, 0.27f, 0.74f, 0.73f, 0.98f);
+            SetRect(iconGo.transform as RectTransform, 0.28f, 0.58f, 0.72f, 0.88f);
             var iconImg = iconGo.GetComponent<Image>();
             iconImg.preserveAspect = true;
             iconImg.raycastTarget = false;
 
-            // 效果描述：卡片主体(raycastTarget=false 不拦截选择点击)
-            var desc = UIBuilder.Text("ForgeDesc_" + i, root.transform, "", 20, Color.white, TextAnchor.UpperLeft);
-            SetRect(desc.rectTransform, 0.1f, 0.12f, 0.9f, 0.6f);
+            // 主标题：图标正下方，白色大字
+            var label = root.GetComponentInChildren<Text>(true);
+            SetRect(label.rectTransform, 0.04f, 0.48f, 0.96f, 0.58f);
+            label.fontSize = 30;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            // 数值说明：卡片底部，灰蓝小字(次要信息弱化)
+            var desc = UIBuilder.Text("ForgeDesc_" + i, root.transform, "", 20, DescColor, TextAnchor.UpperLeft);
+            SetRect(desc.rectTransform, 0.1f, 0.1f, 0.9f, 0.46f);
 
             cards.Add(new CardUI
             {
                 root = root,
-                button = root.GetComponent<Button>(),
+                button = btn,
                 label = label,
                 desc = desc,
                 icon = iconImg,
+                glow = glowImg,
             });
         }
 
@@ -128,25 +152,18 @@ namespace Roguelite
             var c = cards[idx];
             var card = forge.CurrentCards[idx];
 
-            // 稀有度不再写进标题/颜色(看卡牌底色即可)：标题直接显示放大后的数值行，与描述首行一致。
+            // 参考图层次：主标题白色(稀有度看顶部光条) / 数值描述灰蓝弱化
             c.label.text = FirstStatLine(card.Item, card.Multiplier());
-            c.label.color = ContentColor;
+            c.label.color = new Color(0.96f, 0.96f, 1f);
             c.desc.text = StatText.Describe(card.Item, card.Multiplier());
-            c.desc.color = ContentColor;
+            c.desc.color = DescColor;
             c.icon.enabled = card.Item.IconSprite != null;
             c.icon.sprite = card.Item.IconSprite;
+            // 顶部能量光条 = 稀有度颜色(白/金/彩)，卡面统一近黑
+            c.glow.color = RarityColor(card.Rarity);
             c.button.onClick.RemoveAllListeners();
             int i = idx;
             c.button.onClick.AddListener(() => Choose(i));
-
-            // 稀有度底色：白/金/彩
-            Color bg = RarityColor(card.Rarity);
-            var colors = c.button.colors;
-            colors.normalColor = bg;
-            colors.highlightedColor = Color.Lerp(bg, Color.white, 0.35f);
-            colors.pressedColor = Color.Lerp(bg, Color.black, 0.25f);
-            c.button.colors = colors;
-            if (c.button.targetGraphic != null) c.button.targetGraphic.color = bg;
         }
 
         void Choose(int idx)
@@ -175,8 +192,8 @@ namespace Roguelite
             return nl > 0 ? full.Substring(0, nl) : full;
         }
 
-        /// <summary>卡面文字统一深色：三种稀有度底色(浅灰/亮黄/中紫)上均清晰可读。</summary>
-        static readonly Color ContentColor = new Color(0.12f, 0.12f, 0.14f);
+        /// <summary>数值描述统一灰蓝：近黑卡面上弱化的次要信息(参考图同款层级)。</summary>
+        static readonly Color DescColor = new Color(0.63f, 0.66f, 0.73f);
 
         static Color RarityColor(ForgeRarity r)
         {

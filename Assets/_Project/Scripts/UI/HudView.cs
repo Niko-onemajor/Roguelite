@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Text;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Roguelite
@@ -29,8 +31,17 @@ namespace Roguelite
         GameObject equipPopup;
         Text equipPopupBody;
 
+        // ── 拖拽换格：拖动装备图标到其他槽位实现换位(SwapActiveSlots) ──
+        RectTransform canvasRt;     // 画布根：用于屏幕坐标→画布坐标换算
+        GameObject dragGhost;       // 拖拽时跟手图标
+        Image dragGhostImg;
+        int _dragSource = -1;       // 正在拖拽的源槽(无则 -1)
+        bool _suppressClick;        // 拖拽结束后抑制本次点击(防止误开装备详情)
+
         public void Build(Transform parent)
         {
+            canvasRt = parent as RectTransform; // 拖拽幽灵图标的坐标换算基准
+
             // 血条
             var bar = UIBuilder.Panel("HP_Bar", parent);
             var barRt = bar.GetComponent<RectTransform>();
@@ -101,25 +112,41 @@ namespace Roguelite
                 gameObject.AddComponent<SkillBarView>().Build(skill.transform);
         }
 
-        /// <summary>底部中央 4×2 装备格：每格 深色玻璃底衬 + 金色全包边框 + 图标占满格子。
-        /// 点击有装备的格子展开"装备详情"覆盖层查看效果。</summary>
+        /// <summary>左下角 4×2 装备格：每格按装备图标原比例动态定尺寸(格子=图标大小)，四边保留
+        /// 深色玻璃底衬 + 金色全包边框；点击有装备的格子展开"装备详情"覆盖层查看效果。</summary>
         void BuildEquipmentBar(Transform parent)
         {
-            const float cellW = 0.062f, gapX = 0.008f, cellH = 0.062f, gapY = 0.016f, startX = 0.365f, startY = 0.028f;
+            const float colStep = 0.050f, rowStep = 0.062f; // 列距收窄(格子按图标原比例可较窄),行距约等于格子高 56px
+            const float startX = 0.012f, startY = 0.012f; // 整体移到左下端(与商店出售格同坐标)
             for (int i = 0; i < equipCells.Length; i++)
             {
                 int idx = i;
                 int col = i % 4, row = i / 4;
-                float x0 = startX + col * (cellW + gapX);
-                float y0 = startY + row * (cellH + gapY);
+                float cx = startX + col * colStep + colStep * 0.5f;
+                float cy = startY + row * rowStep + rowStep * 0.5f;
 
                 var go = UIBuilder.Button("EquipCell_" + i, parent, "", null);
-                SetRect(go.GetComponent<RectTransform>(), x0, y0, x0 + cellW, y0 + cellH);
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = rt.anchorMax = new Vector2(cx, cy); // 锚点=网格中心,尺寸在渲染时按图标设置
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(rowStep * 1000f, rowStep * 1000f);
 
                 var btn = go.GetComponent<Button>();
                 btn.onClick.AddListener(() => OnEquipCellClicked(idx));
 
-                // 深色玻璃底衬 + 金色全包边框(与商店出售格同款质感)
+                // 拖拽换格事件(BeginDrag/Drag/EndDrag)：拖动图标到目标格触发换位
+                var et = go.AddComponent<EventTrigger>();
+                var beginEntry = new EventTrigger.Entry { eventID = EventTriggerType.BeginDrag };
+                beginEntry.callback.AddListener(e => OnEquipBeginDrag(idx, e));
+                var dragEntry = new EventTrigger.Entry { eventID = EventTriggerType.Drag };
+                dragEntry.callback.AddListener(e => OnEquipDrag(idx, e));
+                var endEntry = new EventTrigger.Entry { eventID = EventTriggerType.EndDrag };
+                endEntry.callback.AddListener(e => OnEquipEndDrag(idx, e));
+                et.triggers.Add(beginEntry);
+                et.triggers.Add(dragEntry);
+                et.triggers.Add(endEntry);
+
+                // 深色玻璃底衬 + 金色全包边框(保留质感边框,边框在格子边缘=图标大小处)
                 var fc = btn.colors;
                 fc.normalColor = new Color(0.1f, 0.1f, 0.14f, 0.95f);
                 fc.highlightedColor = new Color(0.22f, 0.22f, 0.3f, 0.95f);
@@ -130,11 +157,12 @@ namespace Roguelite
                 frame.effectColor = new Color(1f, 0.82f, 0.3f, 0.9f);
                 frame.effectDistance = new Vector2(2.5f, -2.5f);
 
-                // 图标占满格子
+                // 图标:占满格子(preserveAspect 居中防拉伸),格子尺寸与图标同比例→无黑边
                 var iconGo = new GameObject("Icon", typeof(Image));
                 iconGo.transform.SetParent(go.transform, false);
                 SetRect(iconGo.transform as RectTransform, 0f, 0f, 1f, 1f);
                 var iconImg = iconGo.GetComponent<Image>();
+                iconImg.preserveAspect = true;
                 iconImg.raycastTarget = false;
 
                 // 槽号(左上角，置于图标之上)
@@ -167,29 +195,45 @@ namespace Roguelite
             close.GetComponentInChildren<Text>(true).fontSize = 24;
         }
 
-        /// <summary>重绘 4×2 装备格：只显示 槽号 与装备图标(效果在点击详情中查看)。波次开始/装备变化后调用。</summary>
+        /// <summary>重绘 4×2 装备格：每行按图标实际宽度从左至右动态排布(列间隙≈行间隙,格子=图标大小)。
+        /// 只显示 槽号 与装备图标(效果在点击详情中查看)。波次开始/装备变化后调用。</summary>
         void RenderEquipment()
         {
             PlayerStats stats = PlayerStats.Instance;
-            for (int i = 0; i < equipCells.Length; i++)
+            const float hPx = 56f, gapX = 0.008f, startX = 0.012f, startY = 0.012f, rowStep = 0.062f;
+            const float wNorm = 1f / 1920f, hNorm = 1f / 1080f;
+            for (int row = 0; row < 2; row++)
             {
-                EquipCellUI c = equipCells[i];
-                if (c == null || c.root == null) continue;
-                // 空槽位元素为 null：先判槽位再取 Item，避免开局(未购买装备)即崩溃
-                ShopItemData item = stats != null && i < stats.EquipSlots.Count && stats.EquipSlots[i] != null
-                    ? stats.EquipSlots[i].Item : null;
-                bool has = item != null;
-                c.root.SetActive(true);
-                c.button.interactable = has;
-                c.label.text = (i + 1).ToString();
-                c.label.color = has ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.5f);
-                c.icon.enabled = has && item.IconSprite != null;
-                c.icon.sprite = has ? item.IconSprite : null;
+                float accX = startX; // 行内已占用的左侧累计(锚点比例)
+                for (int col = 0; col < 4; col++)
+                {
+                    int i = row * 4 + col;
+                    EquipCellUI c = equipCells[i];
+                    if (c == null || c.root == null) continue;
+                    ShopItemData item = stats != null && i < stats.EquipSlots.Count && stats.EquipSlots[i] != null
+                        ? stats.EquipSlots[i].Item : null;
+                    bool has = item != null;
+                    Sprite s = has ? item.IconSprite : null;
+                    float wPx = s != null ? hPx * (s.rect.width / Mathf.Max(1f, s.rect.height)) : hPx;
+                    // 格子尺寸=图标原比例,列间距固定小值(与行间隙一致,不留大空隙)
+                    var rt = c.root.GetComponent<RectTransform>();
+                    rt.anchorMin = rt.anchorMax = new Vector2(accX + wPx * wNorm * 0.5f, startY + row * rowStep + rowStep * 0.5f);
+                    rt.sizeDelta = new Vector2(wPx, hPx);
+                    accX += wPx * wNorm + gapX; // 推进行累计(gapX 即列间隙≈0.008)
+
+                    c.root.SetActive(true);
+                    c.button.interactable = has;
+                    c.label.text = (i + 1).ToString();
+                    c.label.color = has ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.5f);
+                    c.icon.enabled = s != null;
+                    c.icon.sprite = s;
+                }
             }
         }
 
         void OnEquipCellClicked(int idx)
         {
+            if (_suppressClick) { _suppressClick = false; return; } // 本次按压力是拖拽,不弹装备详情
             PlayerStats stats = PlayerStats.Instance;
             if (stats == null || idx < 0 || idx >= stats.EquipSlots.Count || equipPopup == null) return;
             ActiveSlot slot = stats.EquipSlots[idx];
@@ -198,6 +242,81 @@ namespace Roguelite
             if (item == null) return;
             equipPopupBody.text = BuildEquipDesc(item);
             equipPopup.SetActive(true);
+        }
+
+        // ── 拖拽换格：源槽→跟手幽灵图标→落点目标格→SwapActiveSlots ──
+        void OnEquipBeginDrag(int idx, BaseEventData data)
+        {
+            PlayerStats stats = PlayerStats.Instance;
+            if (stats == null || idx < 0 || idx >= stats.EquipSlots.Count) return;
+            ActiveSlot slot = stats.EquipSlots[idx];
+            if (slot == null || slot.Item == null) return; // 空格不可拖
+            _dragSource = idx;
+            _suppressClick = true; // 拖拽结束后抑制本次点击(不弹详情)
+            if (dragGhost == null)
+            {
+                dragGhost = new GameObject("EquipDragGhost", typeof(RectTransform), typeof(Image));
+                dragGhost.transform.SetParent(canvasRt ?? transform, false);
+                dragGhostImg = dragGhost.GetComponent<Image>();
+                dragGhostImg.preserveAspect = true;
+                dragGhostImg.raycastTarget = false;
+            }
+            dragGhost.transform.SetAsLastSibling(); // 置于最上层
+            dragGhost.transform.localScale = Vector3.one;
+            (dragGhost.transform as RectTransform).sizeDelta = equipCells[idx].root.GetComponent<RectTransform>().sizeDelta;
+            dragGhostImg.sprite = slot.Item.IconSprite;
+            dragGhostImg.enabled = true;
+            dragGhost.SetActive(true);
+            SyncGhost(data);
+        }
+
+        void OnEquipDrag(int idx, BaseEventData data) => SyncGhost(data);
+
+        void OnEquipEndDrag(int idx, BaseEventData data)
+        {
+            if (_dragSource < 0) return;
+            int src = _dragSource;
+            _dragSource = -1;
+            if (dragGhost != null) dragGhost.SetActive(false);
+            int dst = FindEquipCellAt(data);
+            if (dst >= 0 && dst != src)
+            {
+                PlayerStats stats = PlayerStats.Instance;
+                if (stats != null) stats.SwapActiveSlots(src, dst); // 拖到目标格(含空格)交换槽位
+            }
+            RenderEquipment();
+            StartCoroutine(ClearSuppressNextFrame());
+        }
+
+        /// <summary>指针落点命中检测：屏幕坐标落在哪个装备格区域内(含空格,可拖入)。</summary>
+        int FindEquipCellAt(BaseEventData data)
+        {
+            if (!(data is PointerEventData ped)) return -1;
+            for (int i = 0; i < equipCells.Length; i++)
+            {
+                EquipCellUI c = equipCells[i];
+                if (c == null || c.root == null) continue;
+                var rt = c.root.GetComponent<RectTransform>();
+                if (RectTransformUtility.RectangleContainsScreenPoint(rt, ped.position, ped.pressEventCamera))
+                    return i;
+            }
+            return -1;
+        }
+
+        /// <summary>幽灵图标跟随指针移动(屏幕坐标→画布坐标)。</summary>
+        void SyncGhost(BaseEventData data)
+        {
+            if (dragGhost == null || canvasRt == null || !(data is PointerEventData ped)) return;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, ped.position, ped.pressEventCamera, out Vector2 local)) return;
+            (dragGhost.transform as RectTransform).anchoredPosition = local;
+        }
+
+        /// <summary>下一帧清除拖拽抑制标志(拖拽落点点击与后续正常点击都不受影响)。</summary>
+        IEnumerator ClearSuppressNextFrame()
+        {
+            yield return null;
+            _suppressClick = false;
+            if (dragGhost != null) dragGhost.SetActive(false); // 兜底清理
         }
 
         /// <summary>装备详情文本：名称/属性加成/被动效果/主动效果。</summary>

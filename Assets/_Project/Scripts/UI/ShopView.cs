@@ -71,11 +71,11 @@ namespace Roguelite
             for (int i = 0; i < ShopSystem.SlotCount; i++) BuildSlot(i);
 
             var refresh = UIBuilder.Button("RefreshShop", panel.transform, $"刷新商店({ShopSystem.RefreshPrice}金币)", RefreshShop);
-            SetRect(refresh.GetComponent<RectTransform>(), 0.06f, 0.13f, 0.26f, 0.21f);
+            SetRect(refresh.GetComponent<RectTransform>(), 0.06f, 0.16f, 0.26f, 0.24f);
             var forgeBtn = UIBuilder.Button("OpenForge", panel.transform, $"锻体({ForgeSystem.OpenPrice}金币)", OpenForge);
-            SetRect(forgeBtn.GetComponent<RectTransform>(), 0.39f, 0.13f, 0.59f, 0.21f);
+            SetRect(forgeBtn.GetComponent<RectTransform>(), 0.39f, 0.16f, 0.59f, 0.24f);
             var end = UIBuilder.Button("EndShop", panel.transform, "结束商店", EndShop);
-            SetRect(end.GetComponent<RectTransform>(), 0.72f, 0.13f, 0.92f, 0.21f);
+            SetRect(end.GetComponent<RectTransform>(), 0.72f, 0.16f, 0.92f, 0.24f);
 
             // 内嵌出售区：商店面板内直接列出已装备道具，点击展开详情(右上角出售)
             BuildSellStrip();
@@ -83,12 +83,12 @@ namespace Roguelite
             BuildConfirmDialog();
 
             var viewBtn = UIBuilder.Button("ViewInfo", panel.transform, "查看属性 / 符文", OpenInfo);
-            SetRect(viewBtn.GetComponent<RectTransform>(), 0.06f, 0.05f, 0.26f, 0.11f);
+            SetRect(viewBtn.GetComponent<RectTransform>(), 0.3f, 0.05f, 0.5f, 0.11f);
 
             var hint = UIBuilder.Text("ShopHint", panel.transform,
                 "购买固定价 · 锁定装备保留至下一次商店 · 满 8 件需先出售 · 点击下方装备格可查看效果并出售", 20,
                 new Color(0.85f, 0.85f, 0.85f), TextAnchor.MiddleLeft);
-            SetRect(hint.rectTransform, 0.3f, 0.05f, 0.94f, 0.11f);
+            SetRect(hint.rectTransform, 0.52f, 0.05f, 0.98f, 0.11f);
         }
 
         void BuildSlot(int i)
@@ -146,21 +146,28 @@ namespace Roguelite
             });
         }
 
-        /// <summary>内嵌出售区：商店槽位下方一横条 8 格正方形玩家装备栏。
-        /// 图标占满整格 + 深色玻璃底衬 + 金色全包边框，点击格子展开装备详情(右上角出售)。</summary>
+        /// <summary>左下角 4×2 出售区：与游戏画面装备格同一坐标位置、布局同步(格子间不留空)。
+        /// 格子尺寸随装备图标原比例动态(格子=图标大小) + 深色玻璃底衬 + 金色全包边框，点击展开装备详情。</summary>
         void BuildSellStrip()
         {
-            const float cellW = 0.056f, gap = 0.006f, left = 0.03f, top = 0.30f, bottom = 0.244f;
+            const float colStep = 0.050f, rowStep = 0.062f; // 列距收窄(与游戏装备格一致),行距约等于格子高 56px
+            const float startX = 0.012f, startY = 0.012f; // 与 HudView 装备格完全一致
             for (int i = 0; i < sellCells.Length; i++)
             {
                 int idx = i;
+                int col = i % 4, row = i / 4;
                 var go = UIBuilder.Button("SellCell_" + i, panel.transform, "", null);
-                SetRect(go.GetComponent<RectTransform>(), left + i * (cellW + gap), bottom, left + i * (cellW + gap) + cellW, top);
+                float cx = startX + col * colStep + colStep * 0.5f;
+                float cy = startY + row * rowStep + rowStep * 0.5f;
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = rt.anchorMax = new Vector2(cx, cy);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(rowStep * 1000f, rowStep * 1000f);
 
                 var btn = go.GetComponent<Button>();
                 btn.onClick.AddListener(() => OnSellCellClicked(idx));
 
-                // 全包边框与底衬：深色玻璃格 + 金色描边，形成装备槽的"质感"框
+                // 深色玻璃底衬 + 金色全包边框(保留质感边框,边框在格子边缘=图标大小处)
                 var fc = btn.colors;
                 fc.normalColor = new Color(0.1f, 0.1f, 0.14f, 0.95f);
                 fc.highlightedColor = new Color(0.22f, 0.22f, 0.3f, 0.95f);
@@ -171,11 +178,12 @@ namespace Roguelite
                 frame.effectColor = new Color(1f, 0.82f, 0.3f, 0.9f);
                 frame.effectDistance = new Vector2(2.5f, -2.5f);
 
-                // 装备小图标：占满格子(正方形)，图标内容紧贴边框内侧
+                // 图标:占满格子(preserveAspect 居中防拉伸),格子尺寸与图标同比例→无黑边
                 var iconGo = new GameObject("Icon", typeof(Image));
                 iconGo.transform.SetParent(go.transform, false);
                 SetRect(iconGo.transform as RectTransform, 0f, 0f, 1f, 1f);
                 var iconImg = iconGo.GetComponent<Image>();
+                iconImg.preserveAspect = true;
                 iconImg.raycastTarget = false;
 
                 // 槽号：格内左上角小字(置于图标之上)
@@ -371,7 +379,7 @@ namespace Roguelite
                 slots[i].root.SetActive(has);
                 if (has) RenderSlot(i);
             }
-            for (int i = 0; i < sellCells.Length; i++) RenderSellCell(i);
+            RenderSellStrip();
         }
 
         void RenderSlot(int idx)
@@ -421,19 +429,38 @@ namespace Roguelite
                 s.lockBtn.targetGraphic.color = colors.normalColor;
         }
 
-        /// <summary>内嵌装备格重绘：只显示 槽号 与装备图标(效果与售价在详情覆盖层中查看)。</summary>
-        void RenderSellCell(int idx)
+        /// <summary>内嵌装备格重绘(与游戏画面装备格同布局)：每行按图标实际宽度从左至右动态排布
+        /// (列间隙≈行间隙,格子=图标大小)，只显示 槽号 与装备图标(效果与售价在详情覆盖层中查看)。</summary>
+        void RenderSellStrip()
         {
-            SellCellUI c = sellCells[idx];
-            if (c == null || c.root == null) return;
-            ShopItemData item = SellItemAt(idx);
-            bool has = item != null;
-            c.root.SetActive(true);
-            c.button.interactable = has;
-            c.label.text = (idx + 1).ToString();
-            c.label.color = has ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.55f);
-            c.icon.enabled = has && item.IconSprite != null;
-            c.icon.sprite = has ? item.IconSprite : null;
+            const float hPx = 56f, gapX = 0.008f, startX = 0.012f, startY = 0.012f, rowStep = 0.062f;
+            const float wNorm = 1f / 1920f; // 锚点图 1920×1080；sizeDelta 直接用像素(56px)
+            for (int row = 0; row < 2; row++)
+            {
+                float accX = startX; // 行内已占用的左侧累计(锚点比例)
+                for (int col = 0; col < 4; col++)
+                {
+                    int i = row * 4 + col;
+                    SellCellUI c = sellCells[i];
+                    if (c == null || c.root == null) continue;
+                    ShopItemData item = SellItemAt(i);
+                    bool has = item != null;
+                    Sprite s = has ? item.IconSprite : null;
+                    float wPx = s != null ? hPx * (s.rect.width / Mathf.Max(1f, s.rect.height)) : hPx;
+                    // 格子尺寸=图标原比例,列间距固定小值(与行间隙一致,不留大空隙)
+                    var rt = c.root.GetComponent<RectTransform>();
+                    rt.anchorMin = rt.anchorMax = new Vector2(accX + wPx * wNorm * 0.5f, startY + row * rowStep + rowStep * 0.5f);
+                    rt.sizeDelta = new Vector2(wPx, hPx);
+                    accX += wPx * wNorm + gapX; // 推进行累计(gapX 即列间隙≈0.008)
+
+                    c.root.SetActive(true);
+                    c.button.interactable = has;
+                    c.label.text = (i + 1).ToString();
+                    c.label.color = has ? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.55f);
+                    c.icon.enabled = s != null;
+                    c.icon.sprite = s;
+                }
+            }
         }
 
         /// <summary>装备详情文本：名称/售价/属性加成/被动效果/主动效果。</summary>
